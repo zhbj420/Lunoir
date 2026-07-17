@@ -7,6 +7,8 @@ interface Handlers {
   toggleMute: () => void
   fullscreen: () => void
   openFile: () => void
+  next: () => void
+  prev: () => void
   onActivity: () => void
 }
 
@@ -43,6 +45,14 @@ export function useShortcuts(h: Handlers) {
         case 'o':
         case 'O':
           if (e.ctrlKey) h.openFile()
+          break
+        case '>':
+        case '.':
+          h.next()
+          break
+        case '<':
+        case ',':
+          h.prev()
           break
         default:
           return

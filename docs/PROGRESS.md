@@ -2,6 +2,49 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-17 · 深夜）
+
+**阶段：双窗口定型（主亚克力窗 + 独立亚克力 OSC 子窗），OSC 动画 / DWM 边框阴影 / IINA 风格右面板 / 窗口自适应视频比例均完成。下一步 Chapters 验证 + Tracks 页 + 面板亚克力化。**
+
+### 架构现状（修正上一版"单窗口"表述）
+最终落地为**两个窗口**：主窗（`backgroundMaterial:'acrylic'`，mpv `--wid` 视频）+ 独立 OSC 子窗（同样亚克力，贴底居中，跟随主窗）。独立 OSC 窗是必须的——CSS `backdrop-filter` 隔着 mpv 那层采样不到视频，只有真·亚克力窗口才能磨砂到视频上。
+
+### OSC 浮现/消失动画（已定手感）
+- 弃用 `show()`/CSS opacity（会触发 Windows 原生"放大弹出" + 半透明矩形残留的"叠层感"）。
+- 改为主进程 `animateOsc(reveal)`：`setOpacity()` + `setBounds()` 把**整块亚克力窗**当一个整体淡入+上浮 / 淡出+下沉（出现 260ms、消失 190ms，cubic-out/quad-in，位移 22px）。首次 `showInactive` 在全透明时完成，规避原生开窗动画。
+- 唤起手势：仅当鼠标**向下累计移动 > 60px**（原 34，用户要求加大）或靠近顶/底边才弹，避免过灵敏。
+
+### DWM 边框线 / 阴影（koffi 直调）
+- Win11 对**圆角+亚克力**窗口强制画 1px 边框线 + 投影，Electron 的 `hasShadow/roundedCorners` 关不掉。
+- 新增依赖 **`koffi`**（预编译 FFI，无需 build），新建 [src/main/dwm.ts](../src/main/dwm.ts) 直调 `DwmSetWindowAttribute`。
+- `DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE` → **边框线已删（用户确认）**。
+- 阴影：DWM 无浓淡旋钮，`showInactive` 已吃"非活动窗口淡版"，用户确认**当前淡阴影可接受**，保留圆角不改直角。
+
+### IINA 风格右面板（已做）
+- 新组件 [RightPanel.tsx](../src/renderer/src/components/RightPanel.tsx)：顶部 **PLAYLIST / CHAPTERS** 标签（大写+字距+短下划线），正在播放 **▶ + 方角整行高亮**，淡分割线，紧凑行距，底部**窗口按钮式工具条**（循环 off→all→one / 随机 / 添加 / 删除，均无圆角、边到边）。
+- 关闭改由 **OSC 列表按钮** toggle；面板开时列表按钮显示按下态（`.ib.on`，经 `ui:panel-open` 广播）。
+- 主进程管理列表：`repeatMode`、`shufflePlaylist`、`addToPlaylist`、`removeFromPlaylist`、`cycleRepeat`（mpv 只持有当前单文件，故都在主进程做）。Chapters 接 mpv `chapter-list`/`chapter`。
+- 背景近不透（0.99）灰调统一 OSC；**两侧面板最终转真亚克力窗口，留到后面一起做**（已记入记忆）。逐条时长暂缓。
+
+### 窗口自适应视频比例（已做）
+- 观察 `video-params/aspect`，视频加载后把主窗口客户区调成视频比例 → **窗口模式无黑边**（全屏才因屏幕比例出现黑 bar）。保持当前宽度、按比例调高度、居中、限制在工作区内。
+- `lastAspect` 守卫：**同比例不 resize**（连续同比例剧集不跳）；全屏/最大化时不动。已量验：1000×563 AR=1.776 ≈ 16:9。
+- 顺带把窗口 OS 标题从 `MMPlayer` 正名为 `Lunoir`（index.html `<title>`）。
+
+### 标题栏「外置」+ 杂项打磨（已做）
+- **标题栏移出视频**：mpv `--video-margin-ratio-top` 在顶部留一条（比例=TITLEBAR_H/窗口高，DPI 无关），视频画到它下面；AR 自适应改成让**视频区**贴合比例（窗口高 = 视频高 + 32）。有视频时标题栏是**灰条**（`body.has-media`），空状态透明透出磨砂桌面，全屏隐藏（`body.fullscreen`，margin 归零）。磨砂版标题栏并入以后「两侧面板亚克力化」一把做。
+- **OSC 上下微抖修复**：`revealUi` 里 `animateOsc(true)` 只在 `!oscShown` 时跑——OSC 已在位时鼠标移动只刷新隐藏计时，不再对 DPI ±1px 反复补间。
+- **OSC 磨砂通透度**：`--panel` scrim alpha 56%→44%（非活动 66%→54%），露更多亚克力磨砂。调这个 alpha 就是「更透/更实」的旋钮。
+- **OSC 自动隐藏** 2000→3500ms。
+- **Open File**：右键**直接**弹 URL 输入框（去掉「先切按钮再点」两步）。
+- **dev 空窗修复**：`electron-vite dev` 频繁重启把 HTTP 缓存搞坏 → `ERR_CACHE_READ_FAILURE` 空窗。`if (isDev) app.commandLine.appendSwitch('disable-http-cache')` 根治。
+- **命令报错刷屏修复**：`mpv:command` 处理器 try/catch 返回 null，吞掉「mpv not connected / property unavailable」这类预期拒绝。
+
+### 下一步
+- Chapters 用带章节文件验证；之后 Tracks（音轨+字幕合一页）；两侧面板+标题栏亚克力化；字幕加载。
+
+---
+
 ## 当前状态（2026-07-17 · 下午）
 
 **阶段：黑屏根因定位并修复，改为单窗口架构，视频+OSC 端到端跑通（我方截图验证）。**

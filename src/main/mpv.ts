@@ -18,7 +18,9 @@ const OBSERVED = [
   'media-title',
   'eof-reached',
   'path',
-  'pause'
+  'chapter',
+  'chapter-list',
+  'video-params/aspect'
 ] as const
 
 /**

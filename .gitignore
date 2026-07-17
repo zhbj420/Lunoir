@@ -4,3 +4,4 @@ dist/
 resources/mpv/
 *.log
 .DS_Store
+*.tsbuildinfo

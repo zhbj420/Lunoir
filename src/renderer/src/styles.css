@@ -1,9 +1,9 @@
 :root {
   /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
      brightness = the gray RGB, transparency = the alpha (lower = more frost). */
-  --panel: rgba(34, 34, 37, 0.56);
-  --track: rgb(96, 96, 101);
-  --accent: rgb(156, 156, 162);
+  --panel: rgba(34, 34, 37, 0.44);
+  --track: rgb(128, 128, 134);
+  --accent: rgb(188, 188, 193);
   --glyph: rgb(156, 156, 162);
   --glyph-strong: rgb(173, 173, 179);
   --text: rgba(255, 255, 255, 0.96);
@@ -14,7 +14,7 @@
 /* When the app is inactive, Win11 lightens the acrylic; thicken the scrims a bit
    to soften (not fully cancel) the brightening. */
 body.app-inactive {
-  --panel: rgba(34, 34, 37, 0.66);
+  --panel: rgba(34, 34, 37, 0.54);
   --empty-scrim: rgba(16, 16, 20, 0.32);
 }
 
@@ -62,10 +62,21 @@ body,
   display: flex;
   align-items: center;
   z-index: 20;
-  /* no dark band: let the window (acrylic / video) show through; text/buttons
-     rely on their own shadow for legibility over bright video */
+  /* empty state: transparent so the frosted-acrylic desktop shows through */
   background: transparent;
-  transition: opacity 0.28s ease;
+  transition: background 0.2s ease;
+}
+
+/* with a video loaded, the title bar is an opaque grey chrome strip and the
+   video is pushed below it (mpv top margin, see updateVideoMargin in main) */
+body.has-media .titlebar {
+  background: rgba(34, 34, 37, 1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* fullscreen is immersive: no strip, the video fills the screen */
+body.fullscreen .titlebar {
+  display: none;
 }
 
 .titlebar-drag {
@@ -123,10 +134,6 @@ body,
   color: #fff;
 }
 
-.ui-hidden .titlebar {
-  opacity: 0;
-  pointer-events: none;
-}
 
 /* ---------- Empty state (Lunoir home) ---------- */
 .empty-state {
@@ -311,11 +318,11 @@ body,
 .osc-win {
   position: fixed;
   inset: 0;
-  transition: opacity 0.22s ease;
+  /* the whole acrylic window is faded + slid by the main process (setOpacity +
+     setBounds), so the content itself doesn't animate */
 }
 
 .osc-win.ui-hidden {
-  opacity: 0;
   pointer-events: none;
 }
 
@@ -372,7 +379,7 @@ body,
   background: transparent;
   color: var(--glyph);
   cursor: pointer;
-  border-radius: 9px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -383,6 +390,15 @@ body,
 .ib:hover {
   background: rgba(255, 255, 255, 0.14);
   color: var(--glyph-strong);
+}
+
+/* volume + the centre transport buttons: no highlight box on hover — just a
+   slight grow + brighten. Settings/list (grp.right) keep the boxed highlight. */
+.grp.left .ib:hover,
+.grp.center .ib:hover {
+  background: transparent;
+  color: rgb(205, 205, 211);
+  transform: scale(1.1);
 }
 
 .ib:active {
@@ -396,6 +412,16 @@ body,
 
 .ib.s {
   padding: 7px;
+}
+
+/* toggled-on state (e.g. list button while the right panel is open) */
+.ib.on {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--glyph-strong);
+}
+
+.ib.on:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .ib.dim {
@@ -429,7 +455,7 @@ body,
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: rgb(166, 166, 172);
+  background: rgb(210, 210, 215);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
   transition: transform 0.12s ease;
 }
@@ -440,7 +466,7 @@ body,
 
 /* seek handle is a thin, tall vertical bar (playhead), not a dot */
 .seek::-webkit-slider-thumb {
-  width: 3px;
+  width: 4px;
   height: 20px;
   border-radius: 0.5px;
 }
@@ -477,4 +503,236 @@ body,
 
 .t.dur {
   text-align: left;
+}
+
+/* ---------- Side panel (playlist) ---------- */
+.panel {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  /* same grey family as the OSC (--panel), but near-opaque: a web layer can't
+     frost the mpv video behind it, so translucency here would just ghost the
+     video. (Both panels become real acrylic windows in a later pass.) */
+  background: rgba(34, 34, 37, 0.99);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  transform: translateX(100%);
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.24s ease;
+}
+
+/* shadow only while open — a closed panel sits just off the right edge and its
+   leftward shadow would otherwise bleed a dark gradient onto the video */
+.panel.open {
+  transform: translateX(0);
+  box-shadow: -10px 0 34px rgba(0, 0, 0, 0.28);
+}
+
+.panel-tabs {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.panel-tab {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  padding: 11px 3px 12px;
+  margin-right: 22px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.16s;
+}
+
+.panel-tab:hover {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.panel-tab.active {
+  color: var(--text);
+}
+
+.panel-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--text);
+}
+
+.panel-tabs-spacer {
+  flex: 1;
+}
+
+.panel-close {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.panel-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.panel-empty {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 34px 0;
+}
+
+.pl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.pl-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+
+.pl-item.active {
+  background: rgba(255, 255, 255, 0.13);
+  color: var(--text);
+}
+
+.pl-mark {
+  flex: none;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.pl-idx {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-item.active .pl-idx {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.pl-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-time {
+  flex: none;
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-item.active .pl-time {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* bottom toolbar (playlist tab) — window-button language: square, flush, flat */
+.panel-tools {
+  display: flex;
+  align-items: stretch;
+  height: 29px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.panel-tools-spacer {
+  flex: 1;
+}
+
+.tool {
+  width: 42px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tool:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+}
+
+.tool.on {
+  color: var(--text);
+}
+
+.tool:disabled {
+  opacity: 0.3;
+  cursor: default;
+  background: transparent;
+}
+
+.tool-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 3px;
+  padding: 1px 2px;
 }

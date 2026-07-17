@@ -14,6 +14,8 @@ export default function OscView() {
     toggleMute: p.toggleMute,
     fullscreen: p.fullscreen,
     openFile: p.openFile,
+    next: () => window.mmp.playNext(),
+    prev: () => window.mmp.playPrev(),
     onActivity: p.reveal
   })
 

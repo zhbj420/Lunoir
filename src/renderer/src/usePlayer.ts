@@ -32,9 +32,15 @@ export function usePlayer() {
           case 'pause':
             return { ...s, pause: Boolean(data) }
           case 'time-pos':
-            return { ...s, timePos: typeof data === 'number' ? data : s.timePos }
+            // any playback position means media is loaded (robust against
+            // missing the one-shot path/filename event on late subscribe)
+            return typeof data === 'number'
+              ? { ...s, timePos: data, hasMedia: true }
+              : s
           case 'duration':
-            return { ...s, duration: typeof data === 'number' ? data : s.duration }
+            return typeof data === 'number' && data > 0
+              ? { ...s, duration: data, hasMedia: true }
+              : s
           case 'volume':
             return { ...s, volume: typeof data === 'number' ? data : s.volume }
           case 'mute':

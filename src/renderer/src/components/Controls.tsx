@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { PlayerState } from '../usePlayer'
 
 function fmt(sec: number): string {
@@ -23,6 +24,10 @@ export default function Controls(props: Props) {
   const { state } = props
   const pct = state.duration > 0 ? (state.timePos / state.duration) * 100 : 0
   const volPct = Math.min(100, (state.volume / 150) * 100)
+
+  // reflect whether the right panel is open, so the list button reads "pressed"
+  const [panelOpen, setPanelOpen] = useState(false)
+  useEffect(() => window.mmp.onPanelState(setPanelOpen), [])
 
   return (
     <div className="osc">
@@ -59,7 +64,11 @@ export default function Controls(props: Props) {
           <button className="ib s" title="Settings (coming soon)">
             <IcGear />
           </button>
-          <button className="ib s" title="Playlist (coming soon)">
+          <button
+            className={`ib s ${panelOpen ? 'on' : ''}`}
+            title="Playlist"
+            onClick={() => window.mmp.togglePanel('playlist')}
+          >
             <IcList />
           </button>
         </div>
