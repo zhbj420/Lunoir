@@ -1,13 +1,21 @@
 :root {
-  /* Flat monochrome grays — three levels: panel (dark), track (mid), controls
-     (muted light-gray, deliberately not bright). */
-  --panel: rgba(40, 40, 44, 0.95);
+  /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
+     brightness = the gray RGB, transparency = the alpha (lower = more frost). */
+  --panel: rgba(34, 34, 37, 0.56);
   --track: rgb(96, 96, 101);
   --accent: rgb(156, 156, 162);
   --glyph: rgb(156, 156, 162);
   --glyph-strong: rgb(173, 173, 179);
   --text: rgba(255, 255, 255, 0.96);
   --text-dim: rgba(255, 255, 255, 0.6);
+  --empty-scrim: rgba(16, 16, 20, 0.2);
+}
+
+/* When the app is inactive, Win11 lightens the acrylic; thicken the scrims a bit
+   to soften (not fully cancel) the brightening. */
+body.app-inactive {
+  --panel: rgba(34, 34, 37, 0.66);
+  --empty-scrim: rgba(16, 16, 20, 0.32);
 }
 
 * {
@@ -50,11 +58,13 @@ body,
   top: 0;
   left: 0;
   right: 0;
-  height: 44px;
+  height: 32px;
   display: flex;
   align-items: center;
   z-index: 20;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  /* no dark band: let the window (acrylic / video) show through; text/buttons
+     rely on their own shadow for legibility over bright video */
+  background: transparent;
   transition: opacity 0.28s ease;
 }
 
@@ -71,7 +81,7 @@ body,
 .title-text {
   font-size: 13px;
   font-weight: 500;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,25 +90,27 @@ body,
 
 .window-controls {
   position: absolute;
-  right: 8px;
-  top: 7px;
+  right: 0;
+  top: 0;
   display: flex;
-  gap: 2px;
+  gap: 0;
   -webkit-app-region: no-drag;
 }
 
+/* Windows-standard caption buttons: flush to the top-right, square, edge-to-edge */
 .win-btn {
-  width: 30px;
-  height: 26px;
+  width: 46px;
+  height: 32px;
   border: none;
   background: transparent;
   color: var(--text-dim);
-  border-radius: 6px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  transition: background 0.12s, color 0.12s;
 }
 
 .win-btn:hover {
@@ -116,7 +128,7 @@ body,
   pointer-events: none;
 }
 
-/* ---------- Empty state ---------- */
+/* ---------- Empty state (Lunoir home) ---------- */
 .empty-state {
   position: absolute;
   inset: 0;
@@ -124,78 +136,202 @@ body,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   color: var(--text-dim);
   pointer-events: none;
+  /* faint scrim over the main-window acrylic: keeps text readable and softens
+     the inactive brightening (thicker when inactive) */
+  background: var(--empty-scrim);
 }
 
-.empty-logo {
-  color: var(--accent);
-  margin-bottom: 8px;
+.brand-logo {
+  width: 138px;
+  height: 138px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 10px 34px rgba(96, 108, 255, 0.4));
 }
 
-.empty-state h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: 0.5px;
+/* Wordmark = your Lunoir lettering (white PNG) used as a mask, filled with the
+   brand gradient. Vector-crisp at any size; swap the PNG to restyle. */
+.brand-name {
+  margin-top: -24px; /* logo PNG has transparent padding; pull the name up close */
+  width: 172px;
+  height: 52px; /* wordmark aspect ≈ 3.3:1 */
+  background: linear-gradient(105deg, #8fbcff 0%, #b39bfb 55%, #c887f7 100%);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  filter: drop-shadow(0 2px 14px rgba(120, 130, 255, 0.3));
 }
 
-.empty-state p {
-  margin: 0 0 14px;
+.brand-tagline {
+  margin-top: 20px;
   font-size: 13px;
+  color: rgba(255, 255, 255, 0.62);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+.brand-tagline kbd {
+  font-family: inherit;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin: 0 1px;
+}
+
+.cta-wrap {
+  margin-top: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.cta-hint {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.02em;
+}
+
+.url-box {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  width: min(420px, 68vw);
+}
+
+.url-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.url-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.url-input:focus {
+  border-color: rgba(122, 142, 255, 0.8);
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.url-go {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #4a86ff 0%, #8b5cf6 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(96, 108, 255, 0.34);
+  transition: filter 0.15s, transform 0.12s;
+}
+
+.url-go:hover {
+  filter: brightness(1.09);
+}
+
+.url-go:active {
+  transform: scale(0.94);
 }
 
 .open-btn {
   pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(135deg, #4a86ff 0%, #8b5cf6 100%);
   color: #fff;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
-  padding: 9px 22px;
-  border-radius: 9px;
+  padding: 10px 24px;
+  border-radius: 11px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.12s;
+  box-shadow: 0 8px 24px rgba(96, 108, 255, 0.36);
+  transition: filter 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 
 .open-btn:hover {
-  background: rgba(255, 255, 255, 0.26);
+  filter: brightness(1.09);
+  box-shadow: 0 10px 30px rgba(96, 108, 255, 0.48);
 }
 
 .open-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
-/* ---------- OSC (floating control panel) ---------- */
-.osc {
+/* URL mode (toggled via right-click) — distinct cyan-blue */
+.open-btn.is-url {
+  background: linear-gradient(135deg, #2fb6e8 0%, #4a86ff 100%);
+  box-shadow: 0 8px 24px rgba(46, 160, 232, 0.38);
+}
+
+.open-btn.is-url:hover {
+  box-shadow: 0 10px 30px rgba(46, 160, 232, 0.5);
+}
+
+/* drag-and-drop highlight (whole window) */
+.drop-hint {
   position: absolute;
-  left: 50%;
-  /* responsive bottom margin: fixed in a window, scales up in fullscreen */
-  bottom: max(60px, 6vh);
-  transform: translateX(-50%);
-  width: min(560px, calc(100% - 96px));
-  z-index: 20;
+  inset: 14px;
+  border: 2px dashed transparent;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 30;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.app.dragging .drop-hint {
+  border-color: rgba(122, 142, 255, 0.75);
+  background: rgba(96, 108, 255, 0.09);
+}
+
+/* ---------- OSC (inside the Win11 acrylic window) ---------- */
+.osc-win {
+  position: fixed;
+  inset: 0;
+  transition: opacity 0.22s ease;
+}
+
+.osc-win.ui-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.osc {
+  /* fills the acrylic window; the window itself provides the frosted background,
+     rounded corners and shadow, so the panel stays transparent */
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 0 14px 16px;
-  border-radius: 10px;
-  /* No backdrop-filter: it promotes this to a compositing layer that renders
-     BEHIND the embedded mpv child window. Solid translucent fill instead.
-     True video-color frost needs a separate Win11 acrylic child window;
-     instead we tint --panel toward the video color (sampled in main), as a
-     single flat opaque color (no gradient). */
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px 12px;
+  /* flat gray, mostly opaque — the remaining alpha lets a little acrylic frost
+     show through (tune via --panel: brightness = RGB, transparency = alpha) */
   background: var(--panel);
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.16);
-  transition: opacity 0.26s ease, transform 0.26s ease;
-}
-
-.ui-hidden .osc {
-  opacity: 0;
-  transform: translateX(-50%) translateY(12px);
-  pointer-events: none;
 }
 
 .osc-row {

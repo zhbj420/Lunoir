@@ -42,7 +42,8 @@ export class MpvController extends EventEmitter {
   start(opts: MpvStartOptions = {}): void {
     const args = [
       '--idle=yes',
-      '--force-window=yes',
+      // no --force-window: on the empty state mpv creates no window, so the
+      // main window's acrylic (frosted desktop) shows instead of an mpv black box
       '--keep-open=yes',
       '--no-osc',
       '--no-osd-bar',

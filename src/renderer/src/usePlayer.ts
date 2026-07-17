@@ -16,14 +16,13 @@ const initial: PlayerState = {
   duration: 0,
   volume: 100,
   mute: false,
-  title: 'MMPlayer',
+  title: 'Lunoir',
   hasMedia: false
 }
 
 export function usePlayer() {
   const [state, setState] = useState<PlayerState>(initial)
   const [revealed, setRevealed] = useState(true)
-  const hideTimer = useRef<number | null>(null)
 
   // Subscribe to mpv property changes forwarded from the main process.
   useEffect(() => {
@@ -52,11 +51,24 @@ export function usePlayer() {
     })
   }, [])
 
-  const reveal = useCallback(() => {
-    setRevealed(true)
-    if (hideTimer.current) window.clearTimeout(hideTimer.current)
-    hideTimer.current = window.setTimeout(() => setRevealed(false), 2600)
+  // Reveal / auto-hide is coordinated by main across both windows.
+  useEffect(() => {
+    const offR = window.mmp.onReveal(() => setRevealed(true))
+    const offH = window.mmp.onHide(() => setRevealed(false))
+    return () => {
+      offR()
+      offH()
+    }
   }, [])
+
+  // Compensate the acrylic scrim when the app is inactive (see styles.css).
+  useEffect(() => {
+    return window.mmp.onAppFocus(focused => {
+      document.body.classList.toggle('app-inactive', !focused)
+    })
+  }, [])
+
+  const reveal = useCallback(() => window.mmp.activity(), [])
 
   // Controls stay visible whenever paused or nothing is loaded.
   const showUi = revealed || state.pause || !state.hasMedia

@@ -27,6 +27,24 @@ const api = {
     return () => ipcRenderer.removeListener('mpv:connected', h)
   },
 
+  // reveal / auto-hide coordinated across the two windows by main
+  activity: (): void => ipcRenderer.send('ui:activity'),
+  onReveal: (cb: () => void) => {
+    const h = () => cb()
+    ipcRenderer.on('ui:reveal', h)
+    return () => ipcRenderer.removeListener('ui:reveal', h)
+  },
+  onHide: (cb: () => void) => {
+    const h = () => cb()
+    ipcRenderer.on('ui:hide', h)
+    return () => ipcRenderer.removeListener('ui:hide', h)
+  },
+  onAppFocus: (cb: (focused: boolean) => void) => {
+    const h = (_e: unknown, focused: boolean) => cb(focused)
+    ipcRenderer.on('app:focus', h)
+    return () => ipcRenderer.removeListener('app:focus', h)
+  },
+
   // --- app / window ---
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
