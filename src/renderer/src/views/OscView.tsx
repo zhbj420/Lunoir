@@ -20,7 +20,12 @@ export default function OscView() {
   })
 
   return (
-    <div className={`osc-win ${p.showUi ? 'ui-visible' : 'ui-hidden'}`} onMouseMove={p.reveal}>
+    <div
+      className={`osc-win ${p.showUi ? 'ui-visible' : 'ui-hidden'}`}
+      onMouseMove={p.reveal}
+      onMouseEnter={() => window.mmp.setOscHover(true)}
+      onMouseLeave={() => window.mmp.setOscHover(false)}
+    >
       <Controls
         state={p.state}
         onTogglePause={p.togglePause}

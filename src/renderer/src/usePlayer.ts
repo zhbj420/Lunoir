@@ -76,8 +76,10 @@ export function usePlayer() {
 
   const reveal = useCallback(() => window.mmp.activity(), [])
 
-  // Controls stay visible whenever paused or nothing is loaded.
-  const showUi = revealed || state.pause || !state.hasMedia
+  // Controls auto-hide during playback and while paused; they stay only when
+  // nothing is loaded (the empty state). Pausing still calls revealUi(), so the
+  // OSC lingers ~3.5s after a pause before fading.
+  const showUi = revealed || !state.hasMedia
 
   const actions = useRef({
     togglePause: () => window.mmp.command(['cycle', 'pause']),

@@ -20,7 +20,10 @@ const OBSERVED = [
   'path',
   'chapter',
   'chapter-list',
-  'video-params/aspect'
+  'video-params/aspect',
+  'track-list',
+  'aid',
+  'sid'
 ] as const
 
 /**
@@ -50,7 +53,9 @@ export class MpvController extends EventEmitter {
       '--no-osc',
       '--no-osd-bar',
       '--osc=no',
-      '--vo=gpu',
+      // gpu-next (libplacebo) handles Dolby Vision RPU metadata + better HDR
+      // tone-mapping; plain --vo=gpu shows DV Profile 5 with a green/washed cast
+      '--vo=gpu-next',
       '--hwdec=auto',
       '--input-default-bindings=yes',
       '--input-vo-keyboard=yes',

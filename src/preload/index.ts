@@ -38,6 +38,8 @@ const api = {
 
   // reveal / auto-hide coordinated across the two windows by main
   activity: (): void => ipcRenderer.send('ui:activity'),
+  // pointer entered/left the OSC window — main pauses auto-hide while it's over
+  setOscHover: (hovering: boolean): void => ipcRenderer.send('ui:osc-hover', hovering),
   onReveal: (cb: () => void): Unsubscribe => subscribe('ui:reveal', () => cb()),
   onHide: (cb: () => void): Unsubscribe => subscribe('ui:hide', () => cb()),
   onAppFocus: (cb: (focused: boolean) => void): Unsubscribe =>

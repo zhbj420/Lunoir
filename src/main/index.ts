@@ -27,7 +27,7 @@ let panelOpen = false
 let hideTimer: NodeJS.Timeout | null = null
 let oscAnim: NodeJS.Timeout | null = null
 let oscShown = false
-let paused = true
+let oscHovered = false // pointer is over the OSC window → don't auto-hide
 let hasMedia = false
 
 const VIDEO_EXT = [
@@ -257,7 +257,7 @@ function revealUi(): void {
   if (hasMedia && !oscShown) animateOsc(true)
   if (hideTimer) clearTimeout(hideTimer)
   hideTimer = setTimeout(() => {
-    if (hasMedia && paused) return // keep controls up while paused
+    if (oscHovered) return // pointer is over the OSC — keep it up (no flicker)
     broadcast('ui:hide')
     animateOsc(false) // slide down + fade out
   }, 3500)
@@ -424,7 +424,6 @@ function startMpv(): void {
 
   mpv = new MpvController(mpvPath)
   mpv.on('property', (name: string, data: unknown) => {
-    if (name === 'pause') paused = Boolean(data)
     const wasMedia = hasMedia
     if ((name === 'path' || name === 'filename' || name === 'media-title') && data) hasMedia = true
     broadcast('mpv:property', { name, data })
@@ -466,6 +465,14 @@ function registerIpc(): void {
   ipcMain.on('mpv:set', (_e, name: string, value: unknown) => mpv?.setProperty(name, value))
   ipcMain.on('mpv:loadfile', (_e, path: string) => openMedia(path))
   ipcMain.on('ui:activity', () => revealUi())
+  ipcMain.on('ui:osc-hover', (_e, hovering: boolean) => {
+    oscHovered = Boolean(hovering)
+    if (oscHovered) {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null } // stay up while hovered
+    } else {
+      revealUi() // pointer left the OSC → start the 3.5s countdown fresh
+    }
+  })
 
   // playlist
   ipcMain.handle('playlist:get', () => playlistPayload())
