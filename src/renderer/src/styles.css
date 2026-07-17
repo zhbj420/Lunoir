@@ -1,0 +1,344 @@
+:root {
+  /* Flat monochrome grays — three levels: panel (dark), track (mid), controls
+     (muted light-gray, deliberately not bright). */
+  --panel: rgba(40, 40, 44, 0.95);
+  --track: rgb(96, 96, 101);
+  --accent: rgb(156, 156, 162);
+  --glyph: rgb(156, 156, 162);
+  --glyph-strong: rgb(173, 173, 179);
+  --text: rgba(255, 255, 255, 0.96);
+  --text-dim: rgba(255, 255, 255, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--text);
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+}
+
+.app.ui-hidden {
+  cursor: none;
+}
+
+/* transparent region where the mpv video shows through */
+.video-surface {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+/* ---------- Title bar ---------- */
+.titlebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  z-index: 20;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  transition: opacity 0.28s ease;
+}
+
+.titlebar-drag {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: drag;
+  padding: 0 130px;
+}
+
+.title-text {
+  font-size: 13px;
+  font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60vw;
+}
+
+.window-controls {
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn {
+  width: 30px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.win-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+}
+
+.win-close:hover {
+  background: #e33;
+  color: #fff;
+}
+
+.ui-hidden .titlebar {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- Empty state ---------- */
+.empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.empty-logo {
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.empty-state h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.empty-state p {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.open-btn {
+  pointer-events: auto;
+  border: none;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 22px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
+}
+
+.open-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.open-btn:active {
+  transform: scale(0.96);
+}
+
+/* ---------- OSC (floating control panel) ---------- */
+.osc {
+  position: absolute;
+  left: 50%;
+  /* responsive bottom margin: fixed in a window, scales up in fullscreen */
+  bottom: max(60px, 6vh);
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 96px));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 14px 16px;
+  border-radius: 10px;
+  /* No backdrop-filter: it promotes this to a compositing layer that renders
+     BEHIND the embedded mpv child window. Solid translucent fill instead.
+     True video-color frost needs a separate Win11 acrylic child window;
+     instead we tint --panel toward the video color (sampled in main), as a
+     single flat opaque color (no gradient). */
+  background: var(--panel);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.16);
+  transition: opacity 0.26s ease, transform 0.26s ease;
+}
+
+.ui-hidden .osc {
+  opacity: 0;
+  transform: translateX(-50%) translateY(12px);
+  pointer-events: none;
+}
+
+.osc-row {
+  display: flex;
+  align-items: center;
+}
+
+.osc-buttons {
+  justify-content: space-between;
+}
+
+.grp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grp.center {
+  gap: 8px;
+}
+
+.grp.left,
+.grp.right {
+  flex: 1;
+}
+
+.grp.left {
+  gap: 2px;
+}
+
+.grp.right {
+  justify-content: flex-end;
+  gap: 1px;
+}
+
+.ib {
+  border: none;
+  background: transparent;
+  color: var(--glyph);
+  cursor: pointer;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.ib:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--glyph-strong);
+}
+
+.ib:active {
+  transform: scale(0.9);
+}
+
+.ib.play {
+  color: var(--glyph-strong);
+  padding: 7px;
+}
+
+.ib.s {
+  padding: 7px;
+}
+
+.ib.dim {
+  color: var(--text-dim);
+}
+
+/* range inputs */
+.rng {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--fill, 0%),
+    var(--track) var(--fill, 0%),
+    var(--track) 100%
+  );
+  cursor: pointer;
+  outline: none;
+}
+
+.rng {
+  height: 4px;
+}
+
+.rng::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgb(166, 166, 172);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease;
+}
+
+.rng:hover::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+
+/* seek handle is a thin, tall vertical bar (playhead), not a dot */
+.seek::-webkit-slider-thumb {
+  width: 3px;
+  height: 20px;
+  border-radius: 0.5px;
+}
+
+.seek:hover::-webkit-slider-thumb {
+  transform: scaleX(1.5);
+}
+
+.volume {
+  width: 92px;
+}
+
+.osc-seek {
+  gap: 9px;
+  padding: 0 8px;
+}
+
+.seek {
+  flex: 1;
+}
+
+.t {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(144, 144, 150);
+  min-width: 46px;
+}
+
+.t.cur {
+  text-align: right;
+}
+
+.t.dur {
+  text-align: left;
+}

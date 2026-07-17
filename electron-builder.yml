@@ -1,0 +1,20 @@
+appId: com.mmplayer.app
+productName: MMPlayer
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - '!**/*.map'
+extraResources:
+  - from: resources/mpv
+    to: mpv
+    filter:
+      - '**/*'
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
