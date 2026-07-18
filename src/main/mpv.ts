@@ -14,6 +14,7 @@ const OBSERVED = [
   'duration',
   'volume',
   'mute',
+  'speed', // playback speed → context-menu Speed submenu checkmark
   'filename',
   'media-title',
   'eof-reached',
@@ -48,7 +49,11 @@ export class MpvController extends EventEmitter {
 
   constructor(private readonly mpvPath: string) {
     super()
-    this.pipePath = `\\\\.\\pipe\\mmplayer-${process.pid}-${Date.now()}`
+    // Fixed pipe name (not per-pid) so external tools like SVP can find and attach
+    // to this mpv over IPC. We use SVP's own default ('mpvpipe') so its mpv target
+    // works with zero config. mpv's named pipe accepts multiple clients, so our
+    // control connection and SVP coexist. (Trade-off: one instance at a time.)
+    this.pipePath = '\\\\.\\pipe\\mpvpipe'
   }
 
   start(opts: MpvStartOptions = {}): void {

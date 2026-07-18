@@ -6,6 +6,7 @@ export interface PlayerState {
   duration: number
   volume: number
   mute: boolean
+  speed: number // playback speed (1 = normal)
   title: string // shown in the title bar — the file name (media-title only as fallback)
   fileName: string // mpv 'filename' — preferred title; guards against junk title tags
   hasMedia: boolean
@@ -22,6 +23,7 @@ const initial: PlayerState = {
   duration: 0,
   volume: 100,
   mute: false,
+  speed: 1,
   title: 'Lunoir',
   fileName: '',
   hasMedia: false,
@@ -57,6 +59,8 @@ export function usePlayer() {
             return { ...s, volume: typeof data === 'number' ? data : s.volume }
           case 'mute':
             return { ...s, mute: Boolean(data) }
+          case 'speed':
+            return { ...s, speed: typeof data === 'number' ? data : s.speed }
           case 'filename':
             // the file name is the preferred title-bar text
             return data ? { ...s, title: String(data), fileName: String(data), hasMedia: true } : s

@@ -152,6 +152,9 @@ export default function Controls(props: Props) {
           style={{ ['--fill' as any]: `${pct}%` }}
           onChange={e => props.onSeek(Number(e.target.value))}
         />
+        {Math.abs(state.speed - 1) > 0.01 && (
+          <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+        )}
         <span className="t dur">{fmt(state.duration)}</span>
       </div>
     </div>

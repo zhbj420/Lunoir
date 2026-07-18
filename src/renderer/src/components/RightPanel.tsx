@@ -357,7 +357,7 @@ const Chevron = () => (
 
 // The right-hand context panel. Tabs: Playlist, Chapters, Audio & Sub.
 export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>('playlist')
+  const [tab, setTab] = useState<Tab>('tracks') // Audio & Sub is the default tab
   const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [curChapter, setCurChapter] = useState(-1)
@@ -517,14 +517,14 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       onWheel={e => e.stopPropagation()}
     >
       <div className="panel-tabs">
+        <button className={`panel-tab ${tab === 'tracks' ? 'active' : ''}`} onClick={() => setTab('tracks')}>
+          Audio &amp; Sub
+        </button>
         <button className={`panel-tab ${tab === 'playlist' ? 'active' : ''}`} onClick={() => setTab('playlist')}>
           Playlist
         </button>
         <button className={`panel-tab ${tab === 'chapters' ? 'active' : ''}`} onClick={() => setTab('chapters')}>
           Chapters
-        </button>
-        <button className={`panel-tab ${tab === 'tracks' ? 'active' : ''}`} onClick={() => setTab('tracks')}>
-          Audio &amp; Sub
         </button>
         <span className="panel-tabs-spacer" />
         <button className="panel-collapse" title="Collapse panel" onClick={onClose}>

@@ -2,6 +2,32 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-18 · 右键菜单 / 倍速 / 截图 / SVP 就绪）
+
+**阶段：加了右键上下文菜单（自绘）、倍速、截图、画面比例、SVP 帧插值就绪。均端到端验证（含真 DV 文件 + SVP 实测）。**
+
+### 右键菜单（自绘 HTML，仅播放中）
+- 新组件 [ContextMenu.tsx](../src/renderer/src/components/ContextMenu.tsx)：光标处弹、贴边翻转、子菜单（悬停 or **点击**展开，触屏友好）、点外部/Esc/选中即关；hover gate 在 `@media(hover:hover)`。
+- 挂在 [OverlayView](../src/renderer/src/views/OverlayView.tsx) 视频区右键（`hasMedia` 才弹；空状态右键仍是 URL 快捷方式）。项：播放/暂停 · 上/下一个（列表>1 亮）· 上/下一章（有章节亮，`add chapter ±1`）· **倍速**子菜单 · **画面比例**子菜单（`video-aspect-override`/`keepaspect`）· **截图**子菜单 · 打开文件/URL · 全屏。
+- **打开 URL 浮层**（播放中也能弹，复用 `.url-box`）；**toast** 组件（截图/变速提示）。
+
+### 倍速
+- mpv 观察 `speed`；变速时弹 toast；**≠1× 时**进度条右侧、总时长前常驻 muted `1.5×`（[Controls.tsx](../src/renderer/src/components/Controls.tsx) `.osc-speed`，纯信息样式不像按钮 —— 用户定的位置）。
+
+### 截图
+- mpv `screenshot`（含字幕）/ `screenshot video`（不含字幕）子菜单；**原始分辨率、无控件**（mpv 只截自己那层）、PNG，存 `图片/Lunoir`（主进程 `connected` 时设 `screenshot-directory/template/format`）。
+
+### 画面比例
+- 默认 / 16:9 / 4:3 / 2.35:1 / 铺满（`keepaspect=no`）；本地 state 记当前 + 勾选。
+
+### SVP 帧插值就绪（不打包 SVP）
+- mpv IPC 管道从动态改**固定 `\\.\pipe\mpvpipe`**（[mpv.ts](../src/main/mpv.ts)）—— SVP 默认就叫 `mpvpipe`，用户 SVP 里配好 mpv 目标即自动生效，**零额外配置**。**无 UI、无开关、无检测**：SVP 才是插帧开关（跟 MPC 一样靠 SVP 托盘/热键控制），mpv 遇到 vapoursynth 滤镜会自动把帧取回内存，`hwdec=auto` 也能工作，故不需要我们切 `auto-copy`。没装 SVP 的用户对这条管道完全无感。**权衡**：固定管道 → 同机一次只跑一个实例。（曾加过检测+菜单开关，实测发现开关不是真开关、误导，已删。）
+
+### 右面板
+- **Audio & Sub 调到第一位 + 设为默认 tab**（`useState<Tab>('tracks')`）。
+
+---
+
 ## 当前状态（2026-07-18 · Phase 2 续：OSC 商业名标 / DV / 标题栏 / 播放列表工具条 / 触屏 hover）
 
 **阶段：在 MediaInfo 管线之上继续铺开 —— OSC 音频/HDR 标升商业名（含 Dolby Vision）、标题栏正名、播放列表工具条重整、触屏粘滞 hover 根治。全部端到端验证或类型/构建通过，待提交。**

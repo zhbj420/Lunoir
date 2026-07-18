@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
 import { join, dirname, basename, extname } from 'node:path'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, mkdirSync } from 'node:fs'
 import { spawn, ChildProcess } from 'node:child_process'
 import { MpvController } from './mpv'
 import { removeBorderLine, setCornerPreference, CORNER_DEFAULT, CORNER_DONOTROUND } from './dwm'
@@ -719,6 +719,13 @@ function startMpv(): void {
   mpv.on('connected', () => {
     broadcast('mpv:connected')
     updateVideoMargin() // reserve the title strip from the start
+    // screenshots (context-menu action) → Pictures/Lunoir, PNG, named after the
+    // source + playback timestamp
+    const shotDir = join(app.getPath('pictures'), 'Lunoir')
+    try { mkdirSync(shotDir, { recursive: true }) } catch { /* ignore */ }
+    mpv!.setProperty('screenshot-directory', shotDir)
+    mpv!.setProperty('screenshot-template', '%F_%wH-%wM-%wS')
+    mpv!.setProperty('screenshot-format', 'png')
     if (process.env['MMP_OPEN']) {
       setTimeout(() => openMedia(process.env['MMP_OPEN'] as string), 300)
       if (process.env['MMP_PANEL']) setTimeout(() => win?.webContents.send('ui:panel-toggle', 'playlist'), 900)

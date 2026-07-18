@@ -525,6 +525,17 @@ body.fullscreen .titlebar {
   text-align: left;
 }
 
+/* playback-speed indicator on the seek row (only shown when speed != 1×). Plain
+   muted text, like the time — reads as info, not a control. */
+.osc-speed {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+  color: rgb(168, 168, 175);
+}
+
 /* content marks (HDR + audio format), stacked in the button row's right gap —
    plain text, no chip/shadow, both the same brightness */
 .osc-fmt {
@@ -1079,3 +1090,130 @@ body.fullscreen .panel {
   border-radius: 3px;
   padding: 1px 2px;
 }
+
+/* ---------- Right-click context menu (playback only) ---------- */
+.ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.ctx-menu,
+.ctx-sub {
+  position: fixed;
+  min-width: 196px;
+  padding: 5px;
+  background: rgba(30, 30, 34, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 5px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+  font-size: 13px;
+  user-select: none;
+}
+
+.ctx-sub {
+  position: absolute;
+  top: -6px;
+  left: 100%;
+  min-width: 132px;
+  margin-left: 4px;
+}
+
+.ctx-sub.left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px 0 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  color: rgba(236, 236, 240, 0.9);
+  white-space: nowrap;
+}
+
+.ctx-item.disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+/* gate hover on real pointers — touch emulates a sticky hover on tap */
+@media (hover: hover) {
+  .ctx-item:not(.disabled):hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* keep the parent lit while its submenu is open (works on touch, unlike :hover) */
+.ctx-item.has-sub.open {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ctx-check {
+  width: 17px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.ctx-label {
+  flex: 1;
+}
+
+.ctx-arrow {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 5px 9px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* transient confirmation (e.g. "Screenshot saved") */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  z-index: 150;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: rgba(26, 26, 30, 0.94);
+  color: var(--text);
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: toast-in 0.16s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+/* URL prompt shown over the video (from the context menu's "Open URL…") */
+.url-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+}
+
