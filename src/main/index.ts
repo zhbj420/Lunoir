@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
 import { join, dirname, basename, extname } from 'node:path'
 import { existsSync, readdirSync } from 'node:fs'
+import { spawn, ChildProcess } from 'node:child_process'
 import { MpvController } from './mpv'
 import { removeBorderLine, setCornerPreference, CORNER_DEFAULT, CORNER_DONOTROUND } from './dwm'
 
@@ -53,6 +54,13 @@ type RepeatMode = 'off' | 'all' | 'one'
 let playlist: string[] = []
 let plIndex = -1
 let repeatMode: RepeatMode = 'off'
+// Shuffle is a persistent mode (not a one-shot reorder): the list keeps its
+// display order, but auto-advance / next picks randomly. `shuffleBag` holds the
+// not-yet-played indices this cycle (no repeats until it drains); `shuffleHistory`
+// is the played order so Prev can step back.
+let shuffleOn = false
+let shuffleBag: number[] = []
+let shuffleHistory: number[] = []
 // When opening a file, also queue the other videos in its folder. Off by default
 // (open one → list holds only that one); to be exposed as a setting later.
 let scanFolderIntoPlaylist = false
@@ -63,8 +71,29 @@ function playlistPayload() {
   return {
     items: playlist.map(p => ({ path: p, name: basename(p) })),
     index: plIndex,
-    repeat: repeatMode
+    repeat: repeatMode,
+    shuffle: shuffleOn
   }
+}
+
+/** (Re)fill the shuffle bag with every index except the one playing, shuffled. */
+function refillShuffleBag(): void {
+  const rest: number[] = []
+  for (let i = 0; i < playlist.length; i++) if (i !== plIndex) rest.push(i)
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[rest[i], rest[j]] = [rest[j], rest[i]]
+  }
+  shuffleBag = rest
+}
+
+/** Next index under shuffle: drain the bag, refilling only if Repeat-All. -1 = stop. */
+function nextShuffleIndex(): number {
+  if (shuffleBag.length === 0) {
+    if (repeatMode === 'all') refillShuffleBag()
+    if (shuffleBag.length === 0) return -1
+  }
+  return shuffleBag.pop() as number
 }
 
 /** Open media the user picked. By default the list holds just this item; with
@@ -89,6 +118,7 @@ function openMedia(target: string): void {
     const norm = (s: string) => s.replace(/\\/g, '/').toLowerCase()
     plIndex = Math.max(0, files.findIndex(f => norm(f) === norm(target)))
   }
+  resyncShuffle() // new list → reseed the shuffle bag
   playCurrent()
 }
 
@@ -102,14 +132,33 @@ function playCurrent(): void {
 function playIndex(i: number): void {
   if (i < 0 || i >= playlist.length) return
   plIndex = i
+  // forward navigation (click / next): keep the shuffle bag + history in step
+  if (shuffleOn) {
+    shuffleBag = shuffleBag.filter(x => x !== i)
+    shuffleHistory.push(i)
+  }
   playCurrent()
 }
 
 function playNext(): void {
+  if (shuffleOn) {
+    const i = nextShuffleIndex()
+    if (i >= 0) playIndex(i)
+    return
+  }
   if (plIndex < playlist.length - 1) playIndex(plIndex + 1)
 }
 
 function playPrev(): void {
+  if (shuffleOn) {
+    // step back through the played history (don't re-push it)
+    if (shuffleHistory.length >= 2) {
+      shuffleHistory.pop()
+      plIndex = shuffleHistory[shuffleHistory.length - 1]
+      playCurrent()
+    }
+    return
+  }
   if (plIndex > 0) playIndex(plIndex - 1)
 }
 
@@ -117,22 +166,33 @@ function playPrev(): void {
 function onEnded(): void {
   if (repeatMode === 'one') {
     playCurrent() // replay the same file
-  } else if (plIndex < playlist.length - 1) {
-    playNext()
-  } else if (repeatMode === 'all' && playlist.length > 0) {
-    playIndex(0) // wrap around
+    return
   }
+  if (shuffleOn) {
+    const i = nextShuffleIndex()
+    if (i >= 0) playIndex(i) // else bag drained & not Repeat-All → stop
+    return
+  }
+  if (plIndex < playlist.length - 1) playIndex(plIndex + 1)
+  else if (repeatMode === 'all' && playlist.length > 0) playIndex(0) // wrap around
 }
 
-/** Shuffle the list in place, keeping the currently-playing item selected. */
-function shufflePlaylist(): void {
-  if (playlist.length < 2) return
-  const current = plIndex >= 0 ? playlist[plIndex] : null
-  for (let i = playlist.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[playlist[i], playlist[j]] = [playlist[j], playlist[i]]
+/** Rebuild the shuffle bag/history after the list itself changes. */
+function resyncShuffle(): void {
+  if (!shuffleOn) return
+  refillShuffleBag()
+  shuffleHistory = plIndex >= 0 ? [plIndex] : []
+}
+
+/** Toggle shuffle mode (list order stays; auto-advance / next goes random). */
+function toggleShuffle(): void {
+  shuffleOn = !shuffleOn
+  if (shuffleOn) {
+    resyncShuffle() // seed bag + history from the current list/position
+  } else {
+    shuffleBag = []
+    shuffleHistory = []
   }
-  if (current) plIndex = playlist.indexOf(current)
   broadcast('playlist:changed', playlistPayload())
 }
 
@@ -142,6 +202,7 @@ function addToPlaylist(paths: string[]): void {
   if (!fresh.length) return
   const wasEmpty = playlist.length === 0
   playlist.push(...fresh)
+  resyncShuffle() // fold the new items into the shuffle bag
   if (wasEmpty) {
     plIndex = 0
     playCurrent()
@@ -161,10 +222,12 @@ function removeFromPlaylist(i: number): void {
       plIndex = -1
     } else {
       plIndex = Math.min(plIndex, playlist.length - 1)
+      resyncShuffle() // indices shifted — rebuild the bag before advancing
       playCurrent()
       return
     }
   }
+  resyncShuffle() // indices shifted — rebuild the bag
   broadcast('playlist:changed', playlistPayload())
 }
 
@@ -182,6 +245,123 @@ function resolveMpvPath(): string | null {
         join(process.cwd(), 'resources', 'mpv', 'mpv.exe')
       ]
   return candidates.find(existsSync) ?? null
+}
+
+// ---- Per-track metadata via MediaInfo ----
+// mpv reports demux-bitrate / codec-profile only for the *active* track, so the
+// panel can't show bitrate or the commercial audio format (DTS-HD MA, TrueHD
+// Atmos…) for the others. MediaInfo probes every stream at once. We join its
+// results back onto mpv's track-list by ff-index (== MediaInfo's StreamOrder).
+interface ProbeStream {
+  format?: string // 'AC-3', 'DTS', 'MLP FBA'
+  commercial?: string // 'Dolby Digital', 'DTS-HD Master Audio', 'Dolby TrueHD with Dolby Atmos'
+  features?: string // 'LC', 'XLL' (codec sub-profile)
+  bitRate?: number // bps
+}
+let miProc: ChildProcess | null = null // in-flight MediaInfo process
+let probeTarget = '' // path of the file currently being probed (guards stale results)
+// Latest track-list / selected audio id / probe results — the OSC's audio badge
+// needs the *active* track's commercial format (Atmos / DTS:X …), which is the
+// join of these three. Main is where all three flow through, so it resolves and
+// broadcasts the ready value.
+let lastTracks: Array<Record<string, unknown>> = []
+let lastAid: number | false = false
+let lastProbe: Record<number, ProbeStream> = {}
+
+function resolveMediaInfoPath(): string | null {
+  const candidates = app.isPackaged
+    ? [join(process.resourcesPath, 'mediainfo', 'MediaInfo.exe')]
+    : [
+        join(app.getAppPath(), 'resources', 'mediainfo', 'MediaInfo.exe'),
+        join(process.cwd(), 'resources', 'mediainfo', 'MediaInfo.exe')
+      ]
+  return candidates.find(existsSync) ?? null
+}
+
+/** The video track's HDR flavour: 'Dolby Vision' / 'HDR10+' / 'HDR10' / '' (SDR
+ *  or unknown). mpv can't tell DV from HDR10 (both are PQ); MediaInfo reads it. */
+function videoHdrLabel(t: Record<string, unknown>): string {
+  const f = `${t.HDR_Format ?? ''} ${t.HDR_Format_Commercial ?? ''}`.toLowerCase()
+  if (f.includes('dolby vision')) return 'Dolby Vision' // any DV profile → one label
+  if (f.includes('2094') || f.includes('hdr10+')) return 'HDR10+'
+  if (f.includes('2086') || f.includes('hdr10')) return 'HDR10'
+  return ''
+}
+
+/** Parse MediaInfo's --Output=JSON: per-audio-track metadata (keyed by ff-index)
+ *  plus the video HDR flavour. */
+function parseMediaInfo(json: string): { audio: Record<number, ProbeStream>; hdr: string } {
+  const audio: Record<number, ProbeStream> = {}
+  let hdr = ''
+  const tracks = JSON.parse(json)?.media?.track
+  if (!Array.isArray(tracks)) return { audio, hdr }
+  for (const t of tracks) {
+    if (t['@type'] === 'Video' && !hdr) {
+      hdr = videoHdrLabel(t)
+      continue
+    }
+    if (t['@type'] !== 'Audio') continue
+    const idx = parseInt(t.StreamOrder, 10) // absolute stream order == mpv ff-index
+    if (!Number.isFinite(idx)) continue
+    const br = parseInt(t.BitRate ?? t.BitRate_Nominal, 10)
+    audio[idx] = {
+      format: t.Format || undefined,
+      commercial: t.Format_Commercial_IfAny || undefined,
+      features: t.Format_AdditionalFeatures || undefined,
+      bitRate: Number.isFinite(br) && br > 0 ? br : undefined
+    }
+  }
+  return { audio, hdr }
+}
+
+/** Probe a freshly-loaded file and broadcast per-track audio metadata. */
+function runProbe(file: string): void {
+  // only probe real local files — skip URLs, av://lavfi, bd://, dvd://, etc.
+  if (!file || isUrl(file) || !existsSync(file)) return
+  const miPath = resolveMediaInfoPath()
+  if (!miPath) return
+  if (miProc) {
+    try { miProc.kill() } catch {}
+    miProc = null
+  }
+  probeTarget = file
+  const proc = spawn(miPath, ['--Output=JSON', file], { windowsHide: true })
+  miProc = proc
+  let out = ''
+  proc.stdout?.on('data', d => (out += d))
+  proc.on('error', () => { if (miProc === proc) miProc = null })
+  proc.on('close', () => {
+    if (miProc === proc) miProc = null
+    if (probeTarget !== file) return // a newer file superseded this probe
+    let streams: Record<number, ProbeStream> = {}
+    let hdr = ''
+    try {
+      const parsed = parseMediaInfo(out)
+      streams = parsed.audio
+      hdr = parsed.hdr
+    } catch { /* leave empty */ }
+    lastProbe = streams
+    broadcast('media:probe', { path: file, streams })
+    broadcast('video:hdr', hdr) // Dolby Vision / HDR10+ / HDR10 / '' for the OSC badge
+    broadcastActiveAudio() // the active track now has a commercial name
+  })
+}
+
+/** Resolve the active audio track's MediaInfo fields and push them to the OSC. */
+function broadcastActiveAudio(): void {
+  const t = lastTracks.find(x => x.type === 'audio' && x.id === lastAid)
+  const ffi = t && typeof t['ff-index'] === 'number' ? (t['ff-index'] as number) : -1
+  const ff = ffi >= 0 ? lastProbe[ffi] : undefined
+  // native channel count from the demuxer — reliable per-track and fires on every
+  // track switch (audio-params/channel-count doesn't always), so the badge keeps
+  // its "5.1" when you switch tracks.
+  const chRaw = t?.['demux-channel-count']
+  const channels = typeof chRaw === 'number' ? chRaw : 0
+  broadcast('audio:active', {
+    commercial: ff?.commercial ?? '',
+    features: ff?.features ?? '',
+    channels
+  })
 }
 
 function loadRenderer(w: BrowserWindow, query = ''): void {
@@ -420,7 +600,9 @@ function createWindows(): void {
     height: 620,
     minWidth: WIN_MIN_W,
     minHeight: 320,
-    center: true,
+    // MMP_LEFT: dev-only — park the window at the left edge so test screenshots
+    // don't sit under other UI (normal launch stays centered).
+    ...(process.env['MMP_LEFT'] ? { x: 40, y: 60 } : { center: true }),
     frame: false,
     // opaque + acrylic: the empty state / uncovered areas show a frosted desktop
     // (like the taskbar). mpv's video child covers it where there's picture.
@@ -511,6 +693,20 @@ function startMpv(): void {
     const wasMedia = hasMedia
     if ((name === 'path' || name === 'filename' || name === 'media-title') && data) hasMedia = true
     broadcast('mpv:property', { name, data })
+    // a new file loaded → drop stale probe + HDR badge, re-probe its tracks
+    if (name === 'path' && typeof data === 'string') {
+      lastProbe = {}
+      broadcast('video:hdr', '') // clear until MediaInfo re-resolves (gamma fallback covers HDR meanwhile)
+      runProbe(data)
+    }
+    // keep the active-audio resolver's inputs current, re-push on any change
+    if (name === 'track-list') {
+      lastTracks = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : []
+      broadcastActiveAudio()
+    } else if (name === 'aid') {
+      lastAid = typeof data === 'number' ? data : false
+      broadcastActiveAudio()
+    }
     // reveal the OSC only when a file first loads — not on pause/play toggles
     if (!wasMedia && hasMedia) revealUi()
     // advance / repeat when the current item ends
@@ -568,7 +764,7 @@ function registerIpc(): void {
   ipcMain.on('playlist:play', (_e, i: number) => playIndex(i))
   ipcMain.on('playlist:next', () => playNext())
   ipcMain.on('playlist:prev', () => playPrev())
-  ipcMain.on('playlist:shuffle', () => shufflePlaylist())
+  ipcMain.on('playlist:toggle-shuffle', () => toggleShuffle())
   ipcMain.on('playlist:remove', (_e, i: number) => removeFromPlaylist(i))
   ipcMain.on('playlist:repeat-cycle', () => cycleRepeat())
   ipcMain.on('sub:add', async () => {

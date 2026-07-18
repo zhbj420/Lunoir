@@ -10,6 +10,26 @@ export interface Playlist {
   items: { path: string; name: string }[]
   index: number
   repeat: RepeatMode
+  shuffle: boolean
+}
+
+// Per-track audio metadata from MediaInfo, keyed by stream index (mpv ff-index).
+export interface ProbeStream {
+  format?: string
+  commercial?: string
+  features?: string
+  bitRate?: number
+}
+export interface ProbeData {
+  path: string
+  streams: Record<number, ProbeStream>
+}
+
+// The active audio track's MediaInfo fields (for the OSC's commercial-name badge).
+export interface ActiveAudio {
+  commercial: string
+  features: string
+  channels: number // native (demuxer) channel count of the active track
 }
 
 type Unsubscribe = () => void
@@ -35,6 +55,15 @@ const api = {
   onEvent: (cb: (event: string) => void): Unsubscribe =>
     subscribe('mpv:event', (event: string) => cb(event)),
   onConnected: (cb: () => void): Unsubscribe => subscribe('mpv:connected', () => cb()),
+  // per-track audio metadata (bitrate + commercial format) probed by MediaInfo
+  onProbe: (cb: (p: ProbeData) => void): Unsubscribe =>
+    subscribe('media:probe', (p: ProbeData) => cb(p)),
+  // the active audio track's commercial format, resolved in main (for the OSC badge)
+  onActiveAudio: (cb: (a: ActiveAudio) => void): Unsubscribe =>
+    subscribe('audio:active', (a: ActiveAudio) => cb(a)),
+  // the video track's HDR flavour (Dolby Vision / HDR10+ / HDR10 / '') from MediaInfo
+  onVideoHdr: (cb: (hdr: string) => void): Unsubscribe =>
+    subscribe('video:hdr', (hdr: string) => cb(hdr)),
 
   // reveal / auto-hide coordinated across the two windows by main
   activity: (): void => ipcRenderer.send('ui:activity'),
@@ -52,7 +81,7 @@ const api = {
   playIndex: (i: number): void => ipcRenderer.send('playlist:play', i),
   playNext: (): void => ipcRenderer.send('playlist:next'),
   playPrev: (): void => ipcRenderer.send('playlist:prev'),
-  shufflePlaylist: (): void => ipcRenderer.send('playlist:shuffle'),
+  toggleShuffle: (): void => ipcRenderer.send('playlist:toggle-shuffle'),
   removeFromPlaylist: (i: number): void => ipcRenderer.send('playlist:remove', i),
   addToPlaylist: (): void => ipcRenderer.send('playlist:add'),
   cycleRepeat: (): void => ipcRenderer.send('playlist:repeat-cycle'),

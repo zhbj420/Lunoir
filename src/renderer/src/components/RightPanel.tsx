@@ -6,6 +6,7 @@ interface Playlist {
   items: { path: string; name: string }[]
   index: number
   repeat: RepeatMode
+  shuffle: boolean
 }
 interface Chapter {
   title?: string
@@ -18,8 +19,17 @@ interface Track {
   lang?: string
   codec?: string
   external?: boolean
+  'ff-index'?: number // absolute stream index — joins to MediaInfo's StreamOrder
   'demux-channel-count'?: number
   'demux-bitrate'?: number
+}
+
+// Per-track audio metadata from MediaInfo (main process), keyed by ff-index.
+interface ProbeStream {
+  format?: string // 'AC-3', 'DTS', 'MLP FBA'
+  commercial?: string // 'Dolby Digital', 'DTS-HD Master Audio', 'Dolby TrueHD with Dolby Atmos'
+  features?: string // 'LC', 'XLL' (codec sub-profile)
+  bitRate?: number // bps
 }
 
 // image/bitmap subtitle codecs: no glyphs to restyle, so size/brightness don't
@@ -150,16 +160,31 @@ function bitrate(bps?: number): string {
   return bps && bps > 0 ? `${Math.round(bps / 1000)} kbps` : ''
 }
 
+// The commercial audio format name. MediaInfo's commercial string is the richest
+// ("DTS-HD Master Audio", "Dolby TrueHD with Dolby Atmos"); fall back to the mpv
+// codec name, appending the sub-profile (AAC "LC" → "AAC LC") when it adds info.
+function audioFormatName(t: Track, ff?: ProbeStream): string {
+  if (ff?.commercial) return ff.commercial.replace(/\s*with Dolby Atmos/i, ' Atmos')
+  const base = audioFmt(t.codec)
+  const f = ff?.features
+  if (base && f && !base.toLowerCase().includes(f.toLowerCase())) return `${base} ${f}`
+  return base
+}
+
 // Audio tracks in remuxes often carry the whole release filename as their title,
 // so they all read identically. Show language + format (+ channels + bitrate)
 // instead — bitrate tells apart otherwise-identical tracks (e.g. two English
-// DD 5.1: a 640k main + a 448k track). Keep a genuinely descriptive title too.
-function audioTrackLabel(t: Track): string {
-  let main = [langName(t.lang), audioFmt(t.codec), chLayout(t['demux-channel-count'])]
+// DD 5.1: a 640k main + a 448k track). MediaInfo (ff) supplies the per-track
+// bitrate + commercial format that mpv can't report for inactive tracks; we fall
+// back to mpv's demux-bitrate when it's absent. Keep a descriptive title too.
+function audioTrackLabel(t: Track, ff?: ProbeStream): string {
+  let main = [langName(t.lang), audioFormatName(t, ff), chLayout(t['demux-channel-count'])]
     .filter(Boolean)
     .join(' ')
-  const br = bitrate(t['demux-bitrate'])
-  if (main && br) main = `${main} · ${br}`
+  const br = bitrate(ff?.bitRate ?? t['demux-bitrate'])
+  // plain wide gap before the bitrate (no "·"); 3 nbsp so HTML won't collapse it
+  const gap = String.fromCharCode(0xa0).repeat(3)
+  if (main && br) main = `${main}${gap}${br}`
   const title = t.title && !looksLikeFilename(t.title) ? t.title : ''
   if (title && main) return `${title} · ${main}`
   return main || title || `Track ${t.id}`
@@ -196,6 +221,36 @@ const IconReset = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
     <path d="M3 3v5h5" />
+  </svg>
+)
+// The four bottom-toolbar glyphs share one spec: viewBox 24, content filling the
+// 4–20 box (16px, centred), stroke 1.8 — so they read the same size in the row.
+// Repeat-all (loop). Repeat-one reuses this + a "1" badge; repeat-off uses the
+// distinct →| glyph below so the three states read at a glance.
+const IconRepeat = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 4l4 4-4 4" />
+    <path d="M20 8H8a4 4 0 0 0-4 4" />
+    <path d="M8 20l-4-4 4-4" />
+    <path d="M4 16h12a4 4 0 0 0 4-4" />
+  </svg>
+)
+// Repeat off: play to the end, then stop — arrow into a bar (→|).
+const IconRepeatOff = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 12h11" />
+    <path d="M11 7l5 5-5 5" />
+    <path d="M20 4v16" />
+  </svg>
+)
+// Shuffle: two corner arrows + crossing diagonals (clean Feather form).
+const IconShuffle = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 4h4v4" />
+    <path d="M4 20L20 4" />
+    <path d="M20 16v4h-4" />
+    <path d="M15 15l5 5" />
+    <path d="M4 4l5 5" />
   </svg>
 )
 
@@ -303,10 +358,11 @@ const Chevron = () => (
 // The right-hand context panel. Tabs: Playlist, Chapters, Audio & Sub.
 export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('playlist')
-  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off' })
+  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [curChapter, setCurChapter] = useState(-1)
   const [tracks, setTracks] = useState<Track[]>([])
+  const [probe, setProbe] = useState<Record<number, ProbeStream>>({})
   const [aid, setAid] = useState<number | false>(false)
   const [sid, setSid] = useState<number | false>(false)
   const [audioDelay, setAudioDelay] = useState(0)
@@ -365,6 +421,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       }
     }
     const refresh = async () => {
+      if (mounted) setProbe({}) // drop stale metadata; MediaInfo re-probes the new file
       try {
         const list = await window.mmp.command(['get_property', 'track-list'])
         if (mounted) setTracks(Array.isArray(list) ? list : [])
@@ -399,9 +456,14 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       else if (name === 'sub-scale') setSubScale(typeof data === 'number' ? data : 1)
       else if (name === 'path' || name === 'filename') refresh()
     })
+    // per-track audio metadata probed by MediaInfo in the main process
+    const offProbe = window.mmp.onProbe(({ streams }) => {
+      if (mounted) setProbe(streams || {})
+    })
     return () => {
       mounted = false
       off()
+      offProbe()
     }
   }, [])
 
@@ -502,31 +564,24 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
 
           <div className="panel-tools">
             <button
-              className={`tool ${repeat !== 'off' ? 'on' : ''}`}
+              className="tool"
               title={repeat === 'off' ? 'Repeat: off' : repeat === 'all' ? 'Repeat: all' : 'Repeat: one'}
               onClick={() => window.mmp.cycleRepeat()}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3l3 3-3 3" />
-                <path d="M20 6H8a4 4 0 0 0-4 4v1" />
-                <path d="M7 21l-3-3 3-3" />
-                <path d="M4 18h12a4 4 0 0 0 4-4v-1" />
-              </svg>
+              {repeat === 'off' ? <IconRepeatOff /> : <IconRepeat />}
               {repeat === 'one' && <span className="tool-badge">1</span>}
             </button>
-            <button className="tool" title="Shuffle" onClick={() => window.mmp.shufflePlaylist()}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 4l3 3-3 3" />
-                <path d="M3 20h4c1.3 0 2.5-.6 3.3-1.7L15 11" />
-                <path d="M3 7h4c1.3 0 2.5.6 3.3 1.7l.7 1" />
-                <path d="M18 20l3-3-3-3" />
-                <path d="M21 17h-4c-.9 0-1.8-.3-2.5-.9" />
-              </svg>
+            <button
+              className={`tool ${pl.shuffle ? 'on' : ''}`}
+              title={pl.shuffle ? 'Shuffle: on' : 'Shuffle: off'}
+              onClick={() => window.mmp.toggleShuffle()}
+            >
+              <IconShuffle />
             </button>
             <span className="panel-tools-spacer" />
             <button className="tool" title="Add files" onClick={() => window.mmp.addToPlaylist()}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M12 4v16M4 12h16" />
               </svg>
             </button>
             <button
@@ -535,10 +590,10 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
               disabled={pl.index < 0}
               onClick={() => pl.index >= 0 && window.mmp.removeFromPlaylist(pl.index)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 7h16" />
-                <path d="M6 7l1 13h10l1-13" />
-                <path d="M9 7V4h6v3" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 6h16" />
+                <path d="M6 6l1 14h10l1-14" />
+                <path d="M9 6V4h6v2" />
               </svg>
             </button>
           </div>
@@ -588,7 +643,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
                 >
                   <span className="pl-mark">{t.id === aid ? <Check /> : null}</span>
                   <span className="pl-name" onMouseEnter={e => clipTitle(e.currentTarget)}>
-                    {audioTrackLabel(t)}
+                    {audioTrackLabel(t, t['ff-index'] != null ? probe[t['ff-index']] : undefined)}
                   </span>
                 </div>
               ))

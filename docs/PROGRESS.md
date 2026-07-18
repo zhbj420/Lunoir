@@ -2,6 +2,53 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-18 · Phase 2 续：OSC 商业名标 / DV / 标题栏 / 播放列表工具条 / 触屏 hover）
+
+**阶段：在 MediaInfo 管线之上继续铺开 —— OSC 音频/HDR 标升商业名（含 Dolby Vision）、标题栏正名、播放列表工具条重整、触屏粘滞 hover 根治。全部端到端验证或类型/构建通过，待提交。**
+
+### OSC 音频标升商业名（当前轨）
+- 主进程按 `aid` + `track-list`（`ff-index`）+ MediaInfo 探测结果解析**当前音轨**的商业名，广播 `audio:active` `{commercial, features, channels}`；OSC（[Controls.tsx](../src/renderer/src/components/Controls.tsx) `audioBadge`）按措辞规则拼字。
+- 措辞：TrueHD+Atmos→`Atmos TrueHD`；DD+ +Atmos→`Atmos`；DTS:X→`DTS:X`；DTS-HD MA/HRA→原名；**对象/无损母带名不带声道**，基础编码（DD+/DD/DTS/AAC/无Atmos TrueHD）**带声道**（`DD+ 5.1`）。探不到商业名回落 mpv codec 简写。
+- **声道数改用 track-list `demux-channel-count`**（每轨可靠、切轨必刷新、原生声道），经 `audio:active` 下发；`audio-params/channel-count` 处理器加固：瞬时 `null/0` 不再冲掉「5.1」。
+
+### DV / HDR10 / HDR10+ 标（Phase 2 待办 · 已做）
+- mpv 里 DV 与 HDR10 都是 PQ、分不出 → **MediaInfo 读视频轨 `HDR_Format`**：含「Dolby Vision」→`Dolby Vision`（任何 profile 5/7/8.1 都一个标）；`2094`/`HDR10+`→`HDR10+`；`2086`/`HDR10`→`HDR10`。主进程开片探测后广播 `video:hdr`，OSC `hdrLabel(gamma, hdrFormat)` 用它、**探不到回落 gamma→`HDR`**。（实测：用户那个 Avengers CHD 其实是 HDR10 而非 DV，尽管文件名带 UHD BluRay —— MediaInfo 报 `SMPTE ST 2086`。真 DV 文件待用户实测。）
+
+### 标题栏正名（用文件名）
+- mpv `media-title` 优先容器 `title` 标签，remux 常塞垃圾（`ENCODED BY CHDMON`）→ 标题栏改**优先 `filename`**（[usePlayer.ts](../src/renderer/src/usePlayer.ts) 加 `fileName` 字段，`media-title` 只在无文件名时兜底，如网络流）。
+
+### 播放列表工具条重整（[RightPanel.tsx](../src/renderer/src/components/RightPanel.tsx)）
+- **重复三态三图标**（不靠高亮）：off=`→|`（放到底停）/ all=循环圈 / one=循环圈+`1`。
+- **Shuffle 改真·开关（持久模式）**：列表显示序不变，自动续播/下一首走随机；`shuffleBag` 一轮内不重复（抽空后 Repeat-All 才重洗，否则停）；`shuffleHistory` 支持上一首回退；`playIndex`/next/prev/onEnded 全 shuffle 感知；add/remove/openMedia 后 `resyncShuffle` 重建 bag。IPC `playlist:toggle-shuffle`，payload 加 `shuffle`。
+- **四图标统一规格**：viewBox 24 + 内容撑 4–20 + stroke 1.8；shuffle 图标重画（干净 Feather 式）。
+- **`.tool.on` 高亮**：从「只调亮字色」改**填充底**（同 `.ib.on` 语言、方角）；重复按钮去掉 `.on`（图标已表状态）。
+
+### 触屏粘滞 hover 根治（用户在用触屏）
+- 触屏把 tap 模拟成**粘滞 hover**（点完残留高亮，直到点别处）。全 app **14 组按钮类 `:hover` 全部 gate 进 `@media (hover: hover)`**（[styles.css](../src/renderer/src/styles.css)）：鼠标体验不变，触屏不触发。滑块拇指的两处 hover（拖动放大）保留。
+
+---
+
+## 当前状态（2026-07-18 · Phase 2 起：每轨码率 + 音频子档）
+
+**阶段：Phase 2 第一项落地 —— 右面板 Audio & Sub 每条音轨显示「码率 + 商业格式名」（Dolby TrueHD Atmos / DTS-HD MA + DTS:X …）。已端到端验证（TrueHD Atmos 7.1 + DTS:X 的真实 remux，自截图 + 用户确认）。**
+
+### 关键改道：ffprobe → MediaInfo（体积从 ~113MB 降到 9.3MB）
+- 原计划打包 **ffprobe**（BtbN 静态构建）。实测那个自含 ffprobe.exe **113MB** —— 用户质疑「MPC-HC 整包才 20MB」，一针见血：那 100MB 是 BtbN「全家桶」构建（塞了所有编解码器/滤镜/libplacebo/vulkan/x264…），**不是探测元数据本身需要的**；MPC-HC 小是因为用精简版 LAV。
+- 改用 **MediaInfo CLI**：专职元数据解析器，**单个自含 `MediaInfo.exe` 9.3MB**，BSD 类许可（比 GPL/LGPL ffmpeg 更适合要开源的 MIT 项目）。数据还更好 —— `Format_Commercial_IfAny` 直接给「Dolby TrueHD with Dolby Atmos」「DTS-HD MA + DTS:X」这类商业名（含 Atmos，ffprobe 的 `profile` 给不出）。
+
+### 管线（setup → 主进程 → 面板）
+- **setup**（[scripts/download-mpv.mjs](../scripts/download-mpv.mjs)）：mpv 之后再从 mediaarea.net 下 MediaInfo CLI（版本号从 GitHub `MediaArea/MediaInfo` latest tag 解析，失败回落 26.05），用 `7zip-min` 的 `cmd(['e', …])` **只抽 `MediaInfo.exe`** 到 `resources/mediainfo/`。幂等（存在即跳过）。
+- **主进程**（[src/main/index.ts](../src/main/index.ts)）：`resolveMediaInfoPath()`；mpv `path` 属性变化时（**唯一开片总闸**，涵盖菜单/拖拽/播放列表/URL）`runProbe(file)` —— 仅本地文件（跳 URL / `av://` / `bd://`），杀掉在飞的旧进程，`spawn MediaInfo --Output=JSON`，解析音轨成 `{ffIndex(=StreamOrder): {format, commercial, features, bitRate}}`，广播 `media:probe`。旧片结果用 `probeTarget` 守卫丢弃。
+- **join 键**：mpv `track-list/N/ff-index`（ffmpeg 绝对流序）== MediaInfo `StreamOrder`。实测确认：mpv 对这些轨 `demux-bitrate` 就是 `undefined`（正是本功能存在的理由），ff-index=1,2 对齐 StreamOrder=1,2。
+- **面板**（[src/renderer/src/components/RightPanel.tsx](../src/renderer/src/components/RightPanel.tsx)）：`onProbe` 收 `media:probe` 存 `probe` state（开片先清空防陈旧），按 `ff-index` join。`audioTrackLabel(t, ff)`：格式名优先 `commercial`（把「with Dolby Atmos」压成「Atmos」），退回 mpv codec 名 + 子档（AAC「LC」→「AAC LC」）；码率优先 MediaInfo，退回 mpv `demux-bitrate`。字幕/OSC 标暂不动。
+- **dev 钩子**：`MMP_LEFT` 把窗口停到左边缘（只在设了 env 时，方便测试截图不挡视线）。**并入将来 MMP_* 清理清单**。
+
+### 待打磨 / 待定
+- 长标签（如「English Dolby TrueHD Atmos 7.1 · 4777 kbps」）在 440px 面板下可能被裁剪（有 title 悬浮提示兜底）—— 看用户是否要调排版（换行/缩写/Mbps）。
+- OSC 音频标是否也升级成商业名（现仍是 `DD+ 5.1` 简写）—— 可选跟进。
+
+---
+
 ## 当前状态（2026-07-18）
 
 **阶段：字幕微调面板 + OSC 弹出/全屏交互打磨 + OSC 内容信息标（HDR / 音频格式）。均已提交，准备开 phase 2。**
@@ -44,7 +91,7 @@
 
 ### Phase 2 待办
 - **Dolby Vision 标识**：mpv 里 DV 与 HDR10 的 transfer 都是 pq、无稳定「是 DV」属性 → 现 DV 片显示 HDR。需拿 **DV Profile 5 文件实测** mpv 报的 `video-params`/`track-list` 再拆出 `Dolby Vision`。
-- **每轨码率 + 音频子档（ffprobe 管线，方案已实测锁定 2026-07-18）** —— mpv `demux-bitrate`/`codec-profile` 对**非活动轨**为 `(unavailable)`、拿不到；**ffprobe 一次给全部流的 `bit_rate` + `profile`**（实测：ac3→bit_rate、dts→profile=DTS），跟 MPC-HC（LAV）一致。落地：setup 打包/下载 ffprobe → 主进程开片 spawn → 解析 JSON → 按 stream index 合并进 track-list → 显示码率 + `DTS-HD MA`/`Dolby TrueHD Atmos` 真名。（顺带分开两条 English DD 5.1：640k vs 448k。）系统 `C:\ffmpeg\bin\ffprobe.exe` 可先用于开发验证。
+- ~~**每轨码率 + 音频子档（ffprobe 管线）**~~ ✅ **已完成（2026-07-18，改用 MediaInfo 而非 ffprobe）** —— 见顶部「Phase 2 起」章节。ffprobe 自含 exe 113MB 过大，改用 9.3MB 的 MediaInfo CLI，商业名更全（含 Atmos / DTS:X）。
 - 两侧面板 + 标题栏 **真亚克力窗口化**（一直挂着的「一把做」）。
 - 可调宽度面板（用户提过「以后可能」）。
 - GitHub 开源准备（README / LICENSE / `package.json` name→lunoir / mpv 许可声明）—— 不急。

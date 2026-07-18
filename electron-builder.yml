@@ -11,6 +11,10 @@ extraResources:
     to: mpv
     filter:
       - '**/*'
+  - from: resources/mediainfo
+    to: mediainfo
+    filter:
+      - '**/*'
 win:
   target:
     - nsis

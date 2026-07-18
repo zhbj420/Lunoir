@@ -10,10 +10,11 @@ function fmt(sec: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
 }
 
-// Only two marks: "HDR" or "Dolby Vision"; SDR shows nothing. Any HDR transfer
-// (PQ or HLG) reads as HDR. (Dolby Vision uses PQ too and has no distinct mpv
-// signal yet, so DV currently reads as "HDR" — to be split out in phase 2.)
-function hdrLabel(gamma: string): string {
+// The HDR badge. MediaInfo's flavour (Dolby Vision / HDR10+ / HDR10) is the
+// precise source — mpv can't tell DV from HDR10 (both are PQ). Fall back to the
+// gamma transfer for a generic "HDR" while MediaInfo hasn't resolved (or can't).
+function hdrLabel(gamma: string, hdrFormat: string): string {
+  if (hdrFormat) return hdrFormat
   const g = gamma.toLowerCase()
   if (g === 'pq' || g === 'st2084' || g === 'hlg') return 'HDR'
   return ''
@@ -29,10 +30,8 @@ function channelLayout(n: number): string {
   return ''
 }
 
-// Friendly name for the current audio codec (+ channel layout). Sub-formats like
-// DTS:X / DTS-HD MA and TrueHD Atmos need decoder-profile info we don't read yet.
-function audioLabel(codec: string, channels: number): string {
-  if (!codec) return ''
+// Short codec name for the base (non-premium) formats.
+function codecShort(codec: string): string {
   const c = codec.toLowerCase()
   const names: Record<string, string> = {
     truehd: 'TrueHD',
@@ -46,7 +45,24 @@ function audioLabel(codec: string, channels: number): string {
     vorbis: 'Vorbis',
     mp3: 'MP3'
   }
-  const name = names[c] || (c.startsWith('pcm') ? 'PCM' : codec.toUpperCase())
+  return names[c] || (c.startsWith('pcm') ? 'PCM' : codec.toUpperCase())
+}
+
+// The OSC audio badge. `commercial` is the active track's MediaInfo commercial
+// name (empty until probed). Object-audio / lossless-master names show bare
+// (they're long and self-explanatory); base codecs carry the channel layout.
+//   TrueHD+Atmos → "Atmos TrueHD"   DD+ +Atmos → "Atmos"   DTS:X → "DTS:X"
+//   DTS-HD MA/HRA → as-is            plain TrueHD → "TrueHD 7.1"   DD+ → "DD+ 5.1"
+// Falls back to the short codec name + layout when no commercial name is known.
+function audioBadge(codec: string, channels: number, commercial: string): string {
+  if (!codec) return ''
+  const c = codec.toLowerCase()
+  const m = commercial || ''
+  if (/atmos/i.test(m)) return c === 'truehd' ? 'Atmos TrueHD' : 'Atmos'
+  if (/dts[\s:_-]*x/i.test(m)) return 'DTS:X'
+  if (/dts-hd\s*ma|master audio/i.test(m)) return 'DTS-HD MA'
+  if (/dts-hd\s*hra|high[\s-]*resolution/i.test(m)) return 'DTS-HD HRA'
+  const name = codecShort(codec)
   const layout = channelLayout(channels)
   return layout ? `${name} ${layout}` : name
 }
@@ -65,8 +81,8 @@ export default function Controls(props: Props) {
   const { state } = props
   const pct = state.duration > 0 ? (state.timePos / state.duration) * 100 : 0
   const volPct = Math.min(100, (state.volume / 150) * 100)
-  const hdr = hdrLabel(state.gamma)
-  const audio = audioLabel(state.audioCodec, state.audioChannels)
+  const hdr = hdrLabel(state.gamma, state.hdrFormat)
+  const audio = audioBadge(state.audioCodec, state.audioChannels, state.audioCommercial)
 
   // reflect whether the right panel is open, so the list button reads "pressed"
   const [panelOpen, setPanelOpen] = useState(false)

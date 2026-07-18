@@ -128,14 +128,16 @@ body.fullscreen .titlebar {
   transition: background 0.12s, color 0.12s;
 }
 
-.win-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--text);
-}
+@media (hover: hover) {
+  .win-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: var(--text);
+  }
 
-.win-close:hover {
-  background: #e33;
-  color: #fff;
+  .win-close:hover {
+    background: #e33;
+    color: #fff;
+  }
 }
 
 
@@ -258,8 +260,10 @@ body.fullscreen .titlebar {
   transition: filter 0.15s, transform 0.12s;
 }
 
-.url-go:hover {
-  filter: brightness(1.09);
+@media (hover: hover) {
+  .url-go:hover {
+    filter: brightness(1.09);
+  }
 }
 
 .url-go:active {
@@ -283,9 +287,11 @@ body.fullscreen .titlebar {
   transition: filter 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 
-.open-btn:hover {
-  filter: brightness(1.09);
-  box-shadow: 0 10px 30px rgba(96, 108, 255, 0.48);
+@media (hover: hover) {
+  .open-btn:hover {
+    filter: brightness(1.09);
+    box-shadow: 0 10px 30px rgba(96, 108, 255, 0.48);
+  }
 }
 
 .open-btn:active {
@@ -298,8 +304,10 @@ body.fullscreen .titlebar {
   box-shadow: 0 8px 24px rgba(46, 160, 232, 0.38);
 }
 
-.open-btn.is-url:hover {
-  box-shadow: 0 10px 30px rgba(46, 160, 232, 0.5);
+@media (hover: hover) {
+  .open-btn.is-url:hover {
+    box-shadow: 0 10px 30px rgba(46, 160, 232, 0.5);
+  }
 }
 
 /* drag-and-drop highlight (whole window) */
@@ -391,18 +399,20 @@ body.fullscreen .titlebar {
   transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 
-.ib:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--glyph-strong);
-}
+@media (hover: hover) {
+  .ib:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--glyph-strong);
+  }
 
-/* volume + the centre transport buttons: no highlight box on hover — just a
-   slight grow + brighten. Settings/list (grp.right) keep the boxed highlight. */
-.grp.left .ib:hover,
-.grp.center .ib:hover {
-  background: transparent;
-  color: rgb(205, 205, 211);
-  transform: scale(1.1);
+  /* volume + the centre transport buttons: no highlight box on hover — just a
+     slight grow + brighten. Settings/list (grp.right) keep the boxed highlight. */
+  .grp.left .ib:hover,
+  .grp.center .ib:hover {
+    background: transparent;
+    color: rgb(205, 205, 211);
+    transform: scale(1.1);
+  }
 }
 
 .ib:active {
@@ -424,8 +434,10 @@ body.fullscreen .titlebar {
   color: var(--glyph-strong);
 }
 
-.ib.on:hover {
-  background: rgba(255, 255, 255, 0.22);
+@media (hover: hover) {
+  .ib.on:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
 }
 
 .ib.dim {
@@ -595,8 +607,10 @@ body.fullscreen .panel {
   transition: color 0.16s;
 }
 
-.panel-tab:hover {
-  color: rgba(255, 255, 255, 0.72);
+@media (hover: hover) {
+  .panel-tab:hover {
+    color: rgba(255, 255, 255, 0.72);
+  }
 }
 
 .panel-tab.active {
@@ -633,9 +647,11 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s;
 }
 
-.panel-collapse:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
+@media (hover: hover) {
+  .panel-collapse:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+  }
 }
 
 .panel-body {
@@ -678,9 +694,11 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s;
 }
 
-.pl-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+@media (hover: hover) {
+  .pl-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+  }
 }
 
 .pl-item.active {
@@ -775,10 +793,12 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
-.track-add:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.28);
+@media (hover: hover) {
+  .track-add:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
 }
 
 /* label + stepper + reset row (audio delay inline; sub delay/pos/size/brightness
@@ -827,9 +847,11 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s;
 }
 
-.adjust-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--text);
+@media (hover: hover) {
+  .adjust-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text);
+  }
 }
 
 .adjust-btn:active:not(:disabled) {
@@ -896,9 +918,11 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s, opacity 0.12s;
 }
 
-.adjust-reset:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text);
+@media (hover: hover) {
+  .adjust-reset:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+  }
 }
 
 .adjust-reset:disabled {
@@ -931,8 +955,10 @@ body.fullscreen .panel {
   transition: color 0.14s;
 }
 
-.sub-adjust-head:hover {
-  color: rgba(255, 255, 255, 0.62);
+@media (hover: hover) {
+  .sub-adjust-head:hover {
+    color: rgba(255, 255, 255, 0.62);
+  }
 }
 
 /* small dot after the label on the collapsed header when an adjustment is active */
@@ -1011,12 +1037,27 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s;
 }
 
-.tool:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--text);
+/* Hover only brightens the glyph — no background box. That box used to compete
+   with the .on fill: with the cursor still over a toggle you'd just turned off,
+   the hover box lingered and read as "still on". Now the .on fill is the only
+   box, so toggling off clears instantly regardless of the pointer.
+   Gate on (hover: hover): touch devices emulate a *sticky* hover on tap, which
+   would keep the just-tapped glyph lit until you tapped elsewhere. */
+@media (hover: hover) {
+  .tool:hover {
+    color: var(--text);
+  }
+
+  .tool.on:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
 }
 
+/* toggled-on state (shuffle on) — a persistent filled fill, not just a color
+   shift, so "is it on?" reads at a glance. Square (radius 0) to match the
+   toolbar's window-button language. */
 .tool.on {
+  background: rgba(255, 255, 255, 0.18);
   color: var(--text);
 }
 

@@ -2,6 +2,7 @@ node_modules/
 out/
 dist/
 resources/mpv/
+resources/mediainfo/
 *.log
 .DS_Store
 *.tsbuildinfo
