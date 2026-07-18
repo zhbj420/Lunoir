@@ -13,18 +13,46 @@ export default function OverlayView() {
   const [panel, setPanel] = useState<string | null>(null)
   const lastY = useRef(-1)
   const downAccum = useRef(0)
+  const entering = useRef(false)
+  const enterY = useRef(-1)
 
   // Reveal the UI only when the pointer heads toward the controls — moving down
   // a bit, or near the top (title) / bottom (OSC) edges — not on every twitch.
   const onMove = (e: React.MouseEvent) => {
+    const x = e.clientX
     const y = e.clientY
     const h = window.innerHeight
+    // Returning to the window (pointer came from outside) shouldn't pop the OSC.
+    // A single small nudge on re-entry isn't intent — and if you enter into the
+    // top/bottom edge zone, the edge check below would fire immediately. So after
+    // entry, suppress every reveal until the pointer has genuinely moved away
+    // (>50px) from where it came in.
+    if (entering.current) {
+      if (enterY.current < 0) {
+        enterY.current = y // anchor at the entry point
+        lastY.current = y
+        return
+      }
+      if (Math.abs(y - enterY.current) < 50) {
+        lastY.current = y
+        return
+      }
+      entering.current = false // moved enough — resume normal reveal (but not on this move)
+      lastY.current = y
+      downAccum.current = 0
+      return
+    }
     if (lastY.current >= 0) {
       const dy = y - lastY.current
       downAccum.current = dy > 0 ? downAccum.current + dy : 0
     }
     lastY.current = y
-    if (y > h - 150 || y < 46 || downAccum.current > 60) {
+    // bottom reveal only in the centre band (where the OSC sits), so coming in
+    // from a bottom corner / the taskbar doesn't pop it. Top strip stays full
+    // width (need to reach the window buttons anywhere along it).
+    const w = window.innerWidth
+    const bottomCentre = y > h - 150 && x > w * 0.2 && x < w * 0.8
+    if (bottomCentre || y < 46 || downAccum.current > 100) {
       downAccum.current = 0
       p.reveal()
     }
@@ -33,6 +61,8 @@ export default function OverlayView() {
   useShortcuts({
     togglePause: p.togglePause,
     seekBy: p.seekBy,
+    frameStep: p.frameStep,
+    paused: p.state.pause,
     bumpVolume: d => p.setVolume(p.state.volume + d),
     toggleMute: p.toggleMute,
     fullscreen: p.fullscreen,
@@ -76,6 +106,10 @@ export default function OverlayView() {
   return (
     <div
       className={`app ${p.showUi ? 'ui-visible' : 'ui-hidden'} ${dragging ? 'dragging' : ''}`}
+      onMouseEnter={() => {
+        entering.current = true
+        enterY.current = -1
+      }}
       onMouseMove={onMove}
       onDrop={onDrop}
       onDragOver={e => {

@@ -85,6 +85,8 @@ export function usePlayer() {
     togglePause: () => window.mmp.command(['cycle', 'pause']),
     seekTo: (sec: number) => window.mmp.command(['seek', sec, 'absolute']),
     seekBy: (d: number) => window.mmp.command(['seek', d, 'relative']),
+    frameStep: (forward: boolean) =>
+      window.mmp.command([forward ? 'frame-step' : 'frame-back-step']),
     setVolume: (v: number) => {
       const vol = Math.max(0, Math.min(150, Math.round(v)))
       window.mmp.set('volume', vol)

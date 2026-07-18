@@ -56,6 +56,7 @@ const api = {
   removeFromPlaylist: (i: number): void => ipcRenderer.send('playlist:remove', i),
   addToPlaylist: (): void => ipcRenderer.send('playlist:add'),
   cycleRepeat: (): void => ipcRenderer.send('playlist:repeat-cycle'),
+  addSubtitle: (): void => ipcRenderer.send('sub:add'),
   onPlaylistChanged: (cb: (p: Playlist) => void): Unsubscribe =>
     subscribe('playlist:changed', (p: Playlist) => cb(p)),
 

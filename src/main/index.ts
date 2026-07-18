@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
 import { join, dirname, basename, extname } from 'node:path'
 import { existsSync, readdirSync } from 'node:fs'
 import { MpvController } from './mpv'
-import { removeBorderLine } from './dwm'
+import { removeBorderLine, setCornerPreference, CORNER_DEFAULT, CORNER_DONOTROUND } from './dwm'
 
 const isDev = !app.isPackaged
 
@@ -20,8 +20,10 @@ let mpv: MpvController | null = null
 let preFsBounds: Electron.Rectangle | null = null
 let lastAspect = 0 // last video aspect the window was fitted to (avoid re-jumping)
 
-const OSC_H = 104
-const PANEL_W = 304
+const OSC_H = 92
+// OSC let-way width = right panel width (--panel-w in styles.css) + a small gap.
+// Keep in sync with --panel-w until the panel becomes resizable.
+const PANEL_W = 444
 const TITLEBAR_H = 32 // grey title strip reserved above the video (logical px)
 let panelOpen = false
 let hideTimer: NodeJS.Timeout | null = null
@@ -29,6 +31,9 @@ let oscAnim: NodeJS.Timeout | null = null
 let oscShown = false
 let oscHovered = false // pointer is over the OSC window → don't auto-hide
 let hasMedia = false
+// briefly ignore movement-triggered reveals after a fullscreen toggle — the
+// resize emits a synthetic mousemove that can land in an edge zone and pop the OSC
+let suppressRevealUntil = 0
 
 const VIDEO_EXT = [
   'mp4', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'webm', 'm4v', 'ts', 'mpg', 'mpeg',
@@ -243,10 +248,48 @@ function animateOsc(reveal: boolean): void {
   }, 16)
 }
 
-/** Keep the OSC glued to the window when it moves/resizes or the panel toggles. */
+/** Keep the OSC glued to the window when it moves/resizes. */
 function layoutOsc(): void {
   if (!win || !oscWin || win.isDestroyed() || oscWin.isDestroyed()) return
   if (oscShown && !oscAnim) oscWin.setBounds(oscRestBounds())
+}
+
+/**
+ * Glide the OSC to its resting spot when the side panel opens/closes, so it
+ * re-centers in sync with the panel's slide instead of snapping. Matches the
+ * panel's easeOutExpo feel (fast out, long settle). Skips when hidden.
+ */
+function slideOscToRest(): void {
+  if (!oscWin || oscWin.isDestroyed() || !oscShown) return
+  const rest = oscRestBounds()
+  const from = oscWin.getBounds()
+  if (from.x === rest.x && from.y === rest.y && from.width === rest.width) return
+  if (oscAnim) {
+    clearInterval(oscAnim)
+    oscAnim = null
+  }
+  oscWin.setOpacity(1) // it's shown — snap opacity in case a reveal was mid-flight
+  const dur = 420
+  const t0 = Date.now()
+  oscAnim = setInterval(() => {
+    if (!oscWin || oscWin.isDestroyed()) {
+      if (oscAnim) clearInterval(oscAnim)
+      oscAnim = null
+      return
+    }
+    const p = Math.min(1, (Date.now() - t0) / dur)
+    const e = p >= 1 ? 1 : 1 - Math.pow(2, -10 * p) // easeOutExpo
+    oscWin.setBounds({
+      x: Math.round(from.x + (rest.x - from.x) * e),
+      y: Math.round(from.y + (rest.y - from.y) * e),
+      width: Math.round(from.width + (rest.width - from.width) * e),
+      height: OSC_H
+    })
+    if (p >= 1) {
+      clearInterval(oscAnim!)
+      oscAnim = null
+    }
+  }, 16)
 }
 
 function revealUi(): void {
@@ -260,24 +303,39 @@ function revealUi(): void {
     if (oscHovered) return // pointer is over the OSC — keep it up (no flicker)
     broadcast('ui:hide')
     animateOsc(false) // slide down + fade out
-  }, 3500)
+  }, 5000)
 }
 
 function toggleFullscreen(): void {
   if (!win) return
+  suppressRevealUntil = Date.now() + 350 // don't let the resize's mousemove pop the OSC
   if (preFsBounds) {
     win.setAlwaysOnTop(false)
     win.setBounds(preFsBounds)
     preFsBounds = null
+    setCornerPreference(win, CORNER_DEFAULT) // rounded corners look good windowed
   } else {
     preFsBounds = win.getBounds()
     const disp = screen.getDisplayMatching(win.getBounds())
     win.setBounds(disp.bounds)
     win.setAlwaysOnTop(true)
+    setCornerPreference(win, CORNER_DONOTROUND) // square corners fill the screen edges
   }
   win.webContents.send('win:fullscreen', preFsBounds != null)
   updateVideoMargin() // 0 in fullscreen (video fills), restore the strip on exit
-  setTimeout(layoutOsc, 40)
+  // the window size just changed — snap the OSC to the new bottom-center and
+  // cancel any in-flight reveal/hide so it doesn't settle at the old position
+  const placeOsc = (): void => {
+    if (!oscWin || oscWin.isDestroyed() || !oscShown) return
+    if (oscAnim) {
+      clearInterval(oscAnim)
+      oscAnim = null
+    }
+    oscWin.setOpacity(1)
+    oscWin.setBounds(oscRestBounds())
+  }
+  placeOsc()
+  setTimeout(placeOsc, 60)
 }
 
 /**
@@ -388,8 +446,22 @@ function createWindows(): void {
     w.on('blur', () => setTimeout(updateFocus, 30))
   }
 
+  // Borderless fullscreen keeps the window on top via setAlwaysOnTop. Handing
+  // focus back to it from the child OSC window (e.g. open the panel from the OSC
+  // button, then click a panel tab) can clear that topmost flag on Windows and
+  // sink the whole app behind other windows — re-assert it on refocus.
+  win.on('focus', () => {
+    if (preFsBounds && win && !win.isDestroyed()) {
+      // toggle to force TOPMOST to re-apply — re-covers the taskbar and lifts
+      // the window back above other apps. moveTop() surfaced the taskbar instead.
+      win.setAlwaysOnTop(false)
+      win.setAlwaysOnTop(true)
+    }
+  })
+
   win.once('ready-to-show', () => {
     win?.show()
+    if (win) removeBorderLine(win) // drop the Win11 hairline border (visible in fullscreen)
     startMpv()
   })
   oscWin.webContents.once('did-finish-load', () => {
@@ -427,8 +499,8 @@ function startMpv(): void {
     const wasMedia = hasMedia
     if ((name === 'path' || name === 'filename' || name === 'media-title') && data) hasMedia = true
     broadcast('mpv:property', { name, data })
-    // reveal the OSC when playback state changes or a file first loads
-    if (name === 'pause' || (!wasMedia && hasMedia)) revealUi()
+    // reveal the OSC only when a file first loads — not on pause/play toggles
+    if (!wasMedia && hasMedia) revealUi()
     // advance / repeat when the current item ends
     if (name === 'eof-reached' && data === true) onEnded()
     // fit the window to the video's aspect ratio (no letterbox in windowed mode)
@@ -464,13 +536,18 @@ function registerIpc(): void {
   })
   ipcMain.on('mpv:set', (_e, name: string, value: unknown) => mpv?.setProperty(name, value))
   ipcMain.on('mpv:loadfile', (_e, path: string) => openMedia(path))
-  ipcMain.on('ui:activity', () => revealUi())
+  ipcMain.on('ui:activity', () => {
+    if (Date.now() < suppressRevealUntil) return // just toggled fullscreen — stay quiet
+    revealUi()
+  })
   ipcMain.on('ui:osc-hover', (_e, hovering: boolean) => {
     oscHovered = Boolean(hovering)
     if (oscHovered) {
       if (hideTimer) { clearTimeout(hideTimer); hideTimer = null } // stay up while hovered
-    } else {
-      revealUi() // pointer left the OSC → start the 3.5s countdown fresh
+    } else if (oscShown) {
+      // pointer left the OSC while it was up → linger, then hide. If it was
+      // already hidden (pointer just passed over on its way in), don't pop it.
+      revealUi()
     }
   })
 
@@ -482,6 +559,23 @@ function registerIpc(): void {
   ipcMain.on('playlist:shuffle', () => shufflePlaylist())
   ipcMain.on('playlist:remove', (_e, i: number) => removeFromPlaylist(i))
   ipcMain.on('playlist:repeat-cycle', () => cycleRepeat())
+  ipcMain.on('sub:add', async () => {
+    const res = await dialog.showOpenDialog(win!, {
+      title: 'Add Subtitle',
+      properties: ['openFile'],
+      filters: [
+        { name: 'Subtitles', extensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'sup', 'idx', 'lrc'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+    if (!res.canceled && res.filePaths[0]) {
+      try {
+        await mpv?.command(['sub-add', res.filePaths[0], 'select'])
+      } catch {
+        /* ignore */
+      }
+    }
+  })
   ipcMain.on('playlist:add', async () => {
     const res = await dialog.showOpenDialog(win!, {
       title: 'Add to Playlist',
@@ -504,7 +598,7 @@ function registerIpc(): void {
   ipcMain.on('ui:panel-state', (_e, open: boolean) => {
     if (panelOpen === open) return
     panelOpen = open
-    layoutOsc()
+    slideOscToRest() // glide the OSC to re-center, in sync with the panel's slide
     broadcast('ui:panel-open', open)
   })
 

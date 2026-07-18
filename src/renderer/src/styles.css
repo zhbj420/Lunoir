@@ -2,6 +2,9 @@
   /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
      brightness = the gray RGB, transparency = the alpha (lower = more frost). */
   --panel: rgba(34, 34, 37, 0.44);
+  /* right-panel width. Keep PANEL_W in src/main/index.ts in sync (OSC let-way).
+     Single knob for now; the seam for a future resizable panel. */
+  --panel-w: 440px;
   --track: rgb(128, 128, 134);
   --accent: rgb(188, 188, 193);
   --glyph: rgb(156, 156, 162);
@@ -334,8 +337,8 @@ body.fullscreen .titlebar {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 20px 12px;
+  gap: 2px;
+  padding: 6px 20px 8px;
   /* flat gray, mostly opaque — the remaining alpha lets a little acrylic frost
      show through (tune via --panel: brightness = RGB, transparency = alpha) */
   background: var(--panel);
@@ -511,17 +514,26 @@ body.fullscreen .titlebar {
   top: 32px;
   right: 0;
   bottom: 0;
-  width: 300px;
+  width: var(--panel-w);
   z-index: 25;
   display: flex;
   flex-direction: column;
+  /* the panel is a UI surface — keep the pointer visible over it even while the
+     video UI is hidden (.app.ui-hidden sets cursor: none, which would cascade) */
+  cursor: default;
   /* same grey family as the OSC (--panel), but near-opaque: a web layer can't
      frost the mpv video behind it, so translucency here would just ghost the
      video. (Both panels become real acrylic windows in a later pass.) */
   background: rgba(34, 34, 37, 0.99);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   transform: translateX(100%);
-  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.24s ease;
+  /* fast out, long ease-out settle (easeOutExpo) — matches the OSC's glide */
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+/* fullscreen hides the title bar — let the panel reach the very top */
+body.fullscreen .panel {
+  top: 0;
 }
 
 /* shadow only while open — a closed panel sits just off the right edge and its
@@ -681,6 +693,237 @@ body.fullscreen .titlebar {
 
 .pl-item.active .pl-time {
   color: rgba(255, 255, 255, 0.75);
+}
+
+/* tracks tab: Audio / Subtitles sections */
+.track-sec {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  padding: 13px 14px 5px;
+}
+
+.panel-body > .track-sec:first-child {
+  padding-top: 8px;
+}
+
+.track-empty {
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 12px;
+  padding: 4px 14px 6px;
+}
+
+.track-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: calc(100% - 20px);
+  margin: 12px 10px 10px;
+  padding: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.track-add:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+/* label + stepper + reset row (audio delay inline; sub delay/pos/size/brightness
+   in the pinned footer). − / + for value steps, ↑ / ↓ for position. */
+.adjust-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+}
+
+.adjust-label {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.adjust-row.disabled .adjust-label {
+  opacity: 0.4;
+}
+
+.adjust-stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.adjust-row.disabled .adjust-stepper {
+  opacity: 0.4;
+}
+
+.adjust-btn {
+  width: 27px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.adjust-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+.adjust-btn:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.adjust-btn:disabled {
+  cursor: default;
+}
+
+.adjust-val {
+  min-width: 54px;
+  padding: 0 6px;
+  line-height: 24px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  user-select: none;
+}
+
+/* divider between the two buttons when there's no numeric readout (position) */
+.adjust-div {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* brighten the readout once it's off default, so an active offset is obvious */
+.adjust-row.offset .adjust-val {
+  color: var(--text);
+}
+
+.adjust-reset {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, opacity 0.12s;
+}
+
+.adjust-reset:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.adjust-reset:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* pinned, collapsible subtitle-adjust footer — a quiet, subordinate disclosure
+   (leading chevron + dim label), deliberately lighter than the SUBTITLES /
+   AUDIO section headers above it, since it's a sub-function of them */
+.sub-adjust {
+  flex: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sub-adjust-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.34);
+  padding: 8px 14px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.14s;
+}
+
+.sub-adjust-head:hover {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* small dot after the label on the collapsed header when an adjustment is active */
+.sub-adjust-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  margin-left: 2px;
+}
+
+.sub-adjust .chev {
+  flex: none;
+  color: rgba(255, 255, 255, 0.4);
+  transition: transform 0.18s ease;
+}
+
+/* leading disclosure chevron: points down when collapsed, up when open */
+.sub-adjust.open .chev {
+  transform: rotate(180deg);
+}
+
+/* smooth collapse: animate the grid row from 0fr to 1fr (i.e. to the content's
+   natural height) plus a short opacity fade, instead of snapping */
+.sub-adjust-anim {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sub-adjust.open .sub-adjust-anim {
+  grid-template-rows: 1fr;
+}
+
+.sub-adjust-body {
+  min-height: 0; /* let the grid row collapse below content height when closing */
+  overflow: hidden;
+  padding-bottom: 7px;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.sub-adjust.open .sub-adjust-body {
+  opacity: 1;
+}
+
+.sub-adjust-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.36);
+  padding: 3px 14px 5px;
 }
 
 /* bottom toolbar (playlist tab) — window-button language: square, flush, flat */

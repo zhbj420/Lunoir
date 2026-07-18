@@ -23,7 +23,11 @@ const OBSERVED = [
   'video-params/aspect',
   'track-list',
   'aid',
-  'sid'
+  'sid',
+  'audio-delay',
+  'sub-delay',
+  'sub-pos',
+  'sub-scale'
 ] as const
 
 /**

@@ -3,6 +3,8 @@ import { useEffect } from 'react'
 interface Handlers {
   togglePause: () => void
   seekBy: (d: number) => void
+  frameStep: (forward: boolean) => void
+  paused: boolean
   bumpVolume: (d: number) => void
   toggleMute: () => void
   fullscreen: () => void
@@ -21,11 +23,20 @@ export function useShortcuts(h: Handlers) {
         case 'k':
           e.preventDefault()
           h.togglePause()
-          break
+          return // pause/play shouldn't pop the OSC
+        // paused: step one frame ("盯帧"), without popping the OSC; playing: seek ∓5s
         case 'ArrowLeft':
+          if (h.paused) {
+            h.frameStep(false)
+            return
+          }
           h.seekBy(-5)
           break
         case 'ArrowRight':
+          if (h.paused) {
+            h.frameStep(true)
+            return
+          }
           h.seekBy(5)
           break
         case 'ArrowUp':
@@ -37,7 +48,7 @@ export function useShortcuts(h: Handlers) {
         case 'f':
         case 'F':
           h.fullscreen()
-          break
+          return // fullscreen toggle shouldn't pop the OSC
         case 'm':
         case 'M':
           h.toggleMute()
