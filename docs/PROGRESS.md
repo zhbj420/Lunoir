@@ -36,6 +36,8 @@
 - **音轨命名清理**：remux 常把整串发行文件名塞进 track title → 丢弃（按分辨率/来源 token 或「多点无空格」判定），改拼 **语言 + 全称格式 + 声道 + 码率**（`English Dolby TrueHD 7.1`）；有意义的 title（Commentary）保留。
 - **字幕两栏式**：左 = 干净名字（语言 + SDH/Forced，剥掉格式 token），右 = 格式小标签（`SubRip`/`PGS`/`ASS`/`VobSub`…）。
 - **字幕位置修复**：`sub-pos` clamp 由 0–100 改 **0–150**（mpv 实际范围，`--list-options` 确认）、步长 1→2 → 可把字幕**下推进下方黑 bar**；此前卡在 100（视频底）进不去。
+- **可编辑数字框**：Adjust 各项（Delay/Position/Size/Brightness）数字改为**可输入框**，回车/失焦解析并 **clamp 到 min/max**；范围按 mpv 放开（Delay ±1000s、Position 0–150、Size 0–10000%、Brightness 0–100%）；框内打字/方向键不穿透触发播放器快捷键。
+- **进度条位置**：`.osc-seek` 用 `position: relative; top: -8px` **只上移进度条**、按钮行不动、OSC 高度不变。
 
 ### Phase 2 待办
 - **Dolby Vision 标识**：mpv 里 DV 与 HDR10 的 transfer 都是 pq、无稳定「是 DV」属性 → 现 DV 片显示 HDR。需拿 **DV Profile 5 文件实测** mpv 报的 `video-params`/`track-list` 再拆出 `Dolby Vision`。

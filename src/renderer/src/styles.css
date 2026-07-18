@@ -485,6 +485,10 @@ body.fullscreen .titlebar {
 .osc-seek {
   gap: 9px;
   padding: 0 8px;
+  /* lift ONLY the seek bar (button row stays put). A relative shift doesn't
+     affect the flex flow, so nothing else moves. */
+  position: relative;
+  top: -8px;
 }
 
 .seek {
@@ -832,17 +836,33 @@ body.fullscreen .panel {
   cursor: default;
 }
 
+/* editable numeric field inside the stepper (type a value; it clamps on commit) */
 .adjust-val {
-  min-width: 54px;
+  width: 60px;
+  height: 24px;
   padding: 0 6px;
-  line-height: 24px;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  outline: none;
   text-align: center;
+  font-family: inherit;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  user-select: none;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.adjust-val:focus {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text);
+}
+
+.adjust-val:disabled {
+  color: var(--text-dim);
+  cursor: default;
 }
 
 /* divider between the two buttons when there's no numeric readout (position) */

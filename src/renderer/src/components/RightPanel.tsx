@@ -165,15 +165,7 @@ function audioTrackLabel(t: Track): string {
   return main || title || `Track ${t.id}`
 }
 
-const round1 = (v: number): number => Math.round(v * 10) / 10
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v))
-
-// signed, one decimal, proper minus glyph: "+0.3s", "−0.2s", "0.0s"
-function fmtDelay(v: number): string {
-  const r = round1(v)
-  const sign = r > 0 ? '+' : r < 0 ? '−' : ''
-  return `${sign}${Math.abs(r).toFixed(1)}s`
-}
 
 const Check = () => (
   <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -207,45 +199,95 @@ const IconReset = () => (
   </svg>
 )
 
-// A single label + stepper + reset row. `variant` picks the stepper glyphs:
-// 'delay'/'scale' use −/+, 'pos' uses ↑/↓ (and hides the numeric readout, since
-// sub-pos's 0–100 number isn't meaningful). onStep(dir): -1 = left/up button.
+// A label + stepper with an editable numeric field + reset. Works in display
+// units (unit / decimals / signed): the −/+ (or ↑/↓) buttons step; the field
+// takes a typed value and clamps it to [min, max]. Left button always decreases.
 function AdjustRow({
   label,
   variant,
-  display,
-  offset,
+  value,
+  min,
+  max,
+  step,
+  resetValue,
+  unit,
+  decimals,
+  signed,
   disabled,
   leftTitle,
   rightTitle,
-  onStep,
-  onReset
+  onChange
 }: {
   label: string
   variant: 'step' | 'pos'
-  display?: string | null
-  offset: boolean
+  value: number
+  min: number
+  max: number
+  step: number
+  resetValue: number
+  unit: string
+  decimals: number
+  signed?: boolean
   disabled?: boolean
   leftTitle?: string
   rightTitle?: string
-  onStep: (dir: -1 | 1) => void
-  onReset: () => void
+  onChange: (v: number) => void
 }) {
+  const [text, setText] = useState<string | null>(null) // non-null while editing
+  const factor = Math.pow(10, decimals)
+  const round = (v: number): number => Math.round(v * factor) / factor
+  const set = (v: number): void => onChange(clamp(round(v), min, max))
+
+  const rounded = round(value)
+  const sign = signed && rounded > 0 ? '+' : rounded < 0 ? '−' : ''
+  const display = `${sign}${Math.abs(rounded).toFixed(decimals)}${unit}`
+  const offset = rounded !== round(resetValue)
+
+  const commit = (): void => {
+    if (text === null) return
+    const n = parseFloat(text.replace(/[^0-9.eE+-]/g, ''))
+    if (!isNaN(n)) set(n)
+    setText(null)
+  }
+
   const Left = variant === 'pos' ? IconUp : IconMinus
   const Right = variant === 'pos' ? IconDown : IconPlus
+
   return (
     <div className={`adjust-row ${offset && !disabled ? 'offset' : ''} ${disabled ? 'disabled' : ''}`}>
       <span className="adjust-label">{label}</span>
       <div className="adjust-stepper">
-        <button className="adjust-btn" title={leftTitle} disabled={disabled} onClick={() => onStep(-1)}>
+        <button className="adjust-btn" title={leftTitle} disabled={disabled} onClick={() => set(value - step)}>
           <Left />
         </button>
-        {display != null ? <span className="adjust-val">{display}</span> : <span className="adjust-div" />}
-        <button className="adjust-btn" title={rightTitle} disabled={disabled} onClick={() => onStep(1)}>
+        <input
+          className="adjust-val"
+          type="text"
+          inputMode="decimal"
+          disabled={disabled}
+          value={text !== null ? text : display}
+          onChange={e => setText(e.target.value)}
+          onFocus={e => {
+            setText(String(rounded))
+            e.currentTarget.select()
+          }}
+          onBlur={commit}
+          onKeyDown={e => {
+            e.stopPropagation() // don't let digits / arrows fire the player shortcuts
+            if (e.key === 'Enter') {
+              commit()
+              e.currentTarget.blur()
+            } else if (e.key === 'Escape') {
+              setText(null)
+              e.currentTarget.blur()
+            }
+          }}
+        />
+        <button className="adjust-btn" title={rightTitle} disabled={disabled} onClick={() => set(value + step)}>
           <Right />
         </button>
       </div>
-      <button className="adjust-reset" title="Reset" disabled={disabled || !offset} onClick={onReset}>
+      <button className="adjust-reset" title="Reset" disabled={disabled || !offset} onClick={() => onChange(resetValue)}>
         <IconReset />
       </button>
     </div>
@@ -371,61 +413,29 @@ export default function RightPanel({ open }: { open: boolean }) {
   const activeSub = subTracks.find(t => t.id === sid)
   const isImageSub = !!activeSub && IMAGE_SUB_CODECS.has((activeSub.codec || '').toLowerCase())
 
-  // audio delay
-  const stepAudioDelay = (dir: -1 | 1): void => {
-    const v = round1(audioDelay + dir * 0.1)
+  // apply + persist for the adjust rows. Size/Brightness take a display % and
+  // convert to the underlying mpv value (sub-scale multiplier / sub-color grey).
+  const setAudioDelayV = (v: number): void => {
     setAudioDelay(v)
     window.mmp.set('audio-delay', v)
   }
-  const resetAudioDelay = (): void => {
-    setAudioDelay(0)
-    window.mmp.set('audio-delay', 0)
-  }
-  // subtitle delay
-  const stepSubDelay = (dir: -1 | 1): void => {
-    const v = round1(subDelay + dir * 0.1)
+  const setSubDelayV = (v: number): void => {
     setSubDelay(v)
     window.mmp.set('sub-delay', v)
   }
-  const resetSubDelay = (): void => {
-    setSubDelay(0)
-    window.mmp.set('sub-delay', 0)
-  }
-  // subtitle vertical position (↑ = up = lower sub-pos). mpv sub-pos is 0–150:
-  // 100 = video bottom, up to 150 pushes subs down into the lower black bar.
-  // Step by 2 so reaching the bar isn't dozens of clicks.
-  const stepSubPos = (dir: -1 | 1): void => {
-    const v = clamp(subPos + dir * 2, 0, 150)
+  const setSubPosV = (v: number): void => {
     setSubPos(v)
     window.mmp.set('sub-pos', v)
   }
-  const resetSubPos = (): void => {
-    setSubPos(100)
-    window.mmp.set('sub-pos', 100)
+  const setSubScaleV = (pct: number): void => {
+    const s = pct / 100
+    setSubScale(s)
+    window.mmp.set('sub-scale', s)
   }
-  // subtitle size
-  const stepSubScale = (dir: -1 | 1): void => {
-    const v = clamp(round1(subScale + dir * 0.1), 0.3, 3)
-    setSubScale(v)
-    window.mmp.set('sub-scale', v)
-  }
-  const resetSubScale = (): void => {
-    setSubScale(1)
-    window.mmp.set('sub-scale', 1)
-  }
-  // subtitle brightness: dim the fill from white toward grey (fixes HDR-blown subs)
-  const applyBright = (pct: number): void => {
+  const setSubBrightV = (pct: number): void => {
+    setSubBright(pct)
     const c = (pct / 100).toFixed(2)
     window.mmp.set('sub-color', `${c}/${c}/${c}`)
-  }
-  const stepSubBright = (dir: -1 | 1): void => {
-    const v = clamp(subBright + dir * 10, 10, 100)
-    setSubBright(v)
-    applyBright(v)
-  }
-  const resetSubBright = (): void => {
-    setSubBright(100)
-    window.mmp.set('sub-color', '1.0/1.0/1.0')
   }
 
   const subOffset =
@@ -581,13 +591,18 @@ export default function RightPanel({ open }: { open: boolean }) {
             <AdjustRow
               label="Delay"
               variant="step"
-              display={fmtDelay(audioDelay)}
-              offset={Math.round(audioDelay * 10) !== 0}
+              value={audioDelay}
+              min={-1000}
+              max={1000}
+              step={0.1}
+              resetValue={0}
+              unit="s"
+              decimals={1}
+              signed
               disabled={audioTracks.length === 0}
               leftTitle="Earlier (−0.1s)"
               rightTitle="Later (+0.1s)"
-              onStep={stepAudioDelay}
-              onReset={resetAudioDelay}
+              onChange={setAudioDelayV}
             />
 
             <div className="track-sec">Subtitles</div>
@@ -633,46 +648,63 @@ export default function RightPanel({ open }: { open: boolean }) {
                 <AdjustRow
                   label="Delay"
                   variant="step"
-                  display={fmtDelay(subDelay)}
-                  offset={Math.round(subDelay * 10) !== 0}
+                  value={subDelay}
+                  min={-1000}
+                  max={1000}
+                  step={0.1}
+                  resetValue={0}
+                  unit="s"
+                  decimals={1}
+                  signed
                   disabled={!hasSub}
                   leftTitle="Earlier (−0.1s)"
                   rightTitle="Later (+0.1s)"
-                  onStep={stepSubDelay}
-                  onReset={resetSubDelay}
+                  onChange={setSubDelayV}
                 />
                 <AdjustRow
                   label="Position"
                   variant="pos"
-                  display={null}
-                  offset={subPos !== 100}
+                  value={subPos}
+                  min={0}
+                  max={150}
+                  step={2}
+                  resetValue={100}
+                  unit=""
+                  decimals={0}
                   disabled={!hasSub}
                   leftTitle="Move up"
                   rightTitle="Move down"
-                  onStep={stepSubPos}
-                  onReset={resetSubPos}
+                  onChange={setSubPosV}
                 />
                 <AdjustRow
                   label="Size"
                   variant="step"
-                  display={`${Math.round(subScale * 100)}%`}
-                  offset={Math.round(subScale * 100) !== 100}
+                  value={Math.round(subScale * 100)}
+                  min={0}
+                  max={10000}
+                  step={10}
+                  resetValue={100}
+                  unit="%"
+                  decimals={0}
                   disabled={!hasSub || isImageSub}
                   leftTitle="Smaller"
                   rightTitle="Larger"
-                  onStep={stepSubScale}
-                  onReset={resetSubScale}
+                  onChange={setSubScaleV}
                 />
                 <AdjustRow
                   label="Brightness"
                   variant="step"
-                  display={`${subBright}%`}
-                  offset={subBright !== 100}
+                  value={subBright}
+                  min={0}
+                  max={100}
+                  step={10}
+                  resetValue={100}
+                  unit="%"
+                  decimals={0}
                   disabled={!hasSub || isImageSub}
                   leftTitle="Dimmer"
                   rightTitle="Brighter"
-                  onStep={stepSubBright}
-                  onReset={resetSubBright}
+                  onChange={setSubBrightV}
                 />
                 {isImageSub && (
                   <div className="sub-adjust-hint">Image subtitle — position &amp; delay only</div>
