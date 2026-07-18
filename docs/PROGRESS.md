@@ -38,6 +38,8 @@
 - **字幕位置修复**：`sub-pos` clamp 由 0–100 改 **0–150**（mpv 实际范围，`--list-options` 确认）、步长 1→2 → 可把字幕**下推进下方黑 bar**；此前卡在 100（视频底）进不去。
 - **可编辑数字框**：Adjust 各项（Delay/Position/Size/Brightness）数字改为**可输入框**，回车/失焦解析并 **clamp 到 min/max**；范围按 mpv 放开（Delay ±1000s、Position 0–150、Size 0–10000%、Brightness 0–100%）；框内打字/方向键不穿透触发播放器快捷键。
 - **进度条位置**：`.osc-seek` 用 `position: relative; top: -8px` **只上移进度条**、按钮行不动、OSC 高度不变。
+- **动态右面板宽 + 派生最小窗宽**：面板宽随窗口 `clamp(窗宽 − OSC_MIN(480) − 80, 300, 440)` —— ≥1000 满 440,越小越窄到 300,始终保证 OSC ≥480 不挤变形；主进程 `panelW()` 算、resize 时 `pushPanelWidth` 推给渲染层写 `--panel-w`,OSC 布局用同一函数。**窗口最小宽 = 300+480+80 = 860**(派生,`fitWindowToVideo` 下限同步)。面板边加 `width` easeOutExpo 过渡(拉窗口时边缘平滑跟随;OSC 独立按目标宽摆放,不受影响)。标题栏文字调暗到 `--text-dim`。
+- **已知固有限制(诊断确认)**：无边框窗口 resize 时右/下侧有条**重绘延迟缝**(拖越快越大、松手即合)。实测切 `backgroundMaterial:'none'` 缝照旧 → **不是磨砂/DWM,是 Chromium 无边框窗口固有异步重绘**,无干净解(原生 window-proc 不值)。且 **主窗口 acrylic 是 mpv `--wid` 显示的必要条件**——切 none/不透明底会灰/黑屏,主窗口材质**不可改**。
 
 ### Phase 2 待办
 - **Dolby Vision 标识**：mpv 里 DV 与 HDR10 的 transfer 都是 pq、无稳定「是 DV」属性 → 现 DV 片显示 HDR。需拿 **DV Profile 5 文件实测** mpv 报的 `video-params`/`track-list` 再拆出 `Dolby Vision`。

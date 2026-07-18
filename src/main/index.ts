@@ -21,9 +21,14 @@ let preFsBounds: Electron.Rectangle | null = null
 let lastAspect = 0 // last video aspect the window was fitted to (avoid re-jumping)
 
 const OSC_H = 92
-// OSC let-way width = right panel width (--panel-w in styles.css) + a small gap.
-// Keep in sync with --panel-w until the panel becomes resizable.
-const PANEL_W = 444
+// Right panel is dynamic: PANEL_MAX_W when there's room, shrinking toward
+// PANEL_MIN_W on small windows so the OSC still gets ≥ OSC_MIN_W beside it.
+// The window's min width is derived from these so both always fit (panelW).
+const OSC_MIN_W = 480 // OSC content cramps below this
+const PANEL_MIN_W = 300 // narrowest usable panel (track names truncate)
+const PANEL_MAX_W = 440 // comfortable panel width (= --panel-w default)
+const OSC_GAP = 80 // OSC breathing room within its area (≈ 40px each side)
+const WIN_MIN_W = PANEL_MIN_W + OSC_MIN_W + OSC_GAP // 850
 const TITLEBAR_H = 32 // grey title strip reserved above the video (logical px)
 let panelOpen = false
 let hideTimer: NodeJS.Timeout | null = null
@@ -193,11 +198,24 @@ function broadcast(channel: string, ...args: unknown[]): void {
   }
 }
 
+// Right-panel width for a given window width: full (PANEL_MAX_W) when there's
+// room, shrinking toward PANEL_MIN_W on small windows to protect the OSC.
+function panelW(winWidth: number): number {
+  return Math.min(PANEL_MAX_W, Math.max(PANEL_MIN_W, winWidth - OSC_MIN_W - OSC_GAP))
+}
+
+// Push the current panel width to the renderer so the --panel-w CSS var tracks
+// the window (the panel visibly narrows as the window gets small).
+function pushPanelWidth(): void {
+  if (!win || win.isDestroyed()) return
+  win.webContents.send('ui:panel-width', panelW(win.getBounds().width))
+}
+
 /** Resting bounds of the OSC: bottom-center, moved out of the side panel's way. */
 function oscRestBounds(): Electron.Rectangle {
   const b = win!.getBounds()
-  const avail = panelOpen ? Math.max(380, b.width - PANEL_W) : b.width
-  const w = Math.min(620, Math.max(320, avail - 80))
+  const avail = panelOpen ? b.width - panelW(b.width) : b.width
+  const w = Math.min(620, Math.max(OSC_MIN_W, avail - OSC_GAP))
   const margin = Math.max(44, Math.round(b.height * 0.09))
   return {
     x: Math.round(b.x + (avail - w) / 2),
@@ -374,7 +392,7 @@ function fitWindowToVideo(aspect: number): void {
   let h = videoH + TITLEBAR_H
   if (h > maxH) { h = maxH; videoH = h - TITLEBAR_H; w = Math.round(videoH * aspect) }
   if (w > maxW) { w = maxW; videoH = Math.round(w / aspect); h = videoH + TITLEBAR_H }
-  w = Math.max(w, 480)
+  w = Math.max(w, WIN_MIN_W)
   h = Math.max(h, 320)
 
   // keep the window centered on its current center, clamped into the work area
@@ -394,7 +412,7 @@ function createWindows(): void {
   win = new BrowserWindow({
     width: 1000,
     height: 620,
-    minWidth: 480,
+    minWidth: WIN_MIN_W,
     minHeight: 320,
     center: true,
     frame: false,
@@ -432,6 +450,7 @@ function createWindows(): void {
   win.on('resize', () => {
     layoutOsc()
     updateVideoMargin() // keep the reserved title strip proportional as height changes
+    pushPanelWidth() // panel width tracks the window width
   })
 
   // broadcast app active/inactive so the renderer can compensate the acrylic

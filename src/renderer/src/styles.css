@@ -2,8 +2,8 @@
   /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
      brightness = the gray RGB, transparency = the alpha (lower = more frost). */
   --panel: rgba(34, 34, 37, 0.44);
-  /* right-panel width. Keep PANEL_W in src/main/index.ts in sync (OSC let-way).
-     Single knob for now; the seam for a future resizable panel. */
+  /* right-panel width. Default = PANEL_MAX_W; main overrides it live via
+     'ui:panel-width' (shrinks the panel on small windows so the OSC still fits). */
   --panel-w: 440px;
   --track: rgb(128, 128, 134);
   --accent: rgb(188, 188, 193);
@@ -95,6 +95,7 @@ body.fullscreen .titlebar {
 .title-text {
   font-size: 13px;
   font-weight: 500;
+  color: var(--text-dim);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   overflow: hidden;
@@ -553,8 +554,11 @@ body.fullscreen .titlebar {
   background: rgba(34, 34, 37, 0.99);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   transform: translateX(100%);
-  /* fast out, long ease-out settle (easeOutExpo) — matches the OSC's glide */
-  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  /* fast out, long ease-out settle (easeOutExpo) — matches the OSC's glide.
+     width eases too, so the panel edge glides as the window resizes (the OSC is
+     sized independently by main, so this never distorts it). */
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
 /* fullscreen hides the title bar — let the panel reach the very top */

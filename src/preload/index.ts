@@ -67,6 +67,8 @@ const api = {
     subscribe('ui:panel-toggle', (name: string) => cb(name)),
   onPanelState: (cb: (open: boolean) => void): Unsubscribe =>
     subscribe('ui:panel-open', (open: boolean) => cb(open)),
+  onPanelWidth: (cb: (w: number) => void): Unsubscribe =>
+    subscribe('ui:panel-width', (w: number) => cb(w)),
 
   // --- app / window ---
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),

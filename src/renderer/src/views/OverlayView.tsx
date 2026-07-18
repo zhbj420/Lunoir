@@ -75,6 +75,13 @@ export default function OverlayView() {
   // OSC buttons (in the acrylic window) toggle side panels via main
   useEffect(() => window.mmp.onPanelToggle(name => setPanel(cur => (cur === name ? null : name))), [])
 
+  // right panel width is dynamic (main shrinks it on small windows so the OSC
+  // still fits) — mirror it into the CSS var the panel is sized from
+  useEffect(
+    () => window.mmp.onPanelWidth(w => document.documentElement.style.setProperty('--panel-w', `${w}px`)),
+    []
+  )
+
   // grey title strip only over video; hide it (and the reserved margin) fullscreen
   useEffect(() => window.mmp.onFullscreen(fs => document.body.classList.toggle('fullscreen', fs)), [])
   useEffect(() => {
