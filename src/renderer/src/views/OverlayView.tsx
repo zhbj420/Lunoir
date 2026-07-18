@@ -134,7 +134,7 @@ export default function OverlayView() {
       <TitleBar title={p.state.title} />
       <div className="video-surface" onClick={p.togglePause} onDoubleClick={p.fullscreen} />
       {!p.state.hasMedia && <EmptyState onOpen={p.openFile} />}
-      <RightPanel open={panel === 'playlist'} />
+      <RightPanel open={panel === 'playlist'} onClose={() => setPanel(null)} />
       <div className="drop-hint" />
     </div>
   )

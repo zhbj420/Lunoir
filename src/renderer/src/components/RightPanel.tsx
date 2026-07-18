@@ -301,7 +301,7 @@ const Chevron = () => (
 )
 
 // The right-hand context panel. Tabs: Playlist, Chapters, Audio & Sub.
-export default function RightPanel({ open }: { open: boolean }) {
+export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('playlist')
   const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off' })
   const [chapters, setChapters] = useState<Chapter[]>([])
@@ -465,6 +465,11 @@ export default function RightPanel({ open }: { open: boolean }) {
           Audio &amp; Sub
         </button>
         <span className="panel-tabs-spacer" />
+        <button className="panel-collapse" title="Collapse panel" onClick={onClose}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4l4 4-4 4M9 4l4 4-4 4" />
+          </svg>
+        </button>
       </div>
 
       {tab === 'playlist' && (

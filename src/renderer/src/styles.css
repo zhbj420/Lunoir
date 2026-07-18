@@ -618,14 +618,14 @@ body.fullscreen .panel {
   flex: 1;
 }
 
-.panel-close {
-  margin-left: auto;
+/* collapse (hide) the panel — a » that pushes it off to the right edge */
+.panel-collapse {
   width: 26px;
   height: 26px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.55);
-  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.38);
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -633,9 +633,9 @@ body.fullscreen .panel {
   transition: background 0.12s, color 0.12s;
 }
 
-.panel-close:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+.panel-collapse:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
 }
 
 .panel-body {
