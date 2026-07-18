@@ -328,16 +328,16 @@ function toggleFullscreen(): void {
   if (!win) return
   suppressRevealUntil = Date.now() + 350 // don't let the resize's mousemove pop the OSC
   if (preFsBounds) {
-    win.setAlwaysOnTop(false)
-    win.setBounds(preFsBounds)
+    // EXIT — native fullscreen restores the previous bounds itself
     preFsBounds = null
+    win.setFullScreen(false)
     setCornerPreference(win, CORNER_DEFAULT) // rounded corners look good windowed
   } else {
-    preFsBounds = win.getBounds()
-    const disp = screen.getDisplayMatching(win.getBounds())
-    win.setBounds(disp.bounds)
-    win.setAlwaysOnTop(true)
-    setCornerPreference(win, CORNER_DONOTROUND) // square corners fill the screen edges
+    // ENTER — OS-native fullscreen state: Windows treats it as a fullscreen app
+    // (better z-order, notifications suppressed) — no borderless+alwaysOnTop hack.
+    preFsBounds = win.getBounds() // still used as the "is fullscreen" flag
+    win.setFullScreen(true)
+    setCornerPreference(win, CORNER_DONOTROUND)
   }
   win.webContents.send('win:fullscreen', preFsBounds != null)
   updateVideoMargin() // 0 in fullscreen (video fills), restore the strip on exit
@@ -378,10 +378,16 @@ function updateVideoMargin(): void {
 function fitWindowToVideo(aspect: number): void {
   if (!win || win.isDestroyed()) return
   if (!(aspect > 0.2 && aspect < 5)) return
-  if (Math.abs(aspect - lastAspect) < 0.01) return // ratio unchanged
-  if (preFsBounds || win.isMaximized()) return // don't fight fullscreen / maximized
 
+  const changed = Math.abs(aspect - lastAspect) >= 0.01
   lastAspect = aspect
+
+  // one-time fit of the window to the video aspect so it opens filled; skip if
+  // the ratio is unchanged, or when fullscreen / maximized. Manual resize after
+  // this just lets mpv letterbox/pillarbox to keep the picture's own aspect
+  // (standard contain fit — the window can be any shape).
+  if (!changed || preFsBounds || win.isMaximized()) return
+
   const b = win.getBounds()
   const disp = screen.getDisplayMatching(b).workArea
   const maxW = Math.round(disp.width * 0.92)
@@ -464,19 +470,6 @@ function createWindows(): void {
     w.on('focus', updateFocus)
     w.on('blur', () => setTimeout(updateFocus, 30))
   }
-
-  // Borderless fullscreen keeps the window on top via setAlwaysOnTop. Handing
-  // focus back to it from the child OSC window (e.g. open the panel from the OSC
-  // button, then click a panel tab) can clear that topmost flag on Windows and
-  // sink the whole app behind other windows — re-assert it on refocus.
-  win.on('focus', () => {
-    if (preFsBounds && win && !win.isDestroyed()) {
-      // toggle to force TOPMOST to re-apply — re-covers the taskbar and lifts
-      // the window back above other apps. moveTop() surfaced the taskbar instead.
-      win.setAlwaysOnTop(false)
-      win.setAlwaysOnTop(true)
-    }
-  })
 
   win.once('ready-to-show', () => {
     win?.show()

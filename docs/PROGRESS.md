@@ -23,10 +23,11 @@
 - **面板不外泄**：面板根 stopPropagation mousemove/wheel（不再误弹 OSC / 误改音量）；`.panel { cursor: default }` 保光标可见。
 - **隐藏 OSC 划过不弹**：OSC 窗 `onMouseMove` 仅在已显示时 keep-alive；main「离开 OSC→reveal」加 `oscShown` 前提。
 
-### 全屏（多处修）
+### 全屏（改用原生全屏）
+- **改用 `win.setFullScreen(true/false)`（OS 原生全屏状态）**，弃用「手动 `setBounds(屏幕)+alwaysOnTop`」那套。实测(2026-07-18):真全屏、视频正常、OSC 子窗仍浮在上面、**Windows 通知不再把窗口踢到后面**(系统按全屏应用管 z-order)。连带删掉之前所有 `alwaysOnTop`/`screen-saver`/`moveTop`/focus-re-assert 的 z-order hack —— 全交给系统。
 - 面板全屏到顶（`body.fullscreen .panel { top:0 }`）。
 - **切全屏不弹 OSC**：main 侧切换后 350ms 屏蔽移动 reveal（避开 resize 的 synthetic mousemove）；`f` 键早返回。
-- **点 tab 不再沉底 / 不冒任务栏**：主窗全屏下重获焦点时 `setAlwaysOnTop(false→true)` 强制重置 TOPMOST（弃用会冒任务栏的 `moveTop`）。根因：从 OSC 子窗开面板 → 焦点交回主窗触发。
+- **窗口适配 = 标准 contain**（MPC 式）：开片 `fitWindowToVideo` 把窗口摆成视频比例好铺满；之后自由拉窗口,mpv 保持视频比例 letterbox/pillarbox（竖向拉大→上下黑、横向满；横向拉宽→两侧黑）。**不锁窗口比例**（曾试 `setAspectRatio` 锁定,反而害了自由拉伸 + 全屏还原,已删）。
 
 ### 动画
 - 面板开合 `easeOutExpo`（`cubic-bezier(0.16,1,0.3,1)`，~0.42s，快冲 + 长收尾）；**OSC 横向位移同步补间**（主进程同款曲线，连宽度一起），不再瞬跳。

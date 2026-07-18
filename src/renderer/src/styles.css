@@ -1,14 +1,14 @@
 :root {
   /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
      brightness = the gray RGB, transparency = the alpha (lower = more frost). */
-  --panel: rgba(34, 34, 37, 0.44);
+  --panel: rgba(24, 24, 27, 0.40);
   /* right-panel width. Default = PANEL_MAX_W; main overrides it live via
      'ui:panel-width' (shrinks the panel on small windows so the OSC still fits). */
   --panel-w: 440px;
-  --track: rgb(128, 128, 134);
-  --accent: rgb(188, 188, 193);
-  --glyph: rgb(156, 156, 162);
-  --glyph-strong: rgb(173, 173, 179);
+  --track: rgb(112, 112, 118);
+  --accent: rgb(168, 168, 174);
+  --glyph: rgb(138, 138, 144);
+  --glyph-strong: rgb(154, 154, 160);
   --text: rgba(255, 255, 255, 0.96);
   --text-dim: rgba(255, 255, 255, 0.6);
   --empty-scrim: rgba(16, 16, 20, 0.2);
@@ -17,7 +17,7 @@
 /* When the app is inactive, Win11 lightens the acrylic; thicken the scrims a bit
    to soften (not fully cancel) the brightening. */
 body.app-inactive {
-  --panel: rgba(34, 34, 37, 0.54);
+  --panel: rgba(24, 24, 27, 0.50);
   --empty-scrim: rgba(16, 16, 20, 0.32);
 }
 
@@ -501,7 +501,7 @@ body.fullscreen .titlebar {
   font-weight: 600;
   letter-spacing: 0.6px;
   font-variant-numeric: tabular-nums;
-  color: rgb(144, 144, 150);
+  color: rgb(126, 126, 132);
   min-width: 46px;
 }
 
