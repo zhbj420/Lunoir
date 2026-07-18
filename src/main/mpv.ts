@@ -27,7 +27,10 @@ const OBSERVED = [
   'audio-delay',
   'sub-delay',
   'sub-pos',
-  'sub-scale'
+  'sub-scale',
+  'video-params/gamma', // transfer fn: 'pq'/'hlg' → HDR badge
+  'audio-codec-name', // e.g. 'eac3', 'truehd', 'dts' → audio format badge
+  'audio-params/channel-count'
 ] as const
 
 /**

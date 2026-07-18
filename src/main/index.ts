@@ -197,7 +197,7 @@ function broadcast(channel: string, ...args: unknown[]): void {
 function oscRestBounds(): Electron.Rectangle {
   const b = win!.getBounds()
   const avail = panelOpen ? Math.max(380, b.width - PANEL_W) : b.width
-  const w = Math.min(560, Math.max(320, avail - 80))
+  const w = Math.min(620, Math.max(320, avail - 80))
   const margin = Math.max(44, Math.round(b.height * 0.09))
   return {
     x: Math.round(b.x + (avail - w) / 2),
@@ -408,7 +408,7 @@ function createWindows(): void {
   loadRenderer(win)
 
   oscWin = new BrowserWindow({
-    width: 560,
+    width: 620,
     height: OSC_H,
     frame: false,
     transparent: false,

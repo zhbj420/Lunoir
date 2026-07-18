@@ -8,6 +8,9 @@ export interface PlayerState {
   mute: boolean
   title: string
   hasMedia: boolean
+  gamma: string // video transfer fn ('pq'/'hlg'/…) → HDR badge
+  audioCodec: string // audio-codec-name → format badge
+  audioChannels: number // audio-params/channel-count → layout suffix
 }
 
 const initial: PlayerState = {
@@ -17,7 +20,10 @@ const initial: PlayerState = {
   volume: 100,
   mute: false,
   title: 'Lunoir',
-  hasMedia: false
+  hasMedia: false,
+  gamma: '',
+  audioCodec: '',
+  audioChannels: 0
 }
 
 export function usePlayer() {
@@ -50,6 +56,12 @@ export function usePlayer() {
             return data ? { ...s, title: String(data), hasMedia: true } : s
           case 'path':
             return data ? { ...s, hasMedia: true } : s
+          case 'video-params/gamma':
+            return { ...s, gamma: typeof data === 'string' ? data : '' }
+          case 'audio-codec-name':
+            return { ...s, audioCodec: typeof data === 'string' ? data : '' }
+          case 'audio-params/channel-count':
+            return { ...s, audioChannels: typeof data === 'number' ? data : 0 }
           default:
             return s
         }

@@ -2,6 +2,46 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-18）
+
+**阶段：字幕微调面板 + OSC 弹出/全屏交互打磨 + OSC 内容信息标（HDR / 音频格式）。均已提交，准备开 phase 2。**
+
+### 右面板：Audio & Sub 页 + 字幕微调（已做）
+- Tracks 标签正名 **Audio & Sub**；面板加宽 340→440（主进程 `PANEL_W` 同步 444，差 4px 为 OSC 让位）。
+- 每条音/字幕轨下加 **Delay 步进器**（±0.1s，带符号、真减号字形、归零禁用态）。
+- 字幕区底部 **可折叠「ADJUST」底条**（钉底、易达）：Delay / Position（↑↓ = sub-pos）/ Size（sub-scale）/ Brightness。
+  - **Brightness** 借 `sub-color` 把纯白压灰 → 治 **HDR 下 SRT 过亮刺眼**（社区标准解法，文本字幕生效）。
+  - **降级**：图形字幕（PGS/VobSub，按当前轨 `codec` 判定）自动禁用 Size/Brightness、只留 Position/Delay + 提示；无字幕时全禁用。
+  - 底条做成「从属可展开」形态：引导箭头前置 + 压暗（0.34）轻于区块头；`grid-rows 0fr→1fr` + 淡入平滑展开；收起时有值则亮小圆点。
+- mpv 观察新增：`audio-delay`/`sub-delay`/`sub-pos`/`sub-scale`。
+
+### OSC 弹出逻辑（多处修）
+- **暂停/播放不弹**：main 去掉 pause 属性触发 reveal；键盘 space/k 早返回不走 onActivity。
+- **进窗不弹**：`.app` onMouseEnter 起 guard，离进入点移动 <50px 一律不 reveal（挡住"贴边进入即弹"）。
+- **底部只中间区弹**：`y>h-150` 加 x 中间带（窗宽 20%–80%）；底部角落 / 任务栏侧进入不触发；顶部标题条仍整条。
+- **移动阈值** 60→100（更钝）。
+- **面板不外泄**：面板根 stopPropagation mousemove/wheel（不再误弹 OSC / 误改音量）；`.panel { cursor: default }` 保光标可见。
+- **隐藏 OSC 划过不弹**：OSC 窗 `onMouseMove` 仅在已显示时 keep-alive；main「离开 OSC→reveal」加 `oscShown` 前提。
+
+### 全屏（多处修）
+- 面板全屏到顶（`body.fullscreen .panel { top:0 }`）。
+- **切全屏不弹 OSC**：main 侧切换后 350ms 屏蔽移动 reveal（避开 resize 的 synthetic mousemove）；`f` 键早返回。
+- **点 tab 不再沉底 / 不冒任务栏**：主窗全屏下重获焦点时 `setAlwaysOnTop(false→true)` 强制重置 TOPMOST（弃用会冒任务栏的 `moveTop`）。根因：从 OSC 子窗开面板 → 焦点交回主窗触发。
+
+### 动画
+- 面板开合 `easeOutExpo`（`cubic-bezier(0.16,1,0.3,1)`，~0.42s，快冲 + 长收尾）；**OSC 横向位移同步补间**（主进程同款曲线，连宽度一起），不再瞬跳。
+
+### OSC 内容信息标（已做）
+- 进度行时长后挂两个小 pill：**HDR** + **音频格式**（`TrueHD 7.1`/`DD+ 5.1`/`DTS 5.1`/`FLAC 2.0`/`PCM`… 按当前音轨）。SDR 不显示 HDR。
+- 数据源：`video-params/gamma`（pq/hlg→HDR）、`audio-codec-name` + `audio-params/channel-count`。OSC 上限 560→620 补回进度条长度。
+
+### Phase 2 待办
+- **Dolby Vision 标识**：mpv 里 DV 与 HDR10 的 transfer 都是 pq、无稳定「是 DV」属性 → 现 DV 片显示 HDR。需拿 **DV Profile 5 文件实测** mpv 报的 `video-params`/`track-list` 再拆出 `Dolby Vision`。
+- **音频子档细分**：DTS:X / DTS-HD MA、TrueHD Atmos、DD+ Atmos 需解 decoder profile（`audio-codec` 长名或 track profile），现仅基础格式 + 声道。
+- 两侧面板 + 标题栏 **真亚克力窗口化**（一直挂着的「一把做」）。
+- 可调宽度面板（用户提过「以后可能」）。
+- GitHub 开源准备（README / LICENSE / `package.json` name→lunoir / mpv 许可声明）—— 不急。
+
 ## 当前状态（2026-07-17 · 深夜）
 
 **阶段：双窗口定型（主亚克力窗 + 独立亚克力 OSC 子窗），OSC 动画 / DWM 边框阴影 / IINA 风格右面板 / 窗口自适应视频比例均完成。下一步 Chapters 验证 + Tracks 页 + 面板亚克力化。**

@@ -10,6 +10,47 @@ function fmt(sec: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
 }
 
+// Only two marks: "HDR" or "Dolby Vision"; SDR shows nothing. Any HDR transfer
+// (PQ or HLG) reads as HDR. (Dolby Vision uses PQ too and has no distinct mpv
+// signal yet, so DV currently reads as "HDR" — to be split out in phase 2.)
+function hdrLabel(gamma: string): string {
+  const g = gamma.toLowerCase()
+  if (g === 'pq' || g === 'st2084' || g === 'hlg') return 'HDR'
+  return ''
+}
+
+function channelLayout(n: number): string {
+  if (n >= 8) return '7.1'
+  if (n === 7) return '6.1'
+  if (n === 6) return '5.1'
+  if (n === 3) return '2.1'
+  if (n === 2) return '2.0'
+  if (n === 1) return 'Mono'
+  return ''
+}
+
+// Friendly name for the current audio codec (+ channel layout). Sub-formats like
+// DTS:X / DTS-HD MA and TrueHD Atmos need decoder-profile info we don't read yet.
+function audioLabel(codec: string, channels: number): string {
+  if (!codec) return ''
+  const c = codec.toLowerCase()
+  const names: Record<string, string> = {
+    truehd: 'TrueHD',
+    eac3: 'DD+',
+    ac3: 'DD',
+    dts: 'DTS',
+    aac: 'AAC',
+    flac: 'FLAC',
+    alac: 'ALAC',
+    opus: 'Opus',
+    vorbis: 'Vorbis',
+    mp3: 'MP3'
+  }
+  const name = names[c] || (c.startsWith('pcm') ? 'PCM' : codec.toUpperCase())
+  const layout = channelLayout(channels)
+  return layout ? `${name} ${layout}` : name
+}
+
 interface Props {
   state: PlayerState
   onTogglePause: () => void
@@ -24,6 +65,8 @@ export default function Controls(props: Props) {
   const { state } = props
   const pct = state.duration > 0 ? (state.timePos / state.duration) * 100 : 0
   const volPct = Math.min(100, (state.volume / 150) * 100)
+  const hdr = hdrLabel(state.gamma)
+  const audio = audioLabel(state.audioCodec, state.audioChannels)
 
   // reflect whether the right panel is open, so the list button reads "pressed"
   const [panelOpen, setPanelOpen] = useState(false)
@@ -88,6 +131,12 @@ export default function Controls(props: Props) {
           onChange={e => props.onSeek(Number(e.target.value))}
         />
         <span className="t dur">{fmt(state.duration)}</span>
+        {(hdr || audio) && (
+          <div className="osc-fmt">
+            {hdr && <span className="fmt-badge hdr">{hdr}</span>}
+            {audio && <span className="fmt-badge">{audio}</span>}
+          </div>
+        )}
       </div>
     </div>
   )
