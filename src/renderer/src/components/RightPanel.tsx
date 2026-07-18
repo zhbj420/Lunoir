@@ -18,6 +18,8 @@ interface Track {
   lang?: string
   codec?: string
   external?: boolean
+  'demux-channel-count'?: number
+  'demux-bitrate'?: number
 }
 
 // image/bitmap subtitle codecs: no glyphs to restyle, so size/brightness don't
@@ -48,14 +50,119 @@ function clipTitle(el: HTMLElement): void {
   el.title = el.scrollWidth > el.clientWidth + 1 ? el.textContent || '' : ''
 }
 
-// full inline label (MPC-HC style, minus the "S:" prefix and the right column):
-// "Simplified, Singapore [chi] (subrip)"
-function trackFull(t: Track): string {
-  const parts: string[] = []
-  if (t.title) parts.push(t.title)
-  if (t.lang) parts.push(`[${t.lang}]`)
-  if (t.codec) parts.push(`(${t.codec})`)
-  return parts.join(' ') || `Track ${t.id}`
+const SUB_FMT: Record<string, string> = {
+  subrip: 'SubRip',
+  srt: 'SubRip',
+  ass: 'ASS',
+  ssa: 'SSA',
+  webvtt: 'WebVTT',
+  mov_text: 'MOV Text',
+  hdmv_pgs_subtitle: 'PGS',
+  pgssub: 'PGS',
+  dvd_subtitle: 'VobSub',
+  dvdsub: 'VobSub',
+  vobsub: 'VobSub',
+  dvb_subtitle: 'DVB',
+  dvbsub: 'DVB',
+  dvb_teletext: 'Teletext'
+}
+
+// friendly format tag shown on the RIGHT of a subtitle row (MPC-HC style)
+function subFmt(codec?: string): string {
+  if (!codec) return ''
+  return SUB_FMT[codec.toLowerCase()] || codec.toUpperCase()
+}
+
+// Subtitle left label. The format lives in the right-hand tag (subFmt), so strip
+// format tokens out of the title ("English-PGS" → "English") and don't repeat the
+// codec. Keeps meaningful descriptors like SDH / Forced. Falls back to language.
+function subName(t: Track): string {
+  let title = t.title && !looksLikeFilename(t.title) ? t.title : ''
+  if (title) {
+    title = title
+      .replace(/[._\-]+/g, ' ') // separators → space
+      .replace(/\b(subrip|srt|sup|pgs|pgssub|vobsub|ass|ssa|webvtt|dvb)\b/gi, ' ') // drop format
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+  const lang = langName(t.lang)
+  if (!title) return lang || `Track ${t.id}`
+  // prefix the language only if the title doesn't already name it
+  if (lang && !title.toLowerCase().includes(lang.toLowerCase())) return `${lang} ${title}`
+  return title
+}
+
+const AUDIO_FMT: Record<string, string> = {
+  truehd: 'Dolby TrueHD',
+  eac3: 'Dolby Digital Plus',
+  ac3: 'Dolby Digital',
+  dts: 'DTS',
+  aac: 'AAC',
+  flac: 'FLAC',
+  alac: 'ALAC',
+  opus: 'Opus',
+  vorbis: 'Vorbis',
+  mp3: 'MP3'
+}
+const LANG_NAME: Record<string, string> = {
+  eng: 'English', jpn: 'Japanese', chi: 'Chinese', zho: 'Chinese',
+  fra: 'French', fre: 'French', deu: 'German', ger: 'German',
+  spa: 'Spanish', ita: 'Italian', kor: 'Korean', rus: 'Russian',
+  por: 'Portuguese', dut: 'Dutch', nld: 'Dutch', pol: 'Polish',
+  tha: 'Thai', vie: 'Vietnamese', ara: 'Arabic', hin: 'Hindi',
+  ind: 'Indonesian', tur: 'Turkish', swe: 'Swedish', dan: 'Danish',
+  nor: 'Norwegian', fin: 'Finnish', ces: 'Czech', cze: 'Czech',
+  ell: 'Greek', gre: 'Greek', heb: 'Hebrew', hun: 'Hungarian', ukr: 'Ukrainian'
+}
+
+function langName(lang?: string): string {
+  if (!lang) return ''
+  return LANG_NAME[lang.toLowerCase()] || lang.toUpperCase()
+}
+
+function audioFmt(codec?: string): string {
+  if (!codec) return ''
+  const c = codec.toLowerCase()
+  return AUDIO_FMT[c] || (c.startsWith('pcm') ? 'PCM' : codec.toUpperCase())
+}
+
+function chLayout(n?: number): string {
+  if (!n) return ''
+  if (n >= 8) return '7.1'
+  if (n === 7) return '6.1'
+  if (n === 6) return '5.1'
+  if (n === 3) return '2.1'
+  if (n === 2) return '2.0'
+  if (n === 1) return 'Mono'
+  return `${n}ch`
+}
+
+// A release-name dumped into the track title (dotted, no spaces, resolution/source
+// tokens) — useless as a label, so drop it and build one from language + format.
+function looksLikeFilename(s: string): boolean {
+  if (/\b(480p|576p|720p|1080p|2160p|bluray|remux|web-?dl|webrip|hdtv|x264|x265|hevc|avc)\b/i.test(s)) {
+    return true
+  }
+  return (s.match(/\./g) || []).length >= 3 && !s.includes(' ')
+}
+
+function bitrate(bps?: number): string {
+  return bps && bps > 0 ? `${Math.round(bps / 1000)} kbps` : ''
+}
+
+// Audio tracks in remuxes often carry the whole release filename as their title,
+// so they all read identically. Show language + format (+ channels + bitrate)
+// instead — bitrate tells apart otherwise-identical tracks (e.g. two English
+// DD 5.1: a 640k main + a 448k track). Keep a genuinely descriptive title too.
+function audioTrackLabel(t: Track): string {
+  let main = [langName(t.lang), audioFmt(t.codec), chLayout(t['demux-channel-count'])]
+    .filter(Boolean)
+    .join(' ')
+  const br = bitrate(t['demux-bitrate'])
+  if (main && br) main = `${main} · ${br}`
+  const title = t.title && !looksLikeFilename(t.title) ? t.title : ''
+  if (title && main) return `${title} · ${main}`
+  return main || title || `Track ${t.id}`
 }
 
 const round1 = (v: number): number => Math.round(v * 10) / 10
@@ -284,9 +391,11 @@ export default function RightPanel({ open }: { open: boolean }) {
     setSubDelay(0)
     window.mmp.set('sub-delay', 0)
   }
-  // subtitle vertical position (↑ = up = lower sub-pos)
+  // subtitle vertical position (↑ = up = lower sub-pos). mpv sub-pos is 0–150:
+  // 100 = video bottom, up to 150 pushes subs down into the lower black bar.
+  // Step by 2 so reaching the bar isn't dozens of clicks.
   const stepSubPos = (dir: -1 | 1): void => {
-    const v = clamp(subPos + dir, 0, 100)
+    const v = clamp(subPos + dir * 2, 0, 150)
     setSubPos(v)
     window.mmp.set('sub-pos', v)
   }
@@ -464,7 +573,7 @@ export default function RightPanel({ open }: { open: boolean }) {
                 >
                   <span className="pl-mark">{t.id === aid ? <Check /> : null}</span>
                   <span className="pl-name" onMouseEnter={e => clipTitle(e.currentTarget)}>
-                    {trackFull(t)}
+                    {audioTrackLabel(t)}
                   </span>
                 </div>
               ))
@@ -497,8 +606,9 @@ export default function RightPanel({ open }: { open: boolean }) {
               >
                 <span className="pl-mark">{t.id === sid ? <Check /> : null}</span>
                 <span className="pl-name" onMouseEnter={e => clipTitle(e.currentTarget)}>
-                  {trackFull(t)}
+                  {subName(t)}
                 </span>
+                {subFmt(t.codec) && <span className="pl-fmt">{subFmt(t.codec)}</span>}
               </div>
             ))}
 

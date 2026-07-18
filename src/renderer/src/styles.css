@@ -508,32 +508,26 @@ body.fullscreen .titlebar {
   text-align: left;
 }
 
-/* content badges trailing the seek row: HDR/HLG + audio format */
+/* content marks (HDR + audio format), stacked in the button row's right gap —
+   plain text, no chip/shadow, both the same brightness */
 .osc-fmt {
   flex: none;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 2px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  margin-right: 10px;
 }
 
 .fmt-badge {
-  padding: 3px 6px;
-  border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* the HDR/HLG mark reads a touch brighter — it's the notable one */
-.fmt-badge.hdr {
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* ---------- Side panel (playlist) ---------- */
@@ -721,6 +715,19 @@ body.fullscreen .panel {
 
 .pl-item.active .pl-time {
   color: rgba(255, 255, 255, 0.75);
+}
+
+/* right-aligned format tag on subtitle rows (SubRip / PGS / ASS …) */
+.pl-fmt {
+  flex: none;
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.pl-item.active .pl-fmt {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* tracks tab: Audio / Subtitles sections */

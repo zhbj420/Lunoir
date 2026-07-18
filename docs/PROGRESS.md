@@ -31,13 +31,15 @@
 ### 动画
 - 面板开合 `easeOutExpo`（`cubic-bezier(0.16,1,0.3,1)`，~0.42s，快冲 + 长收尾）；**OSC 横向位移同步补间**（主进程同款曲线，连宽度一起），不再瞬跳。
 
-### OSC 内容信息标（已做）
-- 进度行时长后挂两个小 pill：**HDR** + **音频格式**（`TrueHD 7.1`/`DD+ 5.1`/`DTS 5.1`/`FLAC 2.0`/`PCM`… 按当前音轨）。SDR 不显示 HDR。
-- 数据源：`video-params/gamma`（pq/hlg→HDR）、`audio-codec-name` + `audio-params/channel-count`。OSC 上限 560→620 补回进度条长度。
+### OSC 内容信息标 + 轨道命名清理（已做）
+- OSC **按钮行齿轮左侧**挂两个小标（上下堆叠、纯文字无底纹、同亮度）：**HDR** + **音频格式**（OSC 用简写 `DD+ 5.1`/`TrueHD 7.1`）。SDR 不显示 HDR。源：`video-params/gamma`（pq/hlg→HDR）、`audio-codec-name` + `audio-params/channel-count`。OSC 上限 560→620。
+- **音轨命名清理**：remux 常把整串发行文件名塞进 track title → 丢弃（按分辨率/来源 token 或「多点无空格」判定），改拼 **语言 + 全称格式 + 声道 + 码率**（`English Dolby TrueHD 7.1`）；有意义的 title（Commentary）保留。
+- **字幕两栏式**：左 = 干净名字（语言 + SDH/Forced，剥掉格式 token），右 = 格式小标签（`SubRip`/`PGS`/`ASS`/`VobSub`…）。
+- **字幕位置修复**：`sub-pos` clamp 由 0–100 改 **0–150**（mpv 实际范围，`--list-options` 确认）、步长 1→2 → 可把字幕**下推进下方黑 bar**；此前卡在 100（视频底）进不去。
 
 ### Phase 2 待办
 - **Dolby Vision 标识**：mpv 里 DV 与 HDR10 的 transfer 都是 pq、无稳定「是 DV」属性 → 现 DV 片显示 HDR。需拿 **DV Profile 5 文件实测** mpv 报的 `video-params`/`track-list` 再拆出 `Dolby Vision`。
-- **音频子档细分**：DTS:X / DTS-HD MA、TrueHD Atmos、DD+ Atmos 需解 decoder profile（`audio-codec` 长名或 track profile），现仅基础格式 + 声道。
+- **每轨码率 + 音频子档（ffprobe 管线，方案已实测锁定 2026-07-18）** —— mpv `demux-bitrate`/`codec-profile` 对**非活动轨**为 `(unavailable)`、拿不到；**ffprobe 一次给全部流的 `bit_rate` + `profile`**（实测：ac3→bit_rate、dts→profile=DTS），跟 MPC-HC（LAV）一致。落地：setup 打包/下载 ffprobe → 主进程开片 spawn → 解析 JSON → 按 stream index 合并进 track-list → 显示码率 + `DTS-HD MA`/`Dolby TrueHD Atmos` 真名。（顺带分开两条 English DD 5.1：640k vs 448k。）系统 `C:\ffmpeg\bin\ffprobe.exe` 可先用于开发验证。
 - 两侧面板 + 标题栏 **真亚克力窗口化**（一直挂着的「一把做」）。
 - 可调宽度面板（用户提过「以后可能」）。
 - GitHub 开源准备（README / LICENSE / `package.json` name→lunoir / mpv 许可声明）—— 不急。

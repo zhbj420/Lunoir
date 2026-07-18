@@ -104,6 +104,12 @@ export default function Controls(props: Props) {
         </div>
 
         <div className="grp right">
+          {(hdr || audio) && (
+            <div className="osc-fmt">
+              {hdr && <span className="fmt-badge">{hdr}</span>}
+              {audio && <span className="fmt-badge">{audio}</span>}
+            </div>
+          )}
           <button className="ib s" title="Settings (coming soon)">
             <IcGear />
           </button>
@@ -131,12 +137,6 @@ export default function Controls(props: Props) {
           onChange={e => props.onSeek(Number(e.target.value))}
         />
         <span className="t dur">{fmt(state.duration)}</span>
-        {(hdr || audio) && (
-          <div className="osc-fmt">
-            {hdr && <span className="fmt-badge hdr">{hdr}</span>}
-            {audio && <span className="fmt-badge">{audio}</span>}
-          </div>
-        )}
       </div>
     </div>
   )
