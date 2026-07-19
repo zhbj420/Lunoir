@@ -62,6 +62,11 @@ export class MpvController extends EventEmitter {
 
   start(opts: MpvStartOptions = {}): void {
     const args = [
+      // isolate from the user's own mpv setup: without this, our bundled mpv reads
+      // %APPDATA%/mpv/{mpv.conf,input.conf,scripts} — leaking their personal
+      // bindings/profiles/filters into the app. We drive everything via args + IPC,
+      // so no external config should ever apply.
+      '--no-config',
       '--idle=yes',
       // no --force-window: on the empty state mpv creates no window, so the
       // main window's acrylic (frosted desktop) shows instead of an mpv black box
