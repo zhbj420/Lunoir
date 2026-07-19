@@ -350,7 +350,16 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label="Auto-load external subtitles" desc="Automatically pick up matching .srt/.ass files sitting next to the video.">
             <Toggle on={s.autoLoadSubs} onChange={v => set('autoLoadSubs', v)} />
           </Row>
-          <Row label="HDR subtitle brightness" desc="Peak nits for subtitles over HDR video — lower is dimmer. SDR is unaffected.">
+          <Row
+            label="HDR subtitle brightness"
+            desc={
+              <>
+                Peak nits for text subtitles (SRT/ASS) over HDR video — lower is dimmer.
+                <br />
+                Image subtitles (PGS, e.g. Blu-ray) aren&apos;t supported by mpv. SDR is unaffected.
+              </>
+            }
+          >
             <div className="set-slider">
               <input
                 type="range"
