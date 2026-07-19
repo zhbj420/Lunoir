@@ -812,7 +812,9 @@ function animatePanel(side: 'right' | 'left', reveal: boolean): void {
   if (!win || !pw || win.isDestroyed() || pw.isDestroyed()) return
   const prev = side === 'right' ? rightPanelAnim : leftPanelAnim
   if (prev) clearInterval(prev)
-  const dur = reveal ? 240 : 180
+  // open in step with the content-slide CSS; on close the frost just vanishes fast
+  // (the slide feel is carried by the content, so the window needn't linger)
+  const dur = reveal ? 240 : 120
   if (reveal) {
     pw.setBounds(panelBounds(side)) // always at rest — within the window, never outside
     pw.setIgnoreMouseEvents(false)
@@ -831,7 +833,9 @@ function animatePanel(side: 'right' | 'left', reveal: boolean): void {
       return
     }
     const p = Math.min(1, (Date.now() - t0) / dur)
-    const e = reveal ? 1 - Math.pow(1 - p, 3) : p * p
+    // easeOutCubic both ways: the fade starts FAST, so on close the frost drops out
+    // immediately (in step with the content sliding away) instead of lingering
+    const e = 1 - Math.pow(1 - p, 3)
     pw.setOpacity(fromOp + (toOp - fromOp) * e)
     if (p >= 1) {
       clearInterval(timer)
@@ -1004,9 +1008,17 @@ function makePanelWindow(kind: 'playlist' | 'settings'): BrowserWindow {
   })
   loadRenderer(pw, `win=panel&kind=${kind}`)
   pw.webContents.once('did-finish-load', () => {
-    if (!pw.isDestroyed()) {
-      removeBorderLine(pw)
-      setCornerPreference(pw, CORNER_DONOTROUND)
+    if (pw.isDestroyed()) return
+    removeBorderLine(pw)
+    setCornerPreference(pw, CORNER_DONOTROUND)
+    // pre-warm: show it once now, fully transparent + click-through at its resting
+    // spot, so Windows plays its window-show scale animation while it's invisible.
+    // Every later open then finds it already shown → a clean fade, no first-time zoom.
+    if (win && !win.isDestroyed()) {
+      pw.setBounds(panelBounds(kind === 'playlist' ? 'right' : 'left'))
+      pw.setOpacity(0)
+      pw.setIgnoreMouseEvents(true)
+      pw.showInactive()
     }
   })
   pw.on('closed', () => {
