@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
 import { join, dirname, basename, extname } from 'node:path'
-import { existsSync, readdirSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
 import { spawn, ChildProcess } from 'node:child_process'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
@@ -58,6 +58,7 @@ const VIDEO_EXT = [
   'mp4', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'webm', 'm4v', 'ts', 'mpg', 'mpeg',
   'm2ts', 'rmvb', '3gp', 'ogv', 'mp3', 'flac', 'aac', 'wav', 'm4a', 'ogg', 'opus'
 ]
+const MAX_FOLDER_SCAN = 500 // cap a folder scan so a huge dir (e.g. a drive root) can't blow up the playlist
 
 // ---- Playlist ----
 // We manage the list ourselves (mpv only ever holds the single current file,
@@ -68,6 +69,7 @@ let playlist: string[] = []
 let plIndex = -1
 let urlTitles: Record<string, string> = {} // resolved titles for URL items (nice playlist names)
 let playlistKey = '' // stable id of the current URL playlist (for "resume at last item"); '' = none
+let discDevice = '' // bluray-device / dvd-device path when the current item is a disc
 let repeatMode: RepeatMode = 'off'
 // resume: the file + position we're currently tracking, and when we last wrote it
 let resumePath = ''
@@ -153,6 +155,72 @@ async function ensureYtdl(): Promise<string | null> {
 /** An explicit playlist URL (YouTube /playlist?…) — expand it into the queue. */
 function isPlaylistUrl(url: string): boolean {
   return isUrl(url) && /\/playlist\?/i.test(url)
+}
+
+const isDiscUri = (t: string): boolean => t === 'bd://' || t === 'dvd://'
+
+/** A clean disc title, best source first:
+ *  1. the disc's own META library name (BDMV/META/DL/bdmt_*.xml <di:name>) — burned
+ *     into the disc, always there at playback (mpv also surfaces this as media-title).
+ *  2. a media-server .nfo <title> (Emby/Kodi/Jellyfin) — only if the folder was scanned.
+ *  3. the folder name.
+ *  META leads because a disc may never have been scanned by a media server. */
+function discTitle(root: string): string {
+  // 1. the disc's own META name
+  try {
+    const metaDir = join(root, 'BDMV', 'META', 'DL')
+    for (const f of readdirSync(metaDir)) {
+      if (!/^bdmt_.*\.xml$/i.test(f)) continue
+      const m = readFileSync(join(metaDir, f), 'utf8').match(/<di:name>\s*([^<]+?)\s*<\/di:name>/i)
+      if (m && m[1].trim()) return m[1].trim()
+    }
+  } catch {
+    /* no META folder */
+  }
+  // 2. a media-server .nfo
+  const nfos = [join(root, 'BDMV', 'index.nfo'), join(root, 'index.nfo'), join(root, 'movie.nfo')]
+  try {
+    for (const f of readdirSync(root)) if (extname(f).toLowerCase() === '.nfo') nfos.push(join(root, f))
+  } catch {
+    /* ignore */
+  }
+  for (const nfo of nfos) {
+    try {
+      const m = readFileSync(nfo, 'utf8').match(/<title>\s*([^<]+?)\s*<\/title>/i)
+      if (m && m[1].trim()) return m[1].trim()
+    } catch {
+      /* not there / unreadable */
+    }
+  }
+  // 3. the folder name
+  return basename(root)
+}
+
+/** If `target` is a Blu-ray / DVD disc folder, how to open it — else null. Accepts
+ *  the disc root, or the BDMV / VIDEO_TS folder itself (played via bd:// / dvd://,
+ *  which auto-selects the main title with all its tracks + chapters). */
+function discInfo(target: string): { device: string; uri: string; name: string } | null {
+  try {
+    if (!statSync(target).isDirectory()) return null
+  } catch {
+    return null
+  }
+  const up = basename(target).toUpperCase()
+  const root = up === 'BDMV' || up === 'VIDEO_TS' ? dirname(target) : target
+  if (existsSync(join(root, 'BDMV', 'index.bdmv'))) return { device: root, uri: 'bd://', name: discTitle(root) }
+  if (existsSync(join(root, 'VIDEO_TS', 'VIDEO_TS.IFO'))) return { device: root, uri: 'dvd://', name: discTitle(root) }
+  return null
+}
+
+/** Folder picker — a video folder, or a Blu-ray/DVD disc (Windows can't mix
+ *  file + folder dialogs, so this is separate from Open File). */
+async function promptOpenFolder(): Promise<void> {
+  if (!win) return
+  const res = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory'],
+    title: 'Select a folder (a video folder, or a Blu-ray/DVD disc)'
+  })
+  if (!res.canceled && res.filePaths[0]) openMedia(res.filePaths[0])
 }
 
 /** Stable id for a playlist URL — its list= param, so extra params don't change it. */
@@ -244,32 +312,69 @@ function nextShuffleIndex(): number {
   return shuffleBag.pop() as number
 }
 
-/** Open media the user picked. By default the list holds just this item; with
- *  scanFolderIntoPlaylist on, the whole folder is queued (a future setting). */
+/** Sorted list of the video files directly inside a folder (non-recursive). */
+function scanFolder(dir: string): string[] {
+  try {
+    return readdirSync(dir)
+      .filter(f => VIDEO_EXT.includes(extname(f).slice(1).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+      .map(f => join(dir, f))
+  } catch {
+    return []
+  }
+}
+
+/** Open media the user picked — a file, a URL, a Blu-ray/DVD disc folder, or a
+ *  plain folder (whose videos are queued). */
 function openMedia(target: string): void {
   if (isPlaylistUrl(target)) {
     loadPlaylistUrl(target) // async: enumerate the entries, then queue + play them
     return
   }
+  const disc = discInfo(target)
+  if (disc) {
+    playlist = [disc.uri]
+    plIndex = 0
+    playlistKey = ''
+    urlTitles = { [disc.uri]: disc.name } // show the folder name in the playlist/title
+    discDevice = disc.device
+    resyncShuffle()
+    playCurrent()
+    return
+  }
   playlistKey = '' // a single file / folder scan isn't a resumable URL playlist
-  if (isUrl(target) || !getSettings().scanFolderIntoPlaylist) {
+  discDevice = ''
+  let isDir = false
+  try {
+    isDir = statSync(target).isDirectory()
+  } catch {
+    /* not a real path (e.g. av://…) */
+  }
+  if (isDir) {
+    // an explicitly opened plain folder → queue the videos directly inside it
+    // (non-recursive; subfolders are NOT scanned). A folder with no top-level
+    // videos — e.g. a parent of disc folders — just reports it, no silent hang.
+    let files = scanFolder(target)
+    if (!files.length) {
+      broadcast('ui:toast', 'No playable media in this folder')
+      return
+    }
+    if (files.length > MAX_FOLDER_SCAN) {
+      broadcast('ui:toast', `Folder has ${files.length} videos — loading the first ${MAX_FOLDER_SCAN}`)
+      files = files.slice(0, MAX_FOLDER_SCAN)
+    }
+    playlist = files
+    plIndex = 0
+  } else if (isUrl(target) || !getSettings().scanFolderIntoPlaylist) {
     playlist = [target]
     plIndex = 0
   } else {
-    const dir = dirname(target)
-    let files: string[] = []
-    try {
-      files = readdirSync(dir)
-        .filter(f => VIDEO_EXT.includes(extname(f).slice(1).toLowerCase()))
-        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-        .map(f => join(dir, f))
-    } catch {
-      /* ignore */
-    }
-    if (!files.length) files = [target]
-    playlist = files
+    // opened a file with "scan folder" on → queue its siblings, start on it.
+    // A huge folder just plays the one file (don't build a runaway list).
+    const files = scanFolder(dirname(target))
+    playlist = files.length && files.length <= MAX_FOLDER_SCAN ? files : [target]
     const norm = (s: string) => s.replace(/\\/g, '/').toLowerCase()
-    plIndex = Math.max(0, files.findIndex(f => norm(f) === norm(target)))
+    plIndex = Math.max(0, playlist.findIndex(f => norm(f) === norm(target)))
   }
   resyncShuffle() // new list → reseed the shuffle bag
   playCurrent()
@@ -281,7 +386,17 @@ function playCurrent(): void {
   // remember which item of this URL playlist we're on, so reopening resumes here
   if (playlistKey && getSettings().resumePlaylistItem) savePlaylistItem(playlistKey, target)
   broadcast('playlist:changed', playlistPayload())
-  if (isUrl(target)) broadcast('ui:loading', true) // streams sit grey until the first frame
+  if (mpv) {
+    // a disc: point mpv at the device + give it a friendly title; else clear any
+    // stale override (force-media-title is persistent across loads)
+    if (isDiscUri(target)) {
+      mpv.setProperty(target === 'bd://' ? 'bluray-device' : 'dvd-device', discDevice)
+      mpv.setProperty('force-media-title', urlTitles[target] || 'Blu-ray')
+    } else {
+      mpv.setProperty('force-media-title', '')
+    }
+  }
+  if (isUrl(target) || isDiscUri(target)) broadcast('ui:loading', true) // grey until the first frame (disc scan takes a moment)
   if (needsYtdl(target)) {
     // fetch yt-dlp if needed, point mpv's ytdl_hook at it, then load
     ensureYtdl().then(path => {
@@ -1162,6 +1277,7 @@ function registerIpc(): void {
     broadcast('settings:changed', getSettings()) // let other windows (e.g. screenshot) track it
   })
 
+  ipcMain.on('ui:open-disc', () => promptOpenFolder()) // double-click Open File → folder/disc
   ipcMain.on('win:minimize', () => win?.minimize())
   ipcMain.on('win:toggle-maximize', () => {
     win?.isMaximized() ? win.unmaximize() : win?.maximize()
@@ -1186,6 +1302,11 @@ function buildMenu(): void {
             })
             if (!res.canceled && res.filePaths[0]) mpv?.loadFile(res.filePaths[0])
           }
+        },
+        {
+          label: 'Open Folder…',
+          accelerator: 'CmdOrCtrl+Shift+O', // reachable even though the frameless window hides the menu bar
+          click: () => promptOpenFolder()
         },
         { type: 'separator' },
         { role: 'quit' }

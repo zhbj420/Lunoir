@@ -3,7 +3,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 // Title-bar text. Streams (YouTube etc.) show the real media-title (+ uploader);
 // local files prefer the filename (container title tags are often junk like
 // "ENCODED BY …" and the "filename" of a URL is just its ugly last path segment).
-function pickTitle(fileName: string, mediaTitle: string, author: string, isStream: boolean): string {
+function pickTitle(
+  fileName: string,
+  mediaTitle: string,
+  author: string,
+  isStream: boolean,
+  isDisc: boolean
+): string {
+  // disc: mpv's filename/path is just 'bd://', so use the resolved name
+  // (force-media-title). Detect the URI in fileName too, so a late 'filename'
+  // event can never leave the ugly 'bd://' in the title bar.
+  if (isDisc || /^(bd|dvd|bluray|dvdnav):\/\//i.test(fileName)) return mediaTitle || 'Blu-ray'
   if (isStream) {
     const base = mediaTitle || fileName || 'Lunoir'
     return author ? `${base} · ${author}` : base
@@ -27,6 +37,7 @@ export interface PlayerState {
   hdrFormat: string // MediaInfo HDR flavour: 'Dolby Vision'/'HDR10+'/'HDR10'/'' → refines the badge
   videoHeight: number // decoded height → resolution badge
   isStream: boolean // playing a network URL (show the resolution badge only then)
+  isDisc: boolean // playing a Blu-ray/DVD disc (bd:// / dvd://) → title from the folder name
   audioCodec: string // audio-codec-name → format badge
   audioChannels: number // audio-params/channel-count → layout suffix
   audioCommercial: string // active track's MediaInfo commercial name (Atmos / DTS:X …)
@@ -50,6 +61,7 @@ const initial: PlayerState = {
   hdrFormat: '',
   videoHeight: 0,
   isStream: false,
+  isDisc: false,
   audioCodec: '',
   audioChannels: 0,
   audioCommercial: '',
@@ -87,21 +99,30 @@ export function usePlayer() {
           case 'filename': {
             if (!data) return s
             const fileName = String(data)
-            return { ...s, hasMedia: true, fileName, title: pickTitle(fileName, s.mediaTitle, s.author, s.isStream) }
+            return { ...s, hasMedia: true, fileName, title: pickTitle(fileName, s.mediaTitle, s.author, s.isStream, s.isDisc) }
           }
           case 'media-title': {
             if (!data) return s
             const mediaTitle = String(data)
-            return { ...s, hasMedia: true, mediaTitle, title: pickTitle(s.fileName, mediaTitle, s.author, s.isStream) }
+            return { ...s, hasMedia: true, mediaTitle, title: pickTitle(s.fileName, mediaTitle, s.author, s.isStream, s.isDisc) }
           }
           case 'metadata/by-key/uploader': {
             const author = typeof data === 'string' ? data : ''
-            return { ...s, author, title: pickTitle(s.fileName, s.mediaTitle, author, s.isStream) }
+            return { ...s, author, title: pickTitle(s.fileName, s.mediaTitle, author, s.isStream, s.isDisc) }
           }
           case 'path': {
             if (!data) return s
-            // new file → reset the title parts; isStream picks media-title vs filename
-            return { ...s, hasMedia: true, isStream: /^https?:\/\//i.test(String(data)), fileName: '', mediaTitle: '', author: '' }
+            // new file → reset the title parts; isStream/isDisc pick the title source
+            const p = String(data)
+            return {
+              ...s,
+              hasMedia: true,
+              isStream: /^https?:\/\//i.test(p),
+              isDisc: /^(bd|dvd|bluray|dvdnav):\/\//i.test(p),
+              fileName: '',
+              mediaTitle: '',
+              author: ''
+            }
           }
           case 'video-params/gamma':
             return { ...s, gamma: typeof data === 'string' ? data : '' }

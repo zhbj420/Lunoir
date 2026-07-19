@@ -2,6 +2,28 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-19 · 蓝光/DVD 原盘 + 打开文件夹 + 双击手势）
+
+**阶段：能放蓝光/DVD 原盘目录(bd:// / dvd://)+ 打开普通文件夹排列表 + "Open File" 双击开文件夹。真机实测通过(《红番区》UHD 原盘,标题栏正确显示碟名)。**
+
+### 蓝光 / DVD 原盘播放
+- **检测**([index.ts](../src/main/index.ts) `discInfo`):文件夹里有 `BDMV/index.bdmv` → 蓝光;`VIDEO_TS/VIDEO_TS.IFO` → DVD。接受碟根目录、或直接选中的 `BDMV`/`VIDEO_TS`。
+- **播放**:设 `bluray-device`/`dvd-device` + load `bd://`/`dvd://`。**mpv/libbluray 自动选最长 title(正片)**,章节/音轨/字幕都从 title 出,右面板 Chapters / Audio & Sub 直接读。**无碟菜单**(mpv 不支持 BD-J/HDMV 交互菜单,用面板顶替)。DoVi 按 HDR10 基层放。
+- **碟标题**(`discTitle`,优先级 **碟 META > .nfo > 文件夹名**):
+  - **碟自带 META** `BDMV/META/DL/bdmt_*.xml` 的 `<di:name>` —— 烧进碟里、播放时一定在(mpv 其实也默认把它读成 media-title)。**主力**,因为播放时不一定扫过媒体服务器。
+  - **.nfo** `<title>`(Emby/Kodi/Jellyfin 扫库才有)—— 兜底。
+  - 文件夹名 —— 垫底。
+  - 主进程 `force-media-title` 下发;渲染层 [usePlayer](../src/renderer/src/usePlayer.ts) `isDisc` + `pickTitle` 保险(filename 是 `bd://` 也当碟,标题栏永不漏 `bd://`)。
+
+### 打开文件夹(普通视频文件夹)
+- `openMedia` 加目录分支:`statSync` 判断是目录 → `scanFolder`(**非递归**、只扫顶层视频)排进列表。**上限 `MAX_FOLDER_SCAN=500`**,超了弹提示只取前 500;顶层没视频(如碟目录的上一级)弹 "No playable media in this folder"、**不硬加载目录**(不再静默哑火、也不递归子目录)。
+
+### "Open File" 双击开文件夹 + 入口
+- [EmptyState](../src/renderer/src/components/EmptyState.tsx):**单击** = 选文件(靠 250ms 计时器区分,故有 ~1/4 秒延迟);**双击** = 文件夹选择器(Windows 原生对话框不能文件+文件夹二合一)。提示改 "Double-click to open a folder · right-click for a URL"。
+- 另加 **File 菜单 "Open Folder…" + `Ctrl+Shift+O`**(无边框窗看不到菜单栏,给了快捷键);拖文件夹也走同一套 `openMedia`。preload `openDiscDialog` → IPC `ui:open-disc` → `promptOpenFolder`。
+
+---
+
 ## 当前状态（2026-07-19 · 四项功能:自动挂字幕 / 变速保音高 / 截图格式 / A-B 循环）
 
 **阶段：四个之前记的待办功能落地 —— 三个设置项 + A-B 循环(带 OSC 进度条标记)。类型/构建通过;待用户实测。**

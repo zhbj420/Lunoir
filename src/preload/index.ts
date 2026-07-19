@@ -130,6 +130,7 @@ const api = {
 
   // --- app / window ---
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),
+  openDiscDialog: (): void => ipcRenderer.send('ui:open-disc'), // Blu-ray/DVD folder picker
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke('app:pick-folder'),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): void =>

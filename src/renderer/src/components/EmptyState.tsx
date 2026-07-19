@@ -1,14 +1,31 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import logoUrl from '../assets/logo.png'
 import wordmarkUrl from '../assets/Lunoir.png'
 
 export default function EmptyState({ onOpen }: { onOpen: () => void }) {
   const [urlInput, setUrlInput] = useState(false)
   const [url, setUrl] = useState('')
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const submitUrl = () => {
     const u = url.trim()
     if (u) window.mmp.loadFile(u)
+  }
+
+  // single click = open a file; double click = open a Blu-ray/DVD disc folder
+  // (Windows can't offer both in one native dialog, so the gesture picks). The
+  // single action waits ~250ms to see if a second click makes it a double.
+  const handleOpenClick = (): void => {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current)
+      clickTimer.current = null
+      window.mmp.openDiscDialog()
+      return
+    }
+    clickTimer.current = setTimeout(() => {
+      clickTimer.current = null
+      onOpen()
+    }, 250)
   }
 
   return (
@@ -53,7 +70,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
           {/* left-click opens a file; right-click jumps straight to the URL box */}
           <button
             className="open-btn"
-            onClick={onOpen}
+            onClick={handleOpenClick}
             onContextMenu={e => {
               e.preventDefault()
               setUrlInput(true)
@@ -64,7 +81,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
             </svg>
             Open File
           </button>
-          <div className="cta-hint">Right-click to open a URL</div>
+          <div className="cta-hint">Double-click to open a folder · right-click for a URL</div>
         </div>
       )}
 
