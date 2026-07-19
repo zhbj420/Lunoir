@@ -19,6 +19,8 @@ const OBSERVED = [
   'media-title',
   'metadata/by-key/uploader', // stream author (YouTube channel) → title bar
   'eof-reached',
+  'ab-loop-a', // A-B loop points (seconds, or 'no' when unset) → OSC seek markers
+  'ab-loop-b',
   'path',
   'chapter',
   'chapter-list',

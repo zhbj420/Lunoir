@@ -2,6 +2,17 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-19 · 四项功能:自动挂字幕 / 变速保音高 / 截图格式 / A-B 循环）
+
+**阶段：四个之前记的待办功能落地 —— 三个设置项 + A-B 循环(带 OSC 进度条标记)。类型/构建通过;待用户实测。**
+
+- **自动加载外挂字幕**（设置 `autoLoadSubs`,默认开）：mpv `sub-auto` = `fuzzy`(开) / `no`(关) —— 自动挂上视频旁的同名 `.srt`/`.ass`。设置页 Audio & subtitles 区。
+- **变速保持音高**（`keepPitch`,默认开）：mpv `audio-pitch-correction` —— 倍速时时间拉伸、人声不变调;关掉就是老式变调快放。
+- **截图格式 PNG/JPG**（`screenshotFormat`,默认 png)：mpv `screenshot-format`;选 jpg 时 `screenshot-jpeg-quality=95`(压缩几乎不可见,用户质量敏感)。`applyScreenshotFormat()` 在启动 + `settings:set` 生效。设置页 Screenshots 区下拉。
+- **A-B 循环**：右键菜单一项**循环三态**(mpv `ab-loop` 命令:无A→设A / 有A→设B / 都有→清除),标签随状态变(`set start (A)` / `set end (B)` / `clear`)。OBSERVED 加 `ab-loop-a`/`ab-loop-b`([mpv.ts](../src/main/mpv.ts)),[usePlayer](../src/renderer/src/usePlayer.ts) 记 `abLoopA`/`abLoopB`('no'→null)。**OSC 进度条画标记**([Controls.tsx](../src/renderer/src/components/Controls.tsx)):`.seek-wrap` 包住 seek,A/B 两个琥珀竖标(`.ab-mark`)+ 中间淡琥珀区间(`.ab-region`)。
+
+---
+
 ## 当前状态（2026-07-19 · 油管播放列表 / 加载切换 / 续播记忆 / 一批打磨）
 
 **阶段：YouTube 播放列表、加载态视图切换、油管标题+作者、播放列表续播记忆 + 独立开关，外加一批交互打磨。类型/构建通过；真机实测（含 Avatar 4K + 真油管列表）。**

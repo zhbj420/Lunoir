@@ -7,15 +7,18 @@ interface Settings {
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
   resumePlaylistItem: boolean
+  keepPitch: boolean
   audioLang: string
   subLang: string
   subsDefaultOn: boolean
+  autoLoadSubs: boolean
   subHdrPeak: number
   hwdec: 'auto' | 'auto-copy' | 'no'
   streamQuality: 'best' | '2160' | '1080' | '720' | '480'
   useCookies: boolean
   cookiesBrowser: string
   screenshotSubs: boolean
+  screenshotFormat: 'png' | 'jpg'
   screenshotDir: string
   rememberWindow: boolean
   rememberVolume: boolean
@@ -43,6 +46,10 @@ const QUALITY_OPTS: Opt[] = [
   { value: '1080', label: '1080p' },
   { value: '720', label: '720p' },
   { value: '480', label: '480p' }
+]
+const SCREENSHOT_FMT_OPTS: Opt[] = [
+  { value: 'png', label: 'PNG (lossless)' },
+  { value: 'jpg', label: 'JPG (high quality)' }
 ]
 const BROWSER_OPTS: Opt[] = [
   { value: 'edge', label: 'Edge' },
@@ -269,6 +276,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           </Row>
 
           <div className="set-sec">Audio &amp; subtitles</div>
+          <Row label="Keep pitch when changing speed" desc="Time-stretch audio so voices don't go chipmunky at higher playback speeds.">
+            <Toggle on={s.keepPitch} onChange={v => set('keepPitch', v)} />
+          </Row>
           <Row label="Preferred audio language" desc="Auto-select this language when opening a file. Default = the file's own order.">
             <Select value={s.audioLang} options={LANG_OPTS} onChange={v => set('audioLang', v)} />
           </Row>
@@ -277,6 +287,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           </Row>
           <Row label="Subtitles on by default">
             <Toggle on={s.subsDefaultOn} onChange={v => set('subsDefaultOn', v)} />
+          </Row>
+          <Row label="Auto-load external subtitles" desc="Automatically pick up matching .srt/.ass files sitting next to the video.">
+            <Toggle on={s.autoLoadSubs} onChange={v => set('autoLoadSubs', v)} />
           </Row>
           <Row label="HDR subtitle brightness" desc="Peak nits for subtitles over HDR video — lower is dimmer. SDR is unaffected.">
             <div className="set-slider">
@@ -312,6 +325,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <div className="set-sec">Screenshots</div>
           <Row label="Include subtitles" desc="Burn the on-screen subtitles into the screenshot.">
             <Toggle on={s.screenshotSubs} onChange={v => set('screenshotSubs', v)} />
+          </Row>
+          <Row label="Format" desc="PNG is lossless; JPG is far smaller at near-invisible quality loss (95%).">
+            <Select value={s.screenshotFormat} options={SCREENSHOT_FMT_OPTS} onChange={v => set('screenshotFormat', v as Settings['screenshotFormat'])} />
           </Row>
           <div className="set-row col">
             <div className="set-text">

@@ -208,6 +208,13 @@ export default function OverlayView() {
 
   // right-click menu contents (built fresh each render from live state)
   const multi = plCount > 1
+  // A-B loop cycles: no A → set A, A set → set B, both set → clear (mpv 'ab-loop')
+  const abLabel =
+    p.state.abLoopA == null
+      ? 'A-B loop: set start (A)'
+      : p.state.abLoopB == null
+        ? 'A-B loop: set end (B)'
+        : 'A-B loop: clear'
   const menuItems: MenuNode[] = [
     { label: p.state.pause ? 'Play' : 'Pause', onClick: p.togglePause },
     { sep: true },
@@ -238,6 +245,8 @@ export default function OverlayView() {
         }
       }))
     },
+    { sep: true },
+    { label: abLabel, checked: p.state.abLoopA != null && p.state.abLoopB != null, onClick: () => window.mmp.command(['ab-loop']) },
     { sep: true },
     { label: 'Screenshot', onClick: () => screenshot(!screenshotSubs) },
     { sep: true },

@@ -508,6 +508,42 @@ body.fullscreen .titlebar {
   flex: 1;
 }
 
+/* wraps the seek input so A-B loop markers can be positioned over the track */
+.seek-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.seek-wrap .seek {
+  width: 100%;
+}
+
+/* shaded loop region between A and B */
+.ab-region {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  background: rgba(242, 193, 78, 0.28);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* A / B loop point ticks */
+.ab-mark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 13px;
+  background: #f2c14e;
+  border-radius: 1px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
 .t {
   font-size: 15px;
   font-weight: 600;

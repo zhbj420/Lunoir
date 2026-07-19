@@ -3,19 +3,23 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 // Persisted user settings (the IPC contract). main/settings.ts imports this type.
 export type Hwdec = 'auto' | 'auto-copy' | 'no'
 export type StreamQuality = 'best' | '2160' | '1080' | '720' | '480'
+export type ScreenshotFormat = 'png' | 'jpg'
 export interface Settings {
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
   resumePlaylistItem: boolean // reopening a playlist link jumps back to the last video watched
+  keepPitch: boolean // preserve audio pitch when changing speed (mpv audio-pitch-correction)
   audioLang: string
   subLang: string
   subsDefaultOn: boolean
+  autoLoadSubs: boolean // auto-load matching external subtitle files (mpv sub-auto)
   subHdrPeak: number // peak nits for subtitles over HDR video (mpv sub-hdr-peak)
   hwdec: Hwdec
   streamQuality: StreamQuality // online (yt-dlp) max quality
   useCookies: boolean // read browser cookies for member/age-restricted/Premium content
   cookiesBrowser: string // which browser to read cookies from (yt-dlp cookies-from-browser)
   screenshotSubs: boolean
+  screenshotFormat: ScreenshotFormat // PNG (lossless) or JPG (high-quality, smaller)
   screenshotDir: string // where screenshots are saved ('' = Pictures/Lunoir default)
   rememberWindow: boolean
   rememberVolume: boolean

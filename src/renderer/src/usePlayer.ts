@@ -30,6 +30,8 @@ export interface PlayerState {
   audioCodec: string // audio-codec-name → format badge
   audioChannels: number // audio-params/channel-count → layout suffix
   audioCommercial: string // active track's MediaInfo commercial name (Atmos / DTS:X …)
+  abLoopA: number | null // A-B loop start (seconds) → OSC seek marker, null = unset
+  abLoopB: number | null // A-B loop end (seconds)
 }
 
 const initial: PlayerState = {
@@ -50,7 +52,9 @@ const initial: PlayerState = {
   isStream: false,
   audioCodec: '',
   audioChannels: 0,
-  audioCommercial: ''
+  audioCommercial: '',
+  abLoopA: null,
+  abLoopB: null
 }
 
 export function usePlayer() {
@@ -109,6 +113,11 @@ export function usePlayer() {
             // only accept a real positive count; don't let a transient null/0 (which
             // mpv emits mid-track-switch) wipe the badge's "5.1" back out
             return typeof data === 'number' && data > 0 ? { ...s, audioChannels: data } : s
+          case 'ab-loop-a':
+            // number = point set; mpv sends 'no' (string) when cleared
+            return { ...s, abLoopA: typeof data === 'number' && isFinite(data) ? data : null }
+          case 'ab-loop-b':
+            return { ...s, abLoopB: typeof data === 'number' && isFinite(data) ? data : null }
           default:
             return s
         }

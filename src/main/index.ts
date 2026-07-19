@@ -859,9 +859,19 @@ function applyMpvSettings(): void {
   mpv.setProperty('alang', s.audioLang) // '' = mpv default (file's own order)
   mpv.setProperty('slang', s.subLang)
   mpv.setProperty('sub-visibility', s.subsDefaultOn)
+  mpv.setProperty('sub-auto', s.autoLoadSubs ? 'fuzzy' : 'no') // auto-pick external subs
   mpv.setProperty('sub-hdr-peak', s.subHdrPeak) // HDR subtitle brightness (nits); ignored for SDR
+  mpv.setProperty('audio-pitch-correction', s.keepPitch) // keep pitch when changing speed
   mpv.setProperty('ytdl-format', YTDL_FORMAT[s.streamQuality]) // online quality cap
   applyYtdlCookies()
+}
+
+/** Screenshot image format: PNG (lossless) or JPG (high quality, smaller files). */
+function applyScreenshotFormat(): void {
+  if (!mpv) return
+  const fmt = getSettings().screenshotFormat
+  mpv.setProperty('screenshot-format', fmt)
+  if (fmt === 'jpg') mpv.setProperty('screenshot-jpeg-quality', 95) // barely-visible compression
 }
 
 /** Feed yt-dlp browser cookies (member/Premium/age-restricted) when the user opts in. */
@@ -1006,7 +1016,7 @@ function startMpv(): void {
     // source + playback timestamp
     applyScreenshotDir()
     mpv!.setProperty('screenshot-template', '%F_%wH-%wM-%wS')
-    mpv!.setProperty('screenshot-format', 'png')
+    applyScreenshotFormat()
     if (process.env['MMP_OPEN']) {
       setTimeout(() => openMedia(process.env['MMP_OPEN'] as string), 300)
       if (process.env['MMP_PANEL']) setTimeout(() => win?.webContents.send('ui:panel-toggle', 'playlist'), 900)
@@ -1141,10 +1151,13 @@ function registerIpc(): void {
       else if (key === 'audioLang') mpv.setProperty('alang', value)
       else if (key === 'subLang') mpv.setProperty('slang', value)
       else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)
+      else if (key === 'autoLoadSubs') mpv.setProperty('sub-auto', value ? 'fuzzy' : 'no')
       else if (key === 'subHdrPeak') mpv.setProperty('sub-hdr-peak', value)
+      else if (key === 'keepPitch') mpv.setProperty('audio-pitch-correction', value)
       else if (key === 'streamQuality') mpv.setProperty('ytdl-format', YTDL_FORMAT[value as Settings['streamQuality']])
       else if (key === 'useCookies' || key === 'cookiesBrowser') applyYtdlCookies()
       else if (key === 'screenshotDir') applyScreenshotDir()
+      else if (key === 'screenshotFormat') applyScreenshotFormat()
     }
     broadcast('settings:changed', getSettings()) // let other windows (e.g. screenshot) track it
   })

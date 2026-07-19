@@ -88,6 +88,10 @@ export default function Controls(props: Props) {
   const res = state.isStream && state.videoHeight > 0 ? `${state.videoHeight}p` : ''
   const topBadge = [res, hdr].filter(Boolean).join(' ')
 
+  // A-B loop markers on the seek bar (positions as % of duration)
+  const dur = state.duration || 0
+  const abPct = (t: number): number => (dur > 0 ? Math.max(0, Math.min(100, (t / dur) * 100)) : 0)
+
   // reflect whether the right panel is open, so the list button reads "pressed"
   const [panelOpen, setPanelOpen] = useState(false)
   useEffect(() => window.mmp.onPanelState(setPanelOpen), [])
@@ -169,16 +173,26 @@ export default function Controls(props: Props) {
       {/* Row 2: seek */}
       <div className="osc-row osc-seek">
         <span className="t cur">{fmt(state.timePos)}</span>
-        <input
-          className="rng seek"
-          type="range"
-          min={0}
-          max={state.duration || 0}
-          step={0.1}
-          value={Math.min(state.timePos, state.duration || 0)}
-          style={{ ['--fill' as any]: `${pct}%` }}
-          onChange={e => props.onSeek(Number(e.target.value))}
-        />
+        <div className="seek-wrap">
+          <input
+            className="rng seek"
+            type="range"
+            min={0}
+            max={state.duration || 0}
+            step={0.1}
+            value={Math.min(state.timePos, state.duration || 0)}
+            style={{ ['--fill' as any]: `${pct}%` }}
+            onChange={e => props.onSeek(Number(e.target.value))}
+          />
+          {state.abLoopA != null && state.abLoopB != null && (
+            <span
+              className="ab-region"
+              style={{ left: `${abPct(state.abLoopA)}%`, width: `${abPct(state.abLoopB) - abPct(state.abLoopA)}%` }}
+            />
+          )}
+          {state.abLoopA != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopA)}%` }} />}
+          {state.abLoopB != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopB)}%` }} />}
+        </div>
         {Math.abs(state.speed - 1) > 0.01 && (
           <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
         )}
