@@ -83,6 +83,10 @@ export default function Controls(props: Props) {
   const volPct = Math.min(100, (state.volume / 150) * 100)
   const hdr = hdrLabel(state.gamma, state.hdrFormat)
   const audio = audioBadge(state.audioCodec, state.audioChannels, state.audioCommercial)
+  // resolution — only for streams (locally you already know the quality). Sits on
+  // the top badge line with HDR, e.g. "2160p HDR10" / "2160p".
+  const res = state.isStream && state.videoHeight > 0 ? `${state.videoHeight}p` : ''
+  const topBadge = [res, hdr].filter(Boolean).join(' ')
 
   // reflect whether the right panel is open, so the list button reads "pressed"
   const [panelOpen, setPanelOpen] = useState(false)
@@ -141,9 +145,9 @@ export default function Controls(props: Props) {
         </div>
 
         <div className="grp right">
-          {(hdr || audio) && (
+          {(topBadge || audio) && (
             <div className="osc-fmt">
-              {hdr && <span className="fmt-badge">{hdr}</span>}
+              {topBadge && <span className="fmt-badge">{topBadge}</span>}
               {audio && <span className="fmt-badge">{audio}</span>}
             </div>
           )}

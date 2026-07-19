@@ -90,6 +90,7 @@ let ytdlDownloading: Promise<string | null> | null = null
 // mpv ytdl-format per quality cap ('' = yt-dlp's default = best available).
 const YTDL_FORMAT: Record<Settings['streamQuality'], string> = {
   best: '',
+  '2160': 'bestvideo[height<=?2160]+bestaudio/best[height<=?2160]',
   '1080': 'bestvideo[height<=?1080]+bestaudio/best[height<=?1080]',
   '720': 'bestvideo[height<=?720]+bestaudio/best[height<=?720]',
   '480': 'bestvideo[height<=?480]+bestaudio/best[height<=?480]'
@@ -790,6 +791,18 @@ function applyYtdlCookies(): void {
   mpv.setProperty('ytdl-raw-options', s.useCookies ? `cookies-from-browser=${s.cookiesBrowser}` : '')
 }
 
+/** Effective screenshot folder ('' setting → the Pictures/Lunoir default). */
+function screenshotDir(): string {
+  return getSettings().screenshotDir || join(app.getPath('pictures'), 'Lunoir')
+}
+
+function applyScreenshotDir(): void {
+  if (!mpv) return
+  const dir = screenshotDir()
+  try { mkdirSync(dir, { recursive: true }) } catch { /* ignore */ }
+  mpv.setProperty('screenshot-directory', dir)
+}
+
 /** Save volume / window bounds / playback position on exit (per the toggles). */
 function persistState(): void {
   const s = getSettings()
@@ -890,11 +903,9 @@ function startMpv(): void {
       lastVolume = startup.volume
       mpv!.setProperty('volume', startup.volume)
     }
-    // screenshots (context-menu action) → Pictures/Lunoir, PNG, named after the
+    // screenshots (context-menu action) → the chosen folder, PNG, named after the
     // source + playback timestamp
-    const shotDir = join(app.getPath('pictures'), 'Lunoir')
-    try { mkdirSync(shotDir, { recursive: true }) } catch { /* ignore */ }
-    mpv!.setProperty('screenshot-directory', shotDir)
+    applyScreenshotDir()
     mpv!.setProperty('screenshot-template', '%F_%wH-%wM-%wS')
     mpv!.setProperty('screenshot-format', 'png')
     if (process.env['MMP_OPEN']) {
@@ -1001,6 +1012,14 @@ function registerIpc(): void {
   })
 
   // settings
+  ipcMain.handle('app:pick-folder', async () => {
+    const res = await dialog.showOpenDialog(win!, {
+      title: 'Choose screenshot folder',
+      defaultPath: screenshotDir(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return res.canceled || !res.filePaths[0] ? null : res.filePaths[0]
+  })
   ipcMain.handle('settings:get', () => getSettings())
   ipcMain.on('settings:set', (_e, key: keyof Settings, value: unknown) => {
     setSetting(key, value as never)
@@ -1013,6 +1032,7 @@ function registerIpc(): void {
       else if (key === 'subHdrPeak') mpv.setProperty('sub-hdr-peak', value)
       else if (key === 'streamQuality') mpv.setProperty('ytdl-format', YTDL_FORMAT[value as Settings['streamQuality']])
       else if (key === 'useCookies' || key === 'cookiesBrowser') applyYtdlCookies()
+      else if (key === 'screenshotDir') applyScreenshotDir()
     }
     broadcast('settings:changed', getSettings()) // let other windows (e.g. screenshot) track it
   })
@@ -1052,6 +1072,10 @@ function buildMenu(): void {
 }
 
 app.whenReady().then(() => {
+  // materialise the default screenshot folder so the settings UI shows a real path
+  if (!getSettings().screenshotDir) {
+    setSetting('screenshotDir', join(app.getPath('pictures'), 'Lunoir'))
+  }
   registerIpc()
   buildMenu()
   createWindows()

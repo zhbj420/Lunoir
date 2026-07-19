@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Persisted user settings (the IPC contract). main/settings.ts imports this type.
 export type Hwdec = 'auto' | 'auto-copy' | 'no'
-export type StreamQuality = 'best' | '1080' | '720' | '480'
+export type StreamQuality = 'best' | '2160' | '1080' | '720' | '480'
 export interface Settings {
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
@@ -15,6 +15,7 @@ export interface Settings {
   useCookies: boolean // read browser cookies for member/age-restricted/Premium content
   cookiesBrowser: string // which browser to read cookies from (yt-dlp cookies-from-browser)
   screenshotSubs: boolean
+  screenshotDir: string // where screenshots are saved ('' = Pictures/Lunoir default)
   rememberWindow: boolean
   rememberVolume: boolean
   volume: number
@@ -122,6 +123,7 @@ const api = {
 
   // --- app / window ---
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),
+  pickFolder: (): Promise<string | null> => ipcRenderer.invoke('app:pick-folder'),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): void =>
     ipcRenderer.send('settings:set', key, value),

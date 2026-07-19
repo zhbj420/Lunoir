@@ -12,6 +12,8 @@ export interface PlayerState {
   hasMedia: boolean
   gamma: string // video transfer fn ('pq'/'hlg'/…) → generic HDR fallback
   hdrFormat: string // MediaInfo HDR flavour: 'Dolby Vision'/'HDR10+'/'HDR10'/'' → refines the badge
+  videoHeight: number // decoded height → resolution badge
+  isStream: boolean // playing a network URL (show the resolution badge only then)
   audioCodec: string // audio-codec-name → format badge
   audioChannels: number // audio-params/channel-count → layout suffix
   audioCommercial: string // active track's MediaInfo commercial name (Atmos / DTS:X …)
@@ -29,6 +31,8 @@ const initial: PlayerState = {
   hasMedia: false,
   gamma: '',
   hdrFormat: '',
+  videoHeight: 0,
+  isStream: false,
   audioCodec: '',
   audioChannels: 0,
   audioCommercial: ''
@@ -71,9 +75,13 @@ export function usePlayer() {
             if (!data) return s
             return { ...s, hasMedia: true, title: s.fileName ? s.title : String(data) }
           case 'path':
-            return data ? { ...s, hasMedia: true } : s
+            return data
+              ? { ...s, hasMedia: true, isStream: /^https?:\/\//i.test(String(data)) }
+              : s
           case 'video-params/gamma':
             return { ...s, gamma: typeof data === 'string' ? data : '' }
+          case 'video-params/h':
+            return { ...s, videoHeight: typeof data === 'number' ? data : s.videoHeight }
           case 'audio-codec-name':
             return { ...s, audioCodec: typeof data === 'string' ? data : '' }
           case 'audio-params/channel-count':

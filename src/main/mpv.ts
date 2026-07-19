@@ -30,6 +30,7 @@ const OBSERVED = [
   'sub-pos',
   'sub-scale',
   'video-params/gamma', // transfer fn: 'pq'/'hlg' → HDR badge
+  'video-params/h', // decoded height → resolution badge (useful for streams)
   'audio-codec-name', // e.g. 'eac3', 'truehd', 'dts' → audio format badge
   'audio-params/channel-count'
 ] as const

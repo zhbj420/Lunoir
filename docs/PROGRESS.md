@@ -2,6 +2,19 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-18 · 设置页打磨 + 网络流分辨率标）
+
+**阶段：设置页交互打磨（自绘下拉修 native bug、动态宽度、语言/画质下拉、截图路径可改）+ OSC 网络流分辨率标。类型/构建通过。**
+
+- **自绘下拉替换 native `<select>`**（[SettingsPanel.tsx](../src/renderer/src/components/SettingsPanel.tsx) `Select`）：Electron 无边框窗里原生 select 弹出层渲染不全（"只显示 Best" 的 bug）。改成自绘：**portal 到 `<body>`**（避开面板 `transform` 让 fixed 错位 + `overflow` 裁剪），fixed 定位在触发按钮下（贴底翻上），点外部/滚动/缩放关。hwdec/画质/cookies 浏览器/语言全用它。
+- **面板动态宽度**：`.panel.left` 去掉固定 360，改用 `var(--panel-w)`（跟右面板同款：宽默认 440，小窗缩到 300）。
+- **语言改下拉**：Default/English/Chinese(chi,zho)/Japanese/Korean/French/German/Spanish/Italian/Russian/Portuguese;选源没有的语言自动回落默认。
+- **在线画质加 2160p (4K)**：Best/2160p/1080p/720p/480p;说明写明是**上限**、实际看源(选 2160p 源只有 1080p 还是 1080p)。
+- **截图保存文件夹可改**：设置里显示当前路径（默认 `图片/Lunoir`,启动落成真实路径），**手打**(回车/失焦生效) + **浏览按钮**(原生 `dialog` 选目录)。改动即 mkdir + 设 mpv `screenshot-directory`。preload `pickFolder` / IPC `app:pick-folder`。
+- **OSC 网络流分辨率标**：观察 `video-params/h`,usePlayer 记 `videoHeight`+`isStream`(path 是 http)。OSC 信息标区**仅网络流**在顶行显 `2160p`(跟 HDR 拼一行,如 `2160p HDR10`),本地不显示(已知画质、保持干净)。真·当前解码高度=真拿到的画质。
+
+---
+
 ## 当前状态（2026-07-18 · 设置页 / 音量交互 / yt-dlp）
 
 **阶段：左侧设置页（新面板层 + 持久化地基）、两个音量交互、YouTube/在线播放（yt-dlp 按需下载）。类型/构建通过；设置页整套待用户实测。**

@@ -19,6 +19,7 @@ const DEFAULTS: Settings = {
   useCookies: false,
   cookiesBrowser: 'edge',
   screenshotSubs: true,
+  screenshotDir: '',
   rememberWindow: true,
   rememberVolume: true,
   volume: 100,

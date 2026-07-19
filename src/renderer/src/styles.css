@@ -596,11 +596,11 @@ body.fullscreen .panel {
   box-shadow: -10px 0 34px rgba(0, 0, 0, 0.28);
 }
 
-/* left settings panel — mirror of .panel, anchored to the left edge */
+/* left settings panel — mirror of .panel, anchored to the left edge. Shares the
+   dynamic --panel-w so it's wide by default and shrinks on small windows. */
 .panel.left {
   left: 0;
   right: auto;
-  width: 360px;
   border-left: none;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   transform: translateX(-100%);
@@ -690,30 +690,129 @@ body.fullscreen .panel {
   background: #202024;
 }
 
-/* text input + select */
-.set-input,
-.set-select {
+/* custom dropdown (replaces native <select>) */
+.set-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 96px;
   height: 26px;
+  padding: 0 6px 0 9px;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   font-size: 12.5px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .set-dropdown:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+}
+
+.set-dropdown.open {
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.set-dropdown-label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.set-dropdown-chev {
+  flex: none;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.set-dropdown-list {
+  position: fixed;
+  z-index: 300;
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(30, 30, 34, 0.99);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  max-height: 264px;
+  overflow-y: auto;
+}
+
+.set-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  color: rgba(236, 236, 240, 0.9);
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .set-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.set-dropdown-item.sel {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* full-width row (label above a wide control) — e.g. the screenshot folder path */
+.set-row.col {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.set-path {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.set-path-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12px;
   padding: 0 8px;
   outline: none;
 }
 
-.set-input {
-  width: 84px;
+.set-path-input:focus {
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
-.set-select {
+.set-path-btn {
+  flex: none;
+  width: 30px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
   cursor: pointer;
 }
 
-.set-input:focus,
-.set-select:focus {
-  border-color: rgba(255, 255, 255, 0.34);
+@media (hover: hover) {
+  .set-path-btn:hover {
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
 }
 
 /* slider setting (e.g. HDR subtitle brightness) */
