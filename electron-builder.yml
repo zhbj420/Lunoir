@@ -18,7 +18,10 @@ extraResources:
 win:
   target:
     - nsis
-  artifactName: ${productName}-${version}-setup.${ext}
+    - portable
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-setup.${ext}
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}

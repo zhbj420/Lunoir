@@ -12,6 +12,10 @@ clean Win11 acrylic UI.
 ![Status](https://img.shields.io/badge/status-early-orange)
 
 > ⚠️ Early / personal project. Windows-only for now. Expect rough edges.
+>
+> Lunoir is an **independent** project — not affiliated with, or endorsed by,
+> [IINA](https://iina.io/) or [mpv](https://mpv.io/). The interface is inspired by
+> IINA's design; none of IINA's code is used.
 
 ## Screenshots
 
