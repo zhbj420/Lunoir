@@ -679,14 +679,18 @@ function pushPanelWidth(): void {
   win.webContents.send('ui:panel-width', panelW(win.getBounds().width))
 }
 
-/** Resting bounds of the OSC: bottom-center, moved out of the side panel's way. */
+/** Resting bounds of the OSC: centered in the middle strip left free by whichever
+ *  side panel is open (settings docks left, playlist docks right; only one open). */
 function oscRestBounds(): Electron.Rectangle {
   const b = win!.getBounds()
-  const avail = panelOpen ? b.width - panelW(b.width) : b.width
+  const pw = panelW(b.width)
+  const left = leftPanelOpen ? pw : 0
+  const right = panelOpen ? pw : 0
+  const avail = b.width - left - right
   const w = Math.min(620, Math.max(OSC_MIN_W, avail - OSC_GAP))
   const margin = Math.max(44, Math.round(b.height * 0.09))
   return {
-    x: Math.round(b.x + (avail - w) / 2),
+    x: Math.round(b.x + left + (avail - w) / 2),
     y: Math.round(b.y + b.height - OSC_H - margin),
     width: Math.round(w),
     height: OSC_H
@@ -855,14 +859,48 @@ function layoutPanel(side: 'right' | 'left'): void {
   if (open && !anim) pw.setBounds(panelBounds(side))
 }
 
-/** Toggle the right (playlist) panel window; it shifts the OSC out of the way. */
+function closeRightPanel(): void {
+  if (!panelOpen) return
+  panelOpen = false
+  animatePanel('right', false)
+  rightPanelWin?.webContents.send('panel:reveal', false)
+  broadcast('ui:panel-open', false) // OSC list button un-press
+}
+
+function closeLeftPanel(): void {
+  if (!leftPanelOpen) return
+  leftPanelOpen = false
+  animatePanel('left', false)
+  leftPanelWin?.webContents.send('panel:reveal', false)
+}
+
+/** Both side panels shift the OSC and are mutually exclusive (opening one closes
+ *  the other) — two full-width panels + the OSC can't share a normal window. */
 function togglePlaylistPanel(): void {
   if (!rightPanelWin) return
-  panelOpen = !panelOpen
-  animatePanel('right', panelOpen) // window fades in place
-  rightPanelWin.webContents.send('panel:reveal', panelOpen) // content slides within it
-  slideOscToRest() // re-center the OSC around the panel
-  broadcast('ui:panel-open', panelOpen) // OSC list button pressed-state
+  if (panelOpen) {
+    closeRightPanel()
+  } else {
+    closeLeftPanel() // one panel at a time
+    panelOpen = true
+    animatePanel('right', true)
+    rightPanelWin.webContents.send('panel:reveal', true)
+    broadcast('ui:panel-open', true)
+  }
+  slideOscToRest() // glide the OSC to the new middle strip
+}
+
+function toggleSettingsPanel(): void {
+  if (!leftPanelWin) return
+  if (leftPanelOpen) {
+    closeLeftPanel()
+  } else {
+    closeRightPanel()
+    leftPanelOpen = true
+    animatePanel('left', true)
+    leftPanelWin.webContents.send('panel:reveal', true)
+  }
+  slideOscToRest()
 }
 
 function revealUi(): void {
@@ -1078,6 +1116,7 @@ function createWindows(): void {
   loadRenderer(oscWin, 'win=osc')
 
   rightPanelWin = makePanelWindow('playlist')
+  leftPanelWin = makePanelWindow('settings')
 
   // keep the OSC + panels glued to the main window
   win.on('move', () => {
@@ -1392,7 +1431,7 @@ function registerIpc(): void {
   // left (settings) panel is still rendered in the main window (Phase 1).
   ipcMain.on('ui:panel-toggle', (_e, name: string) => {
     if (name === 'playlist') togglePlaylistPanel()
-    else win?.webContents.send('ui:panel-toggle', name)
+    else if (name === 'settings') toggleSettingsPanel()
   })
 
   ipcMain.handle('app:open-dialog', async () => {
@@ -1444,17 +1483,16 @@ function registerIpc(): void {
   })
   ipcMain.on('win:close', () => win?.close())
   ipcMain.on('win:toggle-fullscreen', () => toggleFullscreen())
-  // a panel window's resize grips resize the MAIN window (they sit over its edge)
+  // a panel window's resize grips resize the MAIN window (they sit over its edge).
+  // The grip computes the target rect (which corner is anchored depends on the
+  // docked side), main just clamps to the min size and applies it.
   ipcMain.handle('win:get-bounds', () => (win && !win.isDestroyed() ? win.getBounds() : null))
-  ipcMain.on('win:set-size', (_e, width: number, height: number) => {
+  ipcMain.on('win:set-bounds', (_e, x: number, y: number, width: number, height: number) => {
     if (!win || win.isDestroyed() || win.isMaximized() || preFsBounds) return
-    const b = win.getBounds() // top-left stays fixed (right/bottom-docked grips)
-    win.setBounds({
-      x: b.x,
-      y: b.y,
-      width: Math.max(WIN_MIN_W, Math.round(width)),
-      height: Math.max(320, Math.round(height))
-    })
+    const w = Math.max(WIN_MIN_W, Math.round(width))
+    const h = Math.max(320, Math.round(height))
+    // preserve the anchored edge when the size hits the minimum (x/y already carry it)
+    win.setBounds({ x: Math.round(x), y: Math.round(y), width: w, height: h })
   })
 }
 

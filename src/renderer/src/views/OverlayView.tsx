@@ -3,7 +3,6 @@ import { usePlayer } from '../usePlayer'
 import { useShortcuts } from '../useShortcuts'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
-import SettingsPanel from '../components/SettingsPanel'
 import ContextMenu, { MenuNode } from '../components/ContextMenu'
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -22,7 +21,6 @@ const ASPECTS: { key: string; label: string; apply: () => void }[] = [
 export default function OverlayView() {
   const p = usePlayer()
   const [dragging, setDragging] = useState(false)
-  const [panel, setPanel] = useState<string | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [plCount, setPlCount] = useState(0)
   const [hasChapters, setHasChapters] = useState(false)
@@ -144,15 +142,7 @@ export default function OverlayView() {
     onActivity: p.reveal
   })
 
-  // OSC buttons (in the acrylic window) toggle side panels via main
-  useEffect(() => window.mmp.onPanelToggle(name => setPanel(cur => (cur === name ? null : name))), [])
-
-  // right panel width is dynamic (main shrinks it on small windows so the OSC
-  // still fits) — mirror it into the CSS var the panel is sized from
-  useEffect(
-    () => window.mmp.onPanelWidth(w => document.documentElement.style.setProperty('--panel-w', `${w}px`)),
-    []
-  )
+  // (both side panels are now their own acrylic windows, owned + toggled by main)
 
   // grey title strip only over video; hide it (and the reserved margin) fullscreen
   useEffect(() => window.mmp.onFullscreen(fs => document.body.classList.toggle('fullscreen', fs)), [])
@@ -160,8 +150,6 @@ export default function OverlayView() {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])
 
-  // (the right playlist panel is now its own acrylic window, owned by main, which
-  // tracks its open state + slides the OSC; settings is still in-page for now)
   // hide the OSC (a separate window on top) while the context menu is open
   useEffect(() => {
     window.mmp.setMenuOpen(menu !== null)
@@ -170,15 +158,6 @@ export default function OverlayView() {
   useEffect(() => {
     if (urlOpen) urlInputRef.current?.focus()
   }, [urlOpen])
-
-  // Esc closes an open panel
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && panel) setPanel(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [panel])
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -302,8 +281,7 @@ export default function OverlayView() {
         </div>
       )}
 
-      {/* right (playlist) panel is now its own acrylic window; settings still in-page */}
-      <SettingsPanel open={panel === 'settings'} onClose={() => setPanel(null)} />
+      {/* both side panels are now their own acrylic windows (owned by main) */}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
 

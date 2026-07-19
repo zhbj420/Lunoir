@@ -151,7 +151,8 @@ const api = {
   // panel-window resize grips → resize the main window
   getWinBounds: (): Promise<{ x: number; y: number; width: number; height: number } | null> =>
     ipcRenderer.invoke('win:get-bounds'),
-  setWinSize: (width: number, height: number): void => ipcRenderer.send('win:set-size', width, height)
+  setWinBounds: (x: number, y: number, width: number, height: number): void =>
+    ipcRenderer.send('win:set-bounds', x, y, width, height)
 }
 
 contextBridge.exposeInMainWorld('mmp', api)

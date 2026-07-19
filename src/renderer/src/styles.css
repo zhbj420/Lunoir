@@ -700,6 +700,13 @@ body.panel-win.panel-shown .panel.left > * {
   height: 100%;
   cursor: ew-resize;
 }
+.resize-w {
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+}
 .resize-s {
   left: 0;
   bottom: 0;
@@ -713,6 +720,13 @@ body.panel-win.panel-shown .panel.left > * {
   width: 16px;
   height: 16px;
   cursor: nwse-resize;
+}
+.resize-sw {
+  left: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nesw-resize;
 }
 
 /* ---- settings rows ---- */
@@ -774,7 +788,7 @@ body.panel-win.panel-shown .panel.left > * {
 }
 
 .switch.on {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #4a86ff 0%, #8b5cf6 100%); /* brand blue → purple (matches Open File) */
 }
 
 .switch-knob {
@@ -791,7 +805,7 @@ body.panel-win.panel-shown .panel.left > * {
 
 .switch.on .switch-knob {
   transform: translateX(14px);
-  background: #202024;
+  background: rgba(255, 255, 255, 0.95); /* keep the grey-white knob */
 }
 
 /* custom dropdown (replaces native <select>) */

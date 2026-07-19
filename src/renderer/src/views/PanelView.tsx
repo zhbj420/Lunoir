@@ -51,12 +51,15 @@ export default function PanelView({ kind }: { kind: 'playlist' | 'settings' }) {
 
   const close = (): void => window.mmp.togglePanel(kind)
 
+  // restore window resize on the edges each docked panel covers
   return kind === 'settings' ? (
-    <SettingsPanel open onClose={close} />
+    <>
+      <SettingsPanel open onClose={close} />
+      <ResizeGrips edges={['w', 's', 'sw']} />
+    </>
   ) : (
     <>
       <RightPanel open onClose={close} />
-      {/* restore window resize on the edges this right-docked panel covers */}
       <ResizeGrips edges={['e', 's', 'se']} />
     </>
   )

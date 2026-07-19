@@ -210,7 +210,7 @@ function Row({
   children
 }: {
   label: string
-  desc?: string
+  desc?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
@@ -279,10 +279,28 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label="Keep pitch when changing speed" desc="Time-stretch audio so voices don't go chipmunky at higher playback speeds.">
             <Toggle on={s.keepPitch} onChange={v => set('keepPitch', v)} />
           </Row>
-          <Row label="Preferred audio language" desc="Auto-select this language when opening a file. Default = the file's own order.">
+          <Row
+            label="Preferred audio language"
+            desc={
+              <>
+                Auto-select this language when opening a file.
+                <br />
+                Default = the file's own order.
+              </>
+            }
+          >
             <Select value={s.audioLang} options={LANG_OPTS} onChange={v => set('audioLang', v)} />
           </Row>
-          <Row label="Preferred subtitle language" desc="Auto-select this language when opening a file. Default = the file's own order.">
+          <Row
+            label="Preferred subtitle language"
+            desc={
+              <>
+                Auto-select this language when opening a file.
+                <br />
+                Default = the file's own order.
+              </>
+            }
+          >
             <Select value={s.subLang} options={LANG_OPTS} onChange={v => set('subLang', v)} />
           </Row>
           <Row label="Subtitles on by default">

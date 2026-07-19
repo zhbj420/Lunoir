@@ -2,6 +2,18 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-19 · 面板亚克力化 Phase 2:左设置面板 + 互斥 + 动画打磨）
+
+**阶段：左（设置）面板也成独立亚克力窗口(复用右面板那套);两面板互斥+双侧让 OSC;动画/缩放/配色打磨。类型/构建过;真机迭代确认。**
+
+- **左设置面板**([index.ts](../src/main/index.ts) `leftPanelWin = makePanelWindow('settings')`,[PanelView](../src/renderer/src/views/PanelView.tsx) kind=settings)。`OverlayView` 里内嵌 `SettingsPanel` + 所有面板 state/effect 全删 —— 两面板现在都由主进程拥有/开关。
+- **互斥 + 双侧让 OSC**:`oscRestBounds` 改为在左右两侧各减去 `panelW`,OSC 居中于中间空档;`togglePlaylistPanel`/`toggleSettingsPanel` 开一个前先关另一个(`closeRightPanel`/`closeLeftPanel`),都 `slideOscToRest` 让 OSC 平滑 glide(右面板开→左移,设置开→右移)。**理由**:两个 440px 面板 + OSC 在普通窗宽下塞不下。
+- **动画打磨**(见 Phase 1 的"内容滑"结论 —— 窗口不能滑出界):**预热**(加载时 `showInactive`@opacity0,消除首次开的系统缩放动画);淡入淡出 easeOutCubic 两向(关闭时磨砂不滞后);**关闭 120ms 快速消失**(平移感靠内容 translateX,磨砂框不必逗留)。曾试"窗口逐帧 resize 长出来"求真滑入,实测吃亚克力**重绘缝 + 内容重影**,已弃(录屏确认)。
+- **缩放条**([ResizeGrips](../src/renderer/src/components/ResizeGrips.tsx))扩展:右面板 e/s/se(左上角锚),左面板 w/s/sw(右上角锚,左边缘移动);grip 算好目标 rect 发 `win:set-bounds`,主进程 clamp 到最小尺寸。
+- **配色/文案**:设置开关"开"态改**品牌蓝→紫渐变 + 白圆点**(统一 Open File 按钮);`Row` 的 `desc` 支持 ReactNode,两个语言设置的说明硬换行(`Default = …` 独占第二行,不再吊在上一行尾)。
+
+---
+
 ## 当前状态（2026-07-19 · 面板亚克力化 Phase 1:右面板成独立亚克力窗口）
 
 **阶段：把右（playlist/chapters/audio&sub）面板从主窗口内嵌 DOM 改成真·Win11 亚克力子窗口(克隆 OSC 那套)——终于能磨砂到视频上。方案见 [plan](../.claude/plans/synchronous-giggling-kernighan.md)。类型/构建过;真机迭代中。**
