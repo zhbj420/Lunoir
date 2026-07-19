@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+// Title-bar text. Streams (YouTube etc.) show the real media-title (+ uploader);
+// local files prefer the filename (container title tags are often junk like
+// "ENCODED BY …" and the "filename" of a URL is just its ugly last path segment).
+function pickTitle(fileName: string, mediaTitle: string, author: string, isStream: boolean): string {
+  if (isStream) {
+    const base = mediaTitle || fileName || 'Lunoir'
+    return author ? `${base} · ${author}` : base
+  }
+  return fileName || mediaTitle || 'Lunoir'
+}
+
 export interface PlayerState {
   pause: boolean
   timePos: number
@@ -7,8 +18,10 @@ export interface PlayerState {
   volume: number
   mute: boolean
   speed: number // playback speed (1 = normal)
-  title: string // shown in the title bar — the file name (media-title only as fallback)
-  fileName: string // mpv 'filename' — preferred title; guards against junk title tags
+  title: string // composed title-bar text (see pickTitle)
+  fileName: string // mpv 'filename' — preferred title for local files
+  mediaTitle: string // mpv 'media-title' — the real title for streams (YouTube …)
+  author: string // stream uploader/channel (metadata/by-key/uploader)
   hasMedia: boolean
   gamma: string // video transfer fn ('pq'/'hlg'/…) → generic HDR fallback
   hdrFormat: string // MediaInfo HDR flavour: 'Dolby Vision'/'HDR10+'/'HDR10'/'' → refines the badge
@@ -28,6 +41,8 @@ const initial: PlayerState = {
   speed: 1,
   title: 'Lunoir',
   fileName: '',
+  mediaTitle: '',
+  author: '',
   hasMedia: false,
   gamma: '',
   hdrFormat: '',
@@ -65,19 +80,25 @@ export function usePlayer() {
             return { ...s, mute: Boolean(data) }
           case 'speed':
             return { ...s, speed: typeof data === 'number' ? data : s.speed }
-          case 'filename':
-            // the file name is the preferred title-bar text
-            return data ? { ...s, title: String(data), fileName: String(data), hasMedia: true } : s
-          case 'media-title':
-            // many remuxes stuff junk into the container title tag ("ENCODED BY
-            // CHDMON"), which mpv surfaces as media-title. Only use it when there's
-            // no filename yet (e.g. a network stream).
+          case 'filename': {
             if (!data) return s
-            return { ...s, hasMedia: true, title: s.fileName ? s.title : String(data) }
-          case 'path':
-            return data
-              ? { ...s, hasMedia: true, isStream: /^https?:\/\//i.test(String(data)) }
-              : s
+            const fileName = String(data)
+            return { ...s, hasMedia: true, fileName, title: pickTitle(fileName, s.mediaTitle, s.author, s.isStream) }
+          }
+          case 'media-title': {
+            if (!data) return s
+            const mediaTitle = String(data)
+            return { ...s, hasMedia: true, mediaTitle, title: pickTitle(s.fileName, mediaTitle, s.author, s.isStream) }
+          }
+          case 'metadata/by-key/uploader': {
+            const author = typeof data === 'string' ? data : ''
+            return { ...s, author, title: pickTitle(s.fileName, s.mediaTitle, author, s.isStream) }
+          }
+          case 'path': {
+            if (!data) return s
+            // new file → reset the title parts; isStream picks media-title vs filename
+            return { ...s, hasMedia: true, isStream: /^https?:\/\//i.test(String(data)), fileName: '', mediaTitle: '', author: '' }
+          }
           case 'video-params/gamma':
             return { ...s, gamma: typeof data === 'string' ? data : '' }
           case 'video-params/h':

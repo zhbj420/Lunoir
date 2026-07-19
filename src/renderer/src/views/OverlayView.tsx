@@ -32,9 +32,11 @@ export default function OverlayView() {
   const [urlOpen, setUrlOpen] = useState(false)
   const [urlText, setUrlText] = useState('')
   const [screenshotSubs, setScreenshotSubs] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [volToast, setVolToast] = useState<number | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const volToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const urlInputRef = useRef<HTMLInputElement>(null)
   const lastY = useRef(-1)
   const downAccum = useRef(0)
   const entering = useRef(false)
@@ -79,9 +81,11 @@ export default function OverlayView() {
     window.mmp.getSettings().then(s => setScreenshotSubs(s.screenshotSubs))
     const offS = window.mmp.onSettingsChanged(s => setScreenshotSubs(s.screenshotSubs))
     const offT = window.mmp.onToast(showToast)
+    const offL = window.mmp.onLoading(setLoading)
     return () => {
       offS()
       offT()
+      offL()
     }
   }, [])
 
@@ -160,6 +164,14 @@ export default function OverlayView() {
   // tell main whether a panel is open so the OSC moves out of its way
   // only the right (playlist) panel makes the OSC slide over; settings is on the left
   useEffect(() => window.mmp.setPanelState(panel === 'playlist'), [panel])
+  // hide the OSC (a separate window on top) while the context menu is open
+  useEffect(() => {
+    window.mmp.setMenuOpen(menu !== null)
+  }, [menu])
+  // the URL overlay stays mounted (so it can fade in/out) — focus its input on open
+  useEffect(() => {
+    if (urlOpen) urlInputRef.current?.focus()
+  }, [urlOpen])
 
   // Esc closes an open panel
   useEffect(() => {
@@ -252,10 +264,11 @@ export default function OverlayView() {
         if (e.relatedTarget === null) setDragging(false)
       }}
       onWheel={e => {
-        // adjust volume without popping the OSC — a small volume toast shows instead
+        // adjust volume without popping the OSC. When the OSC is hidden, show a
+        // volume toast; when it's already up, its own number shows instead.
         const v = Math.round(Math.min(150, Math.max(0, p.state.volume + (e.deltaY < 0 ? 5 : -5))))
         p.setVolume(v)
-        showVolToast(v)
+        if (!p.showUi) showVolToast(v)
       }}
     >
       <TitleBar title={p.state.title} />
@@ -270,36 +283,48 @@ export default function OverlayView() {
           setMenu({ x: e.clientX, y: e.clientY })
         }}
       />
-      {!p.state.hasMedia && <EmptyState onOpen={p.openFile} />}
+      {/* loading (a URL/playlist resolving) hides the home screen right away — just
+          the bare window + spinner, exactly like loading a single video; if it
+          fails, end-file clears loading and the home screen comes back */}
+      {!p.state.hasMedia && !loading && <EmptyState onOpen={p.openFile} />}
+
+      {loading && (
+        <div className="loading-overlay">
+          <div className="spinner" />
+          <div className="loading-text">Loading…</div>
+        </div>
+      )}
+
       <RightPanel open={panel === 'playlist'} onClose={() => setPanel(null)} />
       <SettingsPanel open={panel === 'settings'} onClose={() => setPanel(null)} />
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
 
-      {urlOpen && (
-        <div className="url-overlay" onMouseDown={() => setUrlOpen(false)}>
-          <div className="url-box" onMouseDown={e => e.stopPropagation()}>
-            <input
-              className="url-input"
-              autoFocus
-              spellCheck={false}
-              placeholder="Paste a video or stream URL…"
-              value={urlText}
-              onChange={e => setUrlText(e.target.value)}
-              onKeyDown={e => {
-                e.stopPropagation() // don't fire player shortcuts while typing
-                if (e.key === 'Enter') submitUrl()
-                else if (e.key === 'Escape') setUrlOpen(false)
-              }}
-            />
-            <button className="url-go" onClick={submitUrl} title="Play">
-              <svg width="16" height="16" viewBox="0 0 24 24">
-                <path d="M8 5 L18 12 L8 19 Z" fill="currentColor" />
-              </svg>
-            </button>
-          </div>
+      <div
+        className={`url-overlay ${urlOpen ? 'open' : ''}`}
+        onMouseDown={() => setUrlOpen(false)}
+      >
+        <div className="url-box" onMouseDown={e => e.stopPropagation()}>
+          <input
+            ref={urlInputRef}
+            className="url-input"
+            spellCheck={false}
+            placeholder="Paste a video or stream URL…"
+            value={urlText}
+            onChange={e => setUrlText(e.target.value)}
+            onKeyDown={e => {
+              e.stopPropagation() // don't fire player shortcuts while typing
+              if (e.key === 'Enter') submitUrl()
+              else if (e.key === 'Escape') setUrlOpen(false)
+            }}
+          />
+          <button className="url-go" onClick={submitUrl} title="Play">
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path d="M8 5 L18 12 L8 19 Z" fill="currentColor" />
+            </svg>
+          </button>
         </div>
-      )}
+      </div>
 
       {toast && <div className="toast">{toast}</div>}
 

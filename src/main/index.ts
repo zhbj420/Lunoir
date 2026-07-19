@@ -12,6 +12,8 @@ import {
   getPosition,
   savePosition,
   clearPosition,
+  getPlaylistItem,
+  savePlaylistItem,
   type Settings
 } from './settings'
 
@@ -47,6 +49,7 @@ let oscAnim: NodeJS.Timeout | null = null
 let oscShown = false
 let oscHovered = false // pointer is over the OSC window → don't auto-hide
 let hasMedia = false
+let menuOpen = false // context menu is open → hide the OSC so it's not covered by it
 // briefly ignore movement-triggered reveals after a fullscreen toggle — the
 // resize emits a synthetic mousemove that can land in an edge zone and pop the OSC
 let suppressRevealUntil = 0
@@ -63,6 +66,8 @@ const VIDEO_EXT = [
 type RepeatMode = 'off' | 'all' | 'one'
 let playlist: string[] = []
 let plIndex = -1
+let urlTitles: Record<string, string> = {} // resolved titles for URL items (nice playlist names)
+let playlistKey = '' // stable id of the current URL playlist (for "resume at last item"); '' = none
 let repeatMode: RepeatMode = 'off'
 // resume: the file + position we're currently tracking, and when we last wrote it
 let resumePath = ''
@@ -70,6 +75,7 @@ let resumePos = 0
 let lastPosWrite = 0
 let lastDuration = 0
 let lastVolume = 100
+let pendingResumeToast = '' // show the "Resumed from …" toast only once playback starts
 // Shuffle is a persistent mode (not a one-shot reorder): the list keeps its
 // display order, but auto-advance / next picks randomly. `shuffleBag` holds the
 // not-yet-played indices this cycle (no repeats until it drains); `shuffleHistory`
@@ -144,9 +150,74 @@ async function ensureYtdl(): Promise<string | null> {
   return ytdlDownloading
 }
 
+/** An explicit playlist URL (YouTube /playlist?…) — expand it into the queue. */
+function isPlaylistUrl(url: string): boolean {
+  return isUrl(url) && /\/playlist\?/i.test(url)
+}
+
+/** Stable id for a playlist URL — its list= param, so extra params don't change it. */
+function playlistKeyOf(url: string): string {
+  return 'list:' + (url.match(/[?&]list=([^&]+)/i)?.[1] ?? url)
+}
+
+/** Enumerate a playlist's entries (flat = fast, no per-video resolve): [{url,title}]. */
+function enumeratePlaylist(ytdlPath: string, url: string): Promise<{ url: string; title: string }[]> {
+  return new Promise(resolve => {
+    const proc = spawn(
+      ytdlPath,
+      ['--flat-playlist', '--no-warnings', '--print', '%(url)s ||| %(title)s', url],
+      { windowsHide: true }
+    )
+    let out = ''
+    proc.stdout?.on('data', d => (out += d))
+    proc.on('error', () => resolve([]))
+    proc.on('close', () => {
+      const entries: { url: string; title: string }[] = []
+      for (const line of out.split(/\r?\n/)) {
+        const sep = line.indexOf(' ||| ')
+        if (sep < 0) continue
+        const u = line.slice(0, sep).trim()
+        if (/^https?:\/\//i.test(u)) entries.push({ url: u, title: line.slice(sep + 5).trim() || u })
+      }
+      resolve(entries)
+    })
+  })
+}
+
+/** Load a playlist URL: fetch its entries via yt-dlp and queue them all. */
+async function loadPlaylistUrl(url: string): Promise<void> {
+  broadcast('ui:loading', true)
+  broadcast('ui:toast', 'Loading playlist…')
+  const ytdl = await ensureYtdl()
+  if (!ytdl) {
+    broadcast('ui:loading', false) // ensureYtdl already toasted the failure
+    return
+  }
+  const entries = await enumeratePlaylist(ytdl, url)
+  if (!entries.length) {
+    broadcast('ui:loading', false)
+    broadcast('ui:toast', "Couldn't load playlist")
+    return
+  }
+  playlist = entries.map(e => e.url)
+  urlTitles = {}
+  for (const e of entries) urlTitles[e.url] = e.title
+  playlistKey = playlistKeyOf(url)
+  // resume at the last video watched in this playlist (if it's still in the list)
+  plIndex = 0
+  if (getSettings().resumePlaylistItem) {
+    const last = getPlaylistItem(playlistKey)
+    const at = last ? playlist.indexOf(last) : -1
+    if (at >= 0) plIndex = at
+  }
+  resyncShuffle()
+  playCurrent() // plays the first; the loading spinner clears on its first frame
+}
+
 function playlistPayload() {
   return {
-    items: playlist.map(p => ({ path: p, name: basename(p) })),
+    // URL items get their resolved title once known; local items use the basename
+    items: playlist.map(p => ({ path: p, name: urlTitles[p] || basename(p) })),
     index: plIndex,
     repeat: repeatMode,
     shuffle: shuffleOn
@@ -176,6 +247,11 @@ function nextShuffleIndex(): number {
 /** Open media the user picked. By default the list holds just this item; with
  *  scanFolderIntoPlaylist on, the whole folder is queued (a future setting). */
 function openMedia(target: string): void {
+  if (isPlaylistUrl(target)) {
+    loadPlaylistUrl(target) // async: enumerate the entries, then queue + play them
+    return
+  }
+  playlistKey = '' // a single file / folder scan isn't a resumable URL playlist
   if (isUrl(target) || !getSettings().scanFolderIntoPlaylist) {
     playlist = [target]
     plIndex = 0
@@ -202,7 +278,10 @@ function openMedia(target: string): void {
 function playCurrent(): void {
   if (plIndex < 0 || plIndex >= playlist.length) return
   const target = playlist[plIndex]
+  // remember which item of this URL playlist we're on, so reopening resumes here
+  if (playlistKey && getSettings().resumePlaylistItem) savePlaylistItem(playlistKey, target)
   broadcast('playlist:changed', playlistPayload())
+  if (isUrl(target)) broadcast('ui:loading', true) // streams sit grey until the first frame
   if (needsYtdl(target)) {
     // fetch yt-dlp if needed, point mpv's ytdl_hook at it, then load
     ensureYtdl().then(path => {
@@ -579,6 +658,7 @@ function slideOscToRest(): void {
 }
 
 function revealUi(): void {
+  if (menuOpen) return // don't pop the OSC over/under the open context menu
   broadcast('ui:reveal')
   // only run the slide-up when the OSC is actually hidden — re-running it while
   // it's already at rest re-reads getBounds() and, with DPI rounding, animates a
@@ -842,7 +922,6 @@ function startMpv(): void {
 
   mpv = new MpvController(mpvPath)
   mpv.on('property', (name: string, data: unknown) => {
-    const wasMedia = hasMedia
     if ((name === 'path' || name === 'filename' || name === 'media-title') && data) hasMedia = true
     broadcast('mpv:property', { name, data })
     // a new file loaded → drop stale probe + HDR badge, re-probe its tracks
@@ -853,6 +932,13 @@ function startMpv(): void {
       resumePos = 0
       lastDuration = 0
       runProbe(data)
+    }
+    // give URL playlist items a real name once mpv resolves the media title
+    if (name === 'media-title' && typeof data === 'string' && data && plIndex >= 0 && isUrl(playlist[plIndex])) {
+      if (urlTitles[playlist[plIndex]] !== data) {
+        urlTitles[playlist[plIndex]] = data
+        broadcast('playlist:changed', playlistPayload())
+      }
     }
     // keep the active-audio resolver's inputs current, re-push on any change
     if (name === 'track-list') {
@@ -875,8 +961,7 @@ function startMpv(): void {
         else if (nearEnd) clearPosition(resumePath)
       }
     }
-    // reveal the OSC only when a file first loads — not on pause/play toggles
-    if (!wasMedia && hasMedia) revealUi()
+    // (no auto-reveal on load: playback starts clean; the OSC appears on activity)
     // advance / repeat when the current item ends
     if (name === 'eof-reached' && data === true) onEnded()
     // fit the window to the video's aspect ratio (no letterbox in windowed mode)
@@ -884,12 +969,26 @@ function startMpv(): void {
   })
   mpv.on('mpv-event', (event: string) => {
     broadcast('mpv:event', event)
-    // resume playback: seek to the saved position once the new file is loaded
-    if (event === 'file-loaded' && getSettings().resumePlayback && resumePath) {
-      const pos = getPosition(resumePath)
-      if (typeof pos === 'number' && pos > 5) {
-        mpv?.command(['seek', pos, 'absolute']).catch(() => {})
-        broadcast('ui:toast', `Resumed from ${mmss(pos)}`)
+    if (event === 'end-file') broadcast('ui:loading', false)
+    if (event === 'playback-restart') {
+      broadcast('ui:loading', false) // first frame is up (after any buffering)
+      if (pendingResumeToast) {
+        // now that playback actually started, announce the resume (not during the
+        // grey loading gap — which for streams comes well before this)
+        broadcast('ui:toast', `Resumed from ${pendingResumeToast}`)
+        pendingResumeToast = ''
+      }
+    }
+    // resume: seek to the saved position as soon as the file is loaded (so a stream
+    // buffers at the right spot); the toast waits for playback-restart above
+    if (event === 'file-loaded') {
+      pendingResumeToast = '' // clear any stale pending toast from a failed load
+      if (getSettings().resumePlayback && resumePath) {
+        const pos = getPosition(resumePath)
+        if (typeof pos === 'number' && pos > 5) {
+          mpv?.command(['seek', pos, 'absolute']).catch(() => {})
+          pendingResumeToast = mmss(pos)
+        }
       }
     }
   })
@@ -936,6 +1035,19 @@ function registerIpc(): void {
   ipcMain.on('ui:activity', () => {
     if (Date.now() < suppressRevealUntil) return // just toggled fullscreen — stay quiet
     revealUi()
+  })
+  // context menu opened/closed — hide the OSC while it's up (the OSC is a separate
+  // child window on top of the main window, so it would otherwise cover the menu)
+  ipcMain.on('ui:menu-open', (_e, open: boolean) => {
+    menuOpen = Boolean(open)
+    if (menuOpen) {
+      if (hideTimer) {
+        clearTimeout(hideTimer)
+        hideTimer = null
+      }
+      broadcast('ui:hide')
+      animateOsc(false)
+    }
   })
   ipcMain.on('ui:osc-hover', (_e, hovering: boolean) => {
     oscHovered = Boolean(hovering)

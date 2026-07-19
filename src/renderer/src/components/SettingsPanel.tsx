@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 interface Settings {
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
+  resumePlaylistItem: boolean
   audioLang: string
   subLang: string
   subsDefaultOn: boolean
@@ -262,6 +263,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           </Row>
           <Row label="Resume playback" desc="Remember where each file was left off and jump back on reopen.">
             <Toggle on={s.resumePlayback} onChange={v => set('resumePlayback', v)} />
+          </Row>
+          <Row label="Resume playlists" desc="Reopening a playlist link jumps back to the last video you watched in it.">
+            <Toggle on={s.resumePlaylistItem} onChange={v => set('resumePlaylistItem', v)} />
           </Row>
 
           <div className="set-sec">Audio &amp; subtitles</div>

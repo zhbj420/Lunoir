@@ -92,17 +92,24 @@ export default function Controls(props: Props) {
   const [panelOpen, setPanelOpen] = useState(false)
   useEffect(() => window.mmp.onPanelState(setPanelOpen), [])
 
-  // show the volume number only while the slider is grabbed / dragged (not persistent)
+  // show the volume number transiently — while grabbing the thumb and on any
+  // volume change (drag / wheel / keyboard). Not persistent.
   const [volShow, setVolShow] = useState(false)
   const volTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const firstVol = useRef(true)
   const showVol = (): void => {
     setVolShow(true)
     if (volTimer.current) clearTimeout(volTimer.current)
+    volTimer.current = setTimeout(() => setVolShow(false), 900)
   }
-  const hideVolLater = (): void => {
-    if (volTimer.current) clearTimeout(volTimer.current)
-    volTimer.current = setTimeout(() => setVolShow(false), 700)
-  }
+  useEffect(() => {
+    if (firstVol.current) {
+      firstVol.current = false
+      return // don't flash on the initial volume (mount / restore)
+    }
+    showVol()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.volume])
 
   return (
     <div className="osc">
@@ -121,13 +128,8 @@ export default function Controls(props: Props) {
               max={150}
               value={state.mute ? 0 : state.volume}
               style={{ ['--fill' as any]: `${volPct}%` }}
-              onChange={e => {
-                props.onSetVolume(Number(e.target.value))
-                showVol()
-              }}
+              onChange={e => props.onSetVolume(Number(e.target.value))}
               onPointerDown={showVol}
-              onPointerUp={hideVolLater}
-              onPointerCancel={hideVolLater}
             />
           </div>
         </div>

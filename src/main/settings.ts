@@ -10,6 +10,7 @@ export type { Settings }
 const DEFAULTS: Settings = {
   scanFolderIntoPlaylist: false,
   resumePlayback: true,
+  resumePlaylistItem: true,
   audioLang: '',
   subLang: '',
   subsDefaultOn: true,
@@ -85,4 +86,36 @@ export function savePosition(path: string, seconds: number): void {
 export function clearPosition(path: string): void {
   delete positions()[path]
   writePositions()
+}
+
+// ---- per-playlist "last item" (which video in a URL playlist you got to) ----
+// Keyed by a stable playlist id (e.g. YouTube's list=…), value = that item's URL.
+// Combined with the per-file positions above, reopening a playlist resumes both
+// the right video and the right time.
+type PlaylistItems = Record<string, string>
+let plCache: PlaylistItems | null = null
+const plFile = (): string => join(app.getPath('userData'), 'playlist-progress.json')
+
+function playlistItems(): PlaylistItems {
+  if (plCache) return plCache
+  try {
+    plCache = JSON.parse(readFileSync(plFile(), 'utf8'))
+  } catch {
+    plCache = {}
+  }
+  return plCache!
+}
+
+export function getPlaylistItem(key: string): string | undefined {
+  return playlistItems()[key]
+}
+
+export function savePlaylistItem(key: string, item: string): void {
+  if (playlistItems()[key] === item) return // no-op: avoid needless writes on re-play
+  playlistItems()[key] = item
+  try {
+    writeFileSync(plFile(), JSON.stringify(playlistItems()))
+  } catch {
+    /* ignore */
+  }
 }

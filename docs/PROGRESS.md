@@ -2,6 +2,34 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-19 · 油管播放列表 / 加载切换 / 续播记忆 / 一批打磨）
+
+**阶段：YouTube 播放列表、加载态视图切换、油管标题+作者、播放列表续播记忆 + 独立开关，外加一批交互打磨。类型/构建通过；真机实测（含 Avatar 4K + 真油管列表）。**
+
+### YouTube 播放列表
+- 贴 `/playlist?…` 链接 → [index.ts](../src/main/index.ts) `isPlaylistUrl` 判定 → `loadPlaylistUrl`：yt-dlp `--flat-playlist` **秒速枚举**全部条目（`url ||| title`），一次性刷进播放列表并播第一个，播完走现有 eof→next。枚举期 "Loading playlist…" toast，失败 "Couldn't load playlist"。只认显式 `/playlist?`；`watch?v=…&list=…` 仍当单视频。
+- **列表项真标题**：`urlTitles` 映射（URL→解析标题），`playlistPayload` 里 URL 项用它、本地项用 basename。mpv 报 `media-title` 时（当前项是 URL）更新并重推列表 —— 列表不再显示 `watch?v=…`。
+
+### 加载态视图切换 + OSC 不自动弹
+- 提交 URL/列表 → main 立即广播 `ui:loading` → [OverlayView](../src/renderer/src/views/OverlayView.tsx) 里 `!hasMedia && !loading` 才渲染 EmptyState → **主界面瞬间消失，只剩磨砂窗口 + Loading**（跟加载单条视频一致）；失败时 `end-file` 关 loading、`hasMedia` 仍 false → **自动退回主界面**。
+- **去掉加载自动弹 OSC**：移除 `!wasMedia && hasMedia → revealUi()`。加载途中不闪 OSC、出画面也不弹，干净开播；OSC 只在鼠标活动时出。
+
+### 油管标题 + 作者
+- OBSERVED 加 `metadata/by-key/uploader`；[usePlayer](../src/renderer/src/usePlayer.ts) `pickTitle(fileName, mediaTitle, author, isStream)`：**流**显示 `真标题 · 作者`（media-title + uploader），**本地**仍用文件名（躲垃圾容器标签）。实测 `The Odyssey - Spoiler Review · Chris Stuckmann`。
+
+### 播放列表续播记忆（独立开关）
+- [settings.ts](../src/main/settings.ts) 加 `playlist-progress.json`（key = 油管 `list=…`，值 = 上次那条 URL）；`loadPlaylistUrl` 枚举后若开关开且该条还在列表里就跳过去，叠加现有时间续播 → 同一条视频 + 同一时间点。每切条目更新记录；本地文件夹/单文件不参与（双击具体文件意图明确）。
+- **独立设置 `resumePlaylistItem`**（默认开，与 `resumePlayback` 互相独立）：设置页 "Resume playlists" 开关。
+
+### 一批交互打磨
+- **打开 URL 浮层**：变暗 `rgba(0,0,0,.86)` + 淡入淡出（`.open` 类切 opacity/visibility）+ 边框加粗到 2px；打开即聚焦输入框。
+- **网络加载转圈**：`.loading-overlay` 转圈 + "Loading…"，`playback-restart`/`end-file` 时清。
+- **resume toast 时机**：从 `file-loaded` 挪到 `playback-restart`（`pendingResumeToast`）—— 流要缓冲，等真出画面才提示，不在灰屏期抢跳。
+- **右键菜单盖 OSC**：菜单开时 `ui:menu-open` 让 main 藏 OSC 并压 reveal（OSC 是独立子窗口，否则会盖住菜单）；菜单 backdrop `cursor:default` 修光标在菜单外消失。
+- **OSC 音量数字纯文字**：拖动圆点/滚轮时显示数字（无暗底，跟 HDR 标一样）；OSC 在时滚轮也在 OSC 处显示。
+
+---
+
 ## 当前状态（2026-07-18 · 设置页打磨 + 网络流分辨率标）
 
 **阶段：设置页交互打磨（自绘下拉修 native bug、动态宽度、语言/画质下拉、截图路径可改）+ OSC 网络流分辨率标。类型/构建通过。**

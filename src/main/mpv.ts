@@ -17,6 +17,7 @@ const OBSERVED = [
   'speed', // playback speed → context-menu Speed submenu checkmark
   'filename',
   'media-title',
+  'metadata/by-key/uploader', // stream author (YouTube channel) → title bar
   'eof-reached',
   'path',
   'chapter',

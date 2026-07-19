@@ -6,6 +6,7 @@ export type StreamQuality = 'best' | '2160' | '1080' | '720' | '480'
 export interface Settings {
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
+  resumePlaylistItem: boolean // reopening a playlist link jumps back to the last video watched
   audioLang: string
   subLang: string
   subsDefaultOn: boolean
@@ -89,6 +90,8 @@ const api = {
 
   // reveal / auto-hide coordinated across the two windows by main
   activity: (): void => ipcRenderer.send('ui:activity'),
+  // context menu open/close — main hides the OSC while it's up (see main)
+  setMenuOpen: (open: boolean): void => ipcRenderer.send('ui:menu-open', open),
   // pointer entered/left the OSC window — main pauses auto-hide while it's over
   setOscHover: (hovering: boolean): void => ipcRenderer.send('ui:osc-hover', hovering),
   onReveal: (cb: () => void): Unsubscribe => subscribe('ui:reveal', () => cb()),
@@ -129,6 +132,8 @@ const api = {
     ipcRenderer.send('settings:set', key, value),
   onToast: (cb: (msg: string) => void): Unsubscribe =>
     subscribe('ui:toast', (msg: string) => cb(msg)),
+  onLoading: (cb: (loading: boolean) => void): Unsubscribe =>
+    subscribe('ui:loading', (loading: boolean) => cb(loading)),
   onSettingsChanged: (cb: (s: Settings) => void): Unsubscribe =>
     subscribe('settings:changed', (s: Settings) => cb(s)),
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
