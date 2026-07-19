@@ -596,6 +596,171 @@ body.fullscreen .panel {
   box-shadow: -10px 0 34px rgba(0, 0, 0, 0.28);
 }
 
+/* left settings panel — mirror of .panel, anchored to the left edge */
+.panel.left {
+  left: 0;
+  right: auto;
+  width: 360px;
+  border-left: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transform: translateX(-100%);
+}
+
+.panel.left.open {
+  transform: translateX(0);
+  box-shadow: 10px 0 34px rgba(0, 0, 0, 0.28);
+}
+
+/* ---- settings rows ---- */
+.settings-body {
+  padding: 2px 0 14px;
+}
+
+.set-sec {
+  padding: 14px 16px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.set-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 16px;
+}
+
+.set-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.set-label {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.set-desc {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.set-control {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-top: 1px;
+}
+
+/* toggle switch */
+.switch {
+  width: 34px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.15);
+  transition: background 0.16s;
+}
+
+.switch.on {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background 0.16s;
+}
+
+.switch.on .switch-knob {
+  transform: translateX(14px);
+  background: #202024;
+}
+
+/* text input + select */
+.set-input,
+.set-select {
+  height: 26px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12.5px;
+  padding: 0 8px;
+  outline: none;
+}
+
+.set-input {
+  width: 84px;
+}
+
+.set-select {
+  cursor: pointer;
+}
+
+.set-input:focus,
+.set-select:focus {
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+/* slider setting (e.g. HDR subtitle brightness) */
+.set-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.set-range {
+  width: 108px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+
+.set-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.set-num-input {
+  width: 42px;
+  height: 24px;
+  text-align: center;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+  outline: none;
+}
+
+.set-num-input:focus {
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
 .panel-tabs {
   display: flex;
   align-items: center;
@@ -1091,6 +1256,32 @@ body.fullscreen .panel {
   padding: 1px 2px;
 }
 
+/* settings entry on the home screen (the OSC gear is hidden with no media) */
+.settings-entry {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.32);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.14s, color 0.14s;
+}
+
+@media (hover: hover) {
+  .settings-entry:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+  }
+}
+
 /* ---------- Right-click context menu (playback only) ---------- */
 .ctx-backdrop {
   position: fixed;
@@ -1204,6 +1395,70 @@ body.fullscreen .panel {
     opacity: 0;
     transform: translate(-50%, 8px);
   }
+}
+
+/* wheel-volume OSD: speaker icon + bar + number (shown instead of popping the OSC) */
+.vol-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(26, 26, 30, 0.94);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: toast-in 0.14s ease-out;
+}
+
+.vol-toast-bar {
+  width: 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.vol-toast-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.vol-toast-num {
+  min-width: 30px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* volume number over the OSC slider — only while grabbing / dragging the thumb */
+.vol-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vol-num {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(18, 18, 22, 0.92);
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* URL prompt shown over the video (from the context menu's "Open URL…") */

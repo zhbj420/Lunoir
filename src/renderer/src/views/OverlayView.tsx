@@ -4,6 +4,7 @@ import { useShortcuts } from '../useShortcuts'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
 import RightPanel from '../components/RightPanel'
+import SettingsPanel from '../components/SettingsPanel'
 import ContextMenu, { MenuNode } from '../components/ContextMenu'
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -30,7 +31,10 @@ export default function OverlayView() {
   const [toast, setToast] = useState<string | null>(null)
   const [urlOpen, setUrlOpen] = useState(false)
   const [urlText, setUrlText] = useState('')
+  const [screenshotSubs, setScreenshotSubs] = useState(true)
+  const [volToast, setVolToast] = useState<number | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const volToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastY = useRef(-1)
   const downAccum = useRef(0)
   const entering = useRef(false)
@@ -40,6 +44,13 @@ export default function OverlayView() {
     setToast(msg)
     if (toastTimer.current) clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(null), 1800)
+  }
+
+  // wheel-volume shows a compact volume OSD (icon + bar + number), not the OSC
+  const showVolToast = (v: number): void => {
+    setVolToast(v)
+    if (volToastTimer.current) clearTimeout(volToastTimer.current)
+    volToastTimer.current = setTimeout(() => setVolToast(null), 1000)
   }
 
   // playlist size (for enabling Prev/Next) and whether the file has chapters
@@ -61,6 +72,17 @@ export default function OverlayView() {
       if (name === 'chapter-list') setHasChapters(Array.isArray(data) && (data as unknown[]).length > 0)
       else if (name === 'path' || name === 'filename') check()
     })
+  }, [])
+  // track the screenshot-subtitles setting (the menu's Screenshot uses it); relay
+  // toasts pushed from main (e.g. "Resumed from …")
+  useEffect(() => {
+    window.mmp.getSettings().then(s => setScreenshotSubs(s.screenshotSubs))
+    const offS = window.mmp.onSettingsChanged(s => setScreenshotSubs(s.screenshotSubs))
+    const offT = window.mmp.onToast(showToast)
+    return () => {
+      offS()
+      offT()
+    }
   }, [])
 
   // Reveal the UI only when the pointer heads toward the controls — moving down
@@ -136,7 +158,8 @@ export default function OverlayView() {
   }, [p.state.hasMedia])
 
   // tell main whether a panel is open so the OSC moves out of its way
-  useEffect(() => window.mmp.setPanelState(panel !== null), [panel])
+  // only the right (playlist) panel makes the OSC slide over; settings is on the left
+  useEffect(() => window.mmp.setPanelState(panel === 'playlist'), [panel])
 
   // Esc closes an open panel
   useEffect(() => {
@@ -204,13 +227,7 @@ export default function OverlayView() {
       }))
     },
     { sep: true },
-    {
-      label: 'Screenshot',
-      submenu: [
-        { label: 'With subtitles', onClick: () => screenshot(false) },
-        { label: 'Without subtitles', onClick: () => screenshot(true) }
-      ]
-    },
+    { label: 'Screenshot', onClick: () => screenshot(!screenshotSubs) },
     { sep: true },
     { label: 'Open file…', onClick: p.openFile },
     { label: 'Open URL…', onClick: () => { setUrlText(''); setUrlOpen(true) } },
@@ -235,8 +252,10 @@ export default function OverlayView() {
         if (e.relatedTarget === null) setDragging(false)
       }}
       onWheel={e => {
-        p.setVolume(p.state.volume + (e.deltaY < 0 ? 5 : -5))
-        p.reveal()
+        // adjust volume without popping the OSC — a small volume toast shows instead
+        const v = Math.round(Math.min(150, Math.max(0, p.state.volume + (e.deltaY < 0 ? 5 : -5))))
+        p.setVolume(v)
+        showVolToast(v)
       }}
     >
       <TitleBar title={p.state.title} />
@@ -253,6 +272,7 @@ export default function OverlayView() {
       />
       {!p.state.hasMedia && <EmptyState onOpen={p.openFile} />}
       <RightPanel open={panel === 'playlist'} onClose={() => setPanel(null)} />
+      <SettingsPanel open={panel === 'settings'} onClose={() => setPanel(null)} />
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
 
@@ -282,6 +302,29 @@ export default function OverlayView() {
       )}
 
       {toast && <div className="toast">{toast}</div>}
+
+      {volToast !== null && (
+        <div className="vol-toast">
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            {volToast === 0 ? (
+              <>
+                <path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor" />
+                <path d="M16.5 9 L21.5 15 M21.5 9 L16.5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </>
+            ) : (
+              <>
+                <path d="M4 9 H8 L13 5 V19 L8 15 H4 Z" fill="currentColor" />
+                <path d="M15.5 8.5 Q17.5 12 15.5 15.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                <path d="M18 6 Q21.2 12 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              </>
+            )}
+          </svg>
+          <div className="vol-toast-bar">
+            <div className="vol-toast-fill" style={{ width: `${Math.min(100, volToast)}%` }} />
+          </div>
+          <span className="vol-toast-num">{volToast}</span>
+        </div>
+      )}
 
       <div className="drop-hint" />
     </div>

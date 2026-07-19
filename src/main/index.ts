@@ -1,9 +1,19 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
 import { join, dirname, basename, extname } from 'node:path'
-import { existsSync, readdirSync, mkdirSync } from 'node:fs'
+import { existsSync, readdirSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
 import { spawn, ChildProcess } from 'node:child_process'
+import { pipeline } from 'node:stream/promises'
+import { Readable } from 'node:stream'
 import { MpvController } from './mpv'
 import { removeBorderLine, setCornerPreference, CORNER_DEFAULT, CORNER_DONOTROUND } from './dwm'
+import {
+  getSettings,
+  setSetting,
+  getPosition,
+  savePosition,
+  clearPosition,
+  type Settings
+} from './settings'
 
 const isDev = !app.isPackaged
 
@@ -54,6 +64,12 @@ type RepeatMode = 'off' | 'all' | 'one'
 let playlist: string[] = []
 let plIndex = -1
 let repeatMode: RepeatMode = 'off'
+// resume: the file + position we're currently tracking, and when we last wrote it
+let resumePath = ''
+let resumePos = 0
+let lastPosWrite = 0
+let lastDuration = 0
+let lastVolume = 100
 // Shuffle is a persistent mode (not a one-shot reorder): the list keeps its
 // display order, but auto-advance / next picks randomly. `shuffleBag` holds the
 // not-yet-played indices this cycle (no repeats until it drains); `shuffleHistory`
@@ -61,11 +77,71 @@ let repeatMode: RepeatMode = 'off'
 let shuffleOn = false
 let shuffleBag: number[] = []
 let shuffleHistory: number[] = []
-// When opening a file, also queue the other videos in its folder. Off by default
-// (open one → list holds only that one); to be exposed as a setting later.
-let scanFolderIntoPlaylist = false
-
 const isUrl = (p: string) => /^[a-z][a-z0-9+.-]*:\/\//i.test(p)
+
+// ---- yt-dlp (on-demand) ----
+// YouTube & other site URLs are resolved by mpv's ytdl_hook via yt-dlp. We don't
+// bundle it (17MB, and it goes stale as sites change); instead we fetch the latest
+// the first time you actually play a site URL — base install stays lean + fresh.
+const MEDIA_URL_EXT =
+  /\.(mp4|mkv|webm|m4v|mov|avi|flv|ts|m2ts|mpg|mpeg|m3u8|mpd|mp3|flac|aac|wav|ogg|opus|m4a)(\?|#|$)/i
+let ytdlDownloading: Promise<string | null> | null = null
+
+// mpv ytdl-format per quality cap ('' = yt-dlp's default = best available).
+const YTDL_FORMAT: Record<Settings['streamQuality'], string> = {
+  best: '',
+  '1080': 'bestvideo[height<=?1080]+bestaudio/best[height<=?1080]',
+  '720': 'bestvideo[height<=?720]+bestaudio/best[height<=?720]',
+  '480': 'bestvideo[height<=?480]+bestaudio/best[height<=?480]'
+}
+
+const ytdlExe = (): string => join(app.getPath('userData'), 'yt-dlp', 'yt-dlp.exe')
+
+/** A site URL (YouTube, etc.) mpv must resolve via yt-dlp — not a direct media file. */
+function needsYtdl(url: string): boolean {
+  return /^https?:\/\//i.test(url) && !MEDIA_URL_EXT.test(url)
+}
+
+function ytdlStale(): boolean {
+  try {
+    return Date.now() - statSync(ytdlExe()).mtimeMs > 14 * 24 * 3600 * 1000
+  } catch {
+    return true
+  }
+}
+
+async function downloadYtdl(): Promise<string | null> {
+  const dest = ytdlExe()
+  try {
+    mkdirSync(dirname(dest), { recursive: true })
+    broadcast('ui:toast', 'Fetching yt-dlp…')
+    const res = await fetch(
+      'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
+      { headers: { 'User-Agent': 'lunoir' } }
+    )
+    if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
+    const tmp = `${dest}.part` // write to temp then rename so a partial file can't be used
+    await pipeline(Readable.fromWeb(res.body as never), createWriteStream(tmp))
+    renameSync(tmp, dest)
+    return dest
+  } catch {
+    broadcast('ui:toast', "Couldn't fetch yt-dlp")
+    return null
+  }
+}
+
+/** Ensure yt-dlp is available: use the existing copy at once (refreshing a stale
+ *  one in the background); download first if it's missing. Returns its path/null. */
+async function ensureYtdl(): Promise<string | null> {
+  if (existsSync(ytdlExe())) {
+    if (ytdlStale() && !ytdlDownloading) {
+      ytdlDownloading = downloadYtdl().finally(() => (ytdlDownloading = null))
+    }
+    return ytdlExe()
+  }
+  if (!ytdlDownloading) ytdlDownloading = downloadYtdl().finally(() => (ytdlDownloading = null))
+  return ytdlDownloading
+}
 
 function playlistPayload() {
   return {
@@ -99,7 +175,7 @@ function nextShuffleIndex(): number {
 /** Open media the user picked. By default the list holds just this item; with
  *  scanFolderIntoPlaylist on, the whole folder is queued (a future setting). */
 function openMedia(target: string): void {
-  if (isUrl(target) || !scanFolderIntoPlaylist) {
+  if (isUrl(target) || !getSettings().scanFolderIntoPlaylist) {
     playlist = [target]
     plIndex = 0
   } else {
@@ -124,9 +200,20 @@ function openMedia(target: string): void {
 
 function playCurrent(): void {
   if (plIndex < 0 || plIndex >= playlist.length) return
-  mpv?.loadFile(playlist[plIndex])
-  mpv?.setProperty('pause', false) // always start playing on load
+  const target = playlist[plIndex]
   broadcast('playlist:changed', playlistPayload())
+  if (needsYtdl(target)) {
+    // fetch yt-dlp if needed, point mpv's ytdl_hook at it, then load
+    ensureYtdl().then(path => {
+      if (!mpv) return
+      if (path) mpv.setProperty('script-opts', `ytdl_hook-ytdl_path=${path.replace(/\\/g, '/')}`)
+      mpv.loadFile(target)
+      mpv.setProperty('pause', false)
+    })
+    return
+  }
+  mpv?.loadFile(target)
+  mpv?.setProperty('pause', false) // always start playing on load
 }
 
 function playIndex(i: number): void {
@@ -595,14 +682,21 @@ function fitWindowToVideo(aspect: number): void {
 }
 
 function createWindows(): void {
+  const settings = getSettings()
+  const saved = settings.rememberWindow ? settings.windowBounds : null
   win = new BrowserWindow({
-    width: 1000,
-    height: 620,
+    // restore the last size/position when "remember window" is on, else default
+    ...(saved
+      ? { x: saved.x, y: saved.y, width: saved.width, height: saved.height }
+      : {
+          width: 1000,
+          height: 620,
+          // MMP_LEFT: dev-only — park at the left edge so test screenshots don't
+          // sit under other UI (normal launch stays centered).
+          ...(process.env['MMP_LEFT'] ? { x: 40, y: 60 } : { center: true })
+        }),
     minWidth: WIN_MIN_W,
     minHeight: 320,
-    // MMP_LEFT: dev-only — park the window at the left edge so test screenshots
-    // don't sit under other UI (normal launch stays centered).
-    ...(process.env['MMP_LEFT'] ? { x: 40, y: 60 } : { center: true }),
     frame: false,
     // opaque + acrylic: the empty state / uncovered areas show a frosted desktop
     // (like the taskbar). mpv's video child covers it where there's picture.
@@ -664,6 +758,8 @@ function createWindows(): void {
     revealUi()
   })
 
+  // save volume / bounds / resume position while the window still exists
+  win.on('close', () => persistState())
   win.on('closed', () => {
     if (oscWin && !oscWin.isDestroyed()) oscWin.close()
     mpv?.quit()
@@ -672,6 +768,49 @@ function createWindows(): void {
   oscWin.on('closed', () => {
     oscWin = null
   })
+}
+
+/** Push settings mpv cares about: hwdec, preferred track languages, sub visibility. */
+function applyMpvSettings(): void {
+  if (!mpv) return
+  const s = getSettings()
+  mpv.setProperty('hwdec', s.hwdec)
+  mpv.setProperty('alang', s.audioLang) // '' = mpv default (file's own order)
+  mpv.setProperty('slang', s.subLang)
+  mpv.setProperty('sub-visibility', s.subsDefaultOn)
+  mpv.setProperty('sub-hdr-peak', s.subHdrPeak) // HDR subtitle brightness (nits); ignored for SDR
+  mpv.setProperty('ytdl-format', YTDL_FORMAT[s.streamQuality]) // online quality cap
+  applyYtdlCookies()
+}
+
+/** Feed yt-dlp browser cookies (member/Premium/age-restricted) when the user opts in. */
+function applyYtdlCookies(): void {
+  if (!mpv) return
+  const s = getSettings()
+  mpv.setProperty('ytdl-raw-options', s.useCookies ? `cookies-from-browser=${s.cookiesBrowser}` : '')
+}
+
+/** Save volume / window bounds / playback position on exit (per the toggles). */
+function persistState(): void {
+  const s = getSettings()
+  if (s.rememberVolume) setSetting('volume', lastVolume)
+  if (s.rememberWindow && win && !win.isDestroyed() && !preFsBounds && !win.isMaximized()) {
+    setSetting('windowBounds', win.getBounds())
+  }
+  if (s.resumePlayback && resumePath) {
+    const nearEnd = lastDuration > 0 && resumePos > lastDuration - 10
+    if (resumePos > 5 && !nearEnd) savePosition(resumePath, resumePos)
+    else clearPosition(resumePath) // watched to the end → don't resume next time
+  }
+}
+
+function mmss(sec: number): string {
+  sec = Math.max(0, Math.floor(sec))
+  const s = sec % 60
+  const m = Math.floor(sec / 60) % 60
+  const h = Math.floor(sec / 3600)
+  const p = (n: number): string => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${p(m)}:${p(s)}` : `${m}:${p(s)}`
 }
 
 function startMpv(): void {
@@ -697,6 +836,9 @@ function startMpv(): void {
     if (name === 'path' && typeof data === 'string') {
       lastProbe = {}
       broadcast('video:hdr', '') // clear until MediaInfo re-resolves (gamma fallback covers HDR meanwhile)
+      resumePath = data // track this file's position for resume
+      resumePos = 0
+      lastDuration = 0
       runProbe(data)
     }
     // keep the active-audio resolver's inputs current, re-push on any change
@@ -706,6 +848,19 @@ function startMpv(): void {
     } else if (name === 'aid') {
       lastAid = typeof data === 'number' ? data : false
       broadcastActiveAudio()
+    } else if (name === 'duration' && typeof data === 'number') {
+      lastDuration = data
+    } else if (name === 'volume' && typeof data === 'number') {
+      lastVolume = data
+    } else if (name === 'time-pos' && typeof data === 'number') {
+      resumePos = data
+      // throttled resume-position save; clear it once we're near the end (watched)
+      if (getSettings().resumePlayback && resumePath && Date.now() - lastPosWrite > 5000) {
+        lastPosWrite = Date.now()
+        const nearEnd = lastDuration > 0 && data > lastDuration - 10
+        if (data > 5 && !nearEnd) savePosition(resumePath, data)
+        else if (nearEnd) clearPosition(resumePath)
+      }
     }
     // reveal the OSC only when a file first loads — not on pause/play toggles
     if (!wasMedia && hasMedia) revealUi()
@@ -714,11 +869,27 @@ function startMpv(): void {
     // fit the window to the video's aspect ratio (no letterbox in windowed mode)
     if (name === 'video-params/aspect' && typeof data === 'number') fitWindowToVideo(data)
   })
-  mpv.on('mpv-event', (event: string) => broadcast('mpv:event', event))
+  mpv.on('mpv-event', (event: string) => {
+    broadcast('mpv:event', event)
+    // resume playback: seek to the saved position once the new file is loaded
+    if (event === 'file-loaded' && getSettings().resumePlayback && resumePath) {
+      const pos = getPosition(resumePath)
+      if (typeof pos === 'number' && pos > 5) {
+        mpv?.command(['seek', pos, 'absolute']).catch(() => {})
+        broadcast('ui:toast', `Resumed from ${mmss(pos)}`)
+      }
+    }
+  })
   mpv.on('log', (line: string) => isDev && process.stdout.write(`[mpv] ${line}`))
   mpv.on('connected', () => {
     broadcast('mpv:connected')
     updateVideoMargin() // reserve the title strip from the start
+    applyMpvSettings() // hwdec / preferred languages / subtitle visibility
+    const startup = getSettings()
+    if (startup.rememberVolume) {
+      lastVolume = startup.volume
+      mpv!.setProperty('volume', startup.volume)
+    }
     // screenshots (context-menu action) → Pictures/Lunoir, PNG, named after the
     // source + playback timestamp
     const shotDir = join(app.getPath('pictures'), 'Lunoir')
@@ -827,6 +998,23 @@ function registerIpc(): void {
       ]
     })
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
+  })
+
+  // settings
+  ipcMain.handle('settings:get', () => getSettings())
+  ipcMain.on('settings:set', (_e, key: keyof Settings, value: unknown) => {
+    setSetting(key, value as never)
+    // live-apply just the changed mpv property (languages take effect next file load)
+    if (mpv) {
+      if (key === 'hwdec') mpv.setProperty('hwdec', value)
+      else if (key === 'audioLang') mpv.setProperty('alang', value)
+      else if (key === 'subLang') mpv.setProperty('slang', value)
+      else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)
+      else if (key === 'subHdrPeak') mpv.setProperty('sub-hdr-peak', value)
+      else if (key === 'streamQuality') mpv.setProperty('ytdl-format', YTDL_FORMAT[value as Settings['streamQuality']])
+      else if (key === 'useCookies' || key === 'cookiesBrowser') applyYtdlCookies()
+    }
+    broadcast('settings:changed', getSettings()) // let other windows (e.g. screenshot) track it
   })
 
   ipcMain.on('win:minimize', () => win?.minimize())

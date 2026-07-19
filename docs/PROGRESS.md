@@ -2,6 +2,29 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-18 · 设置页 / 音量交互 / yt-dlp）
+
+**阶段：左侧设置页（新面板层 + 持久化地基）、两个音量交互、YouTube/在线播放（yt-dlp 按需下载）。类型/构建通过；设置页整套待用户实测。**
+
+### 设置页 = 左侧面板 + 持久化地基（全新一层）
+- **持久化**：[src/main/settings.ts](../src/main/settings.ts) —— `userData/settings.json`（偏好）+ `positions.json`（续播进度），缓存读、改动写、IPC `settings:get`/`settings:set`（改动后 `broadcast('settings:changed')` 给别的窗口，如截图读 subs 偏好）。`Settings` 类型定义在 [preload](../src/preload/index.ts)（web 侧可见），main 导入。
+- **左面板** [SettingsPanel.tsx](../src/renderer/src/components/SettingsPanel.tsx)：镜像右面板从左滑入（`.panel.left`，固定 360px），**OSC 齿轮打开**（原 "coming soon"）+ **空状态右下角齿轮**（无媒体时 OSC 隐藏,首屏也能进）。开关/下拉/滑条+手输框；hwdec/在线画质带**动态说明**。只有右面板推 OSC 让位（`setPanelState(panel==='playlist')`）；左面板暂不动 OSC。
+- **设置项 + 生效时机**：扫描目录入列表 · **记忆播放进度**（存 pos + `file-loaded` 时 seek 回 + "Resumed from mm:ss" toast + 快看完清除）· 首选音轨/字幕语言（`alang`/`slang`，**下个文件**生效，描述已注明）· 默认字幕开关 · **hwdec** auto/auto-copy/no · **HDR 字幕亮度**（`sub-hdr-peak` 尼特，默认 120，实时，滑条+手输）· 截图含字幕 · 记忆窗口大小位置 / 音量（退出存、启动还原）。
+  - **HDR 字幕过亮**：mpv 默认把字幕白映射到 ~SDR 参考白，HDR 屏上偏亮;`sub-hdr-peak=120` 压柔和,贴近 MPC。
+- 生效：连接时 `applyMpvSettings()` 批量推;`settings:set` 里按 key 单独推(避免 slider 拖动时重设一堆 + 误改字幕可见性)。
+
+### 音量两个交互（[Controls.tsx](../src/renderer/src/components/Controls.tsx) + [OverlayView](../src/renderer/src/views/OverlayView.tsx)）
+- **OSC 音量条**：平时不显示数字,**按住/拖动圆点时**在滑条右侧冒出数字(松手 0.7s 隐)。放右侧因 OSC 仅 92px 高,放上面会被窗口顶裁。
+- **滚轮调音量**：不再弹 OSC,改弹音量 toast（喇叭图标 + 音量条 + 数字,底部居中,1s 消失）。0/静音图标变叉。
+
+### YouTube / 在线播放（yt-dlp 按需下载）
+- 确认 mpv 带 **ytdl_hook + Lua**（实测 `Lua error` 而非"不支持"）;缺的只是 **yt-dlp**。
+- **按需下载**（不打包,省体积 + 治过期）：贴一个站点 URL(非直链媒体,`needsYtdl` 判定)时,缺 yt-dlp 就从 GitHub 拉最新 `yt-dlp.exe`(~18MB)到 `userData/yt-dlp/`(带 "Fetching yt-dlp…" toast),指给 mpv `script-opts=ytdl_hook-ytdl_path=…`,再 load;有旧版(>14 天)后台刷新。非在线用户零负担。
+- **在线画质**（`ytdl-format`）：Best/1080/720/480,默认 Best=最高可用(公开视频 4K 免费,不需会员;URL 不带画质,由 yt-dlp 选)。选低档=反向限带宽,下个流生效。
+- **Cookies（会员/Premium/年龄限制）**：`useCookies` 开关**默认关** + `cookiesBrowser` 选(Edge/Chrome/Firefox/Brave/Opera)→ `ytdl-raw-options=cookies-from-browser=…`。本机读浏览器登录态,opt-in 尊重隐私。坑:最新 Chrome App-Bound 加密可能读不到→换 Edge/FF;个别要关浏览器。
+
+---
+
 ## 当前状态（2026-07-18 · 右键菜单 / 倍速 / 截图 / SVP 就绪）
 
 **阶段：加了右键上下文菜单（自绘）、倍速、截图、画面比例、SVP 帧插值就绪。均端到端验证（含真 DV 文件 + SVP 实测）。**

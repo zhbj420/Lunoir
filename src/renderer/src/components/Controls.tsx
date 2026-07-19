@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PlayerState } from '../usePlayer'
 
 function fmt(sec: number): string {
@@ -88,6 +88,18 @@ export default function Controls(props: Props) {
   const [panelOpen, setPanelOpen] = useState(false)
   useEffect(() => window.mmp.onPanelState(setPanelOpen), [])
 
+  // show the volume number only while the slider is grabbed / dragged (not persistent)
+  const [volShow, setVolShow] = useState(false)
+  const volTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const showVol = (): void => {
+    setVolShow(true)
+    if (volTimer.current) clearTimeout(volTimer.current)
+  }
+  const hideVolLater = (): void => {
+    if (volTimer.current) clearTimeout(volTimer.current)
+    volTimer.current = setTimeout(() => setVolShow(false), 700)
+  }
+
   return (
     <div className="osc">
       {/* Row 1: buttons */}
@@ -96,15 +108,24 @@ export default function Controls(props: Props) {
           <button className="ib s" onClick={props.onToggleMute} title="Mute">
             {state.mute || state.volume === 0 ? <IcMute /> : <IcVolume />}
           </button>
-          <input
-            className="rng volume"
-            type="range"
-            min={0}
-            max={150}
-            value={state.mute ? 0 : state.volume}
-            style={{ ['--fill' as any]: `${volPct}%` }}
-            onChange={e => props.onSetVolume(Number(e.target.value))}
-          />
+          <div className="vol-wrap">
+            {volShow && <span className="vol-num">{Math.round(state.volume)}</span>}
+            <input
+              className="rng volume"
+              type="range"
+              min={0}
+              max={150}
+              value={state.mute ? 0 : state.volume}
+              style={{ ['--fill' as any]: `${volPct}%` }}
+              onChange={e => {
+                props.onSetVolume(Number(e.target.value))
+                showVol()
+              }}
+              onPointerDown={showVol}
+              onPointerUp={hideVolLater}
+              onPointerCancel={hideVolLater}
+            />
+          </div>
         </div>
 
         <div className="grp center">
@@ -126,7 +147,7 @@ export default function Controls(props: Props) {
               {audio && <span className="fmt-badge">{audio}</span>}
             </div>
           )}
-          <button className="ib s" title="Settings (coming soon)">
+          <button className="ib s" title="Settings" onClick={() => window.mmp.togglePanel('settings')}>
             <IcGear />
           </button>
           <button
