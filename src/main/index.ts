@@ -31,6 +31,7 @@ let win: BrowserWindow | null = null
 let oscWin: BrowserWindow | null = null
 let mpv: MpvController | null = null
 let preFsBounds: Electron.Rectangle | null = null
+let fsWasMaximized = false // restore the maximized state when leaving fullscreen
 let lastAspect = 0 // last video aspect the window was fitted to (avoid re-jumping)
 
 const OSC_H = 92
@@ -919,21 +920,43 @@ function revealUi(): void {
   }, delayMs)
 }
 
+/**
+ * While fullscreen, sit above the taskbar's z-band so the shell can't flash it up
+ * when the OSC (a focusable child, needed for its acrylic) briefly steals the
+ * foreground. Tied to app-frontmost so alt-tabbing away releases the grip — we
+ * don't want to cover other apps. Owned children (OSC / panels) stay above their
+ * owner regardless, so they're never hidden by this.
+ */
+function syncFsTopmost(): void {
+  if (!win || win.isDestroyed()) return
+  const appActive = BrowserWindow.getAllWindows().some(w => !w.isDestroyed() && w.isFocused())
+  win.setAlwaysOnTop(Boolean(preFsBounds) && appActive, 'screen-saver')
+}
+
 function toggleFullscreen(): void {
   if (!win) return
   suppressRevealUntil = Date.now() + 350 // don't let the resize's mousemove pop the OSC
   if (preFsBounds) {
-    // EXIT — native fullscreen restores the previous bounds itself
+    // EXIT — drop topmost, restore the pre-fullscreen size/state
+    const restore = preFsBounds
     preFsBounds = null
-    win.setFullScreen(false)
+    win.setAlwaysOnTop(false)
+    if (fsWasMaximized) win.maximize()
+    else win.setBounds(restore)
     setCornerPreference(win, CORNER_DEFAULT) // rounded corners look good windowed
   } else {
-    // ENTER — OS-native fullscreen state: Windows treats it as a fullscreen app
-    // (better z-order, notifications suppressed) — no borderless+alwaysOnTop hack.
-    preFsBounds = win.getBounds() // still used as the "is fullscreen" flag
-    win.setFullScreen(true)
+    // ENTER — *borderless* fullscreen: cover the whole monitor (incl. the taskbar
+    // area) + go topmost, rather than OS-native fullscreen. Native fullscreen makes
+    // Windows ignore setAlwaysOnTop, so clicking the focusable OSC (which briefly
+    // steals the foreground) lets the shell flash the taskbar up. Borderless +
+    // topmost keeps that reveal *behind* our full-screen window, so it never shows.
+    fsWasMaximized = win.isMaximized()
+    preFsBounds = win.getBounds() // restore point + the "is fullscreen" flag
+    if (fsWasMaximized) win.unmaximize() // so setBounds takes effect
+    win.setBounds(screen.getDisplayMatching(preFsBounds).bounds) // full monitor, not workArea
     setCornerPreference(win, CORNER_DONOTROUND)
   }
+  syncFsTopmost() // topmost above the taskbar while fullscreen + frontmost (alt-tab releases)
   win.webContents.send('win:fullscreen', preFsBounds != null)
   updateVideoMargin() // 0 in fullscreen (video fills), restore the strip on exit
   // the window size just changed — snap the OSC to the new bottom-center and
@@ -1104,10 +1127,13 @@ function createWindows(): void {
     minimizable: false,
     maximizable: false,
     skipTaskbar: true,
-    // not focusable: clicking a button must not activate the OSC child window —
-    // in fullscreen that would drop the main window's foreground state and pop the
-    // taskbar. It has no text inputs, so clicks/drags still work without focus.
-    focusable: false,
+    // focusable: true is REQUIRED — Win11 refuses to render the acrylic backdrop
+    // on a window that can never activate (a non-focusable OSC shows a flat solid
+    // grey, no frost). The downside it used to guard against — clicking a button in
+    // fullscreen activates the OSC, drops the main window's foreground state and
+    // pops the taskbar — is instead handled by bouncing focus back to the main
+    // window whenever the OSC takes it (the OSC has no text inputs to keep focus).
+    focusable: true,
     hasShadow: false,
     roundedCorners: true,
     parent: win,
@@ -1115,6 +1141,14 @@ function createWindows(): void {
     webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
   })
   loadRenderer(oscWin, 'win=osc')
+
+  // Win11 needs the OSC focusable to frost it, but the OSC never needs to hold
+  // focus — so when a click activates it, hand focus straight back to the main
+  // window. That keeps a fullscreen main window in the foreground (no taskbar pop)
+  // while the acrylic still renders. Clicks/drags fire regardless of activation.
+  oscWin.on('focus', () => {
+    if (win && !win.isDestroyed()) win.focus()
+  })
 
   rightPanelWin = makePanelWindow('playlist')
   leftPanelWin = makePanelWindow('settings')
@@ -1134,12 +1168,15 @@ function createWindows(): void {
   })
 
   // broadcast app active/inactive so the renderer can compensate the acrylic
-  // (Win11 lightens acrylic on inactive windows)
-  const updateFocus = () =>
+  // (Win11 lightens acrylic on inactive windows), and release/re-assert the
+  // fullscreen topmost grip so alt-tabbing away doesn't leave us covering apps
+  const updateFocus = (): void => {
     broadcast(
       'app:focus',
       BrowserWindow.getAllWindows().some(w => !w.isDestroyed() && w.isFocused())
     )
+    syncFsTopmost()
+  }
   for (const w of [win, oscWin, rightPanelWin, leftPanelWin]) {
     if (!w) continue
     w.on('focus', updateFocus)
@@ -1180,7 +1217,11 @@ function applyMpvSettings(): void {
   mpv.setProperty('slang', s.subLang)
   mpv.setProperty('sub-visibility', s.subsDefaultOn)
   mpv.setProperty('sub-auto', s.autoLoadSubs ? 'fuzzy' : 'no') // auto-pick external subs
-  mpv.setProperty('sub-hdr-peak', s.subHdrPeak) // HDR subtitle brightness (nits); ignored for SDR
+  // HDR subtitle brightness (nits); ignored for SDR. Two separate mpv props:
+  // sub-hdr-peak = text subs (libass SRT/ASS), image-subs-hdr-peak = bitmap subs
+  // (PGS/VOBSUB, what most UHD Blu-ray rips carry — its default 1000 nits is harsh).
+  mpv.setProperty('sub-hdr-peak', s.subHdrPeak)
+  mpv.setProperty('image-subs-hdr-peak', s.subHdrPeak)
   mpv.setProperty('audio-pitch-correction', s.keepPitch) // keep pitch when changing speed
   mpv.setProperty('ytdl-format', YTDL_FORMAT[s.streamQuality]) // online quality cap
   applyYtdlCookies()
@@ -1475,7 +1516,10 @@ function registerIpc(): void {
       else if (key === 'subLang') mpv.setProperty('slang', value)
       else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)
       else if (key === 'autoLoadSubs') mpv.setProperty('sub-auto', value ? 'fuzzy' : 'no')
-      else if (key === 'subHdrPeak') mpv.setProperty('sub-hdr-peak', value)
+      else if (key === 'subHdrPeak') {
+        mpv.setProperty('sub-hdr-peak', value)
+        mpv.setProperty('image-subs-hdr-peak', value) // bitmap subs (PGS) — see applyMpvSettings
+      }
       else if (key === 'keepPitch') mpv.setProperty('audio-pitch-correction', value)
       else if (key === 'audioPassthrough' || key === 'passthroughCodecs') applyAudioPassthrough()
       else if (key === 'streamQuality') mpv.setProperty('ytdl-format', YTDL_FORMAT[value as Settings['streamQuality']])

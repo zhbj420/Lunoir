@@ -2,6 +2,18 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-20 · 标题栏灰 + OSC 磨砂回归修复 + 无边框全屏 + HDR 字幕定性）
+
+**阶段：修一串真机暴露的问题 —— OSC 磨砂被 `focusable:false` 干掉、全屏点 OSC 冒任务栏、标题栏色差、HDR 字幕设置无效(定性为 mpv 引擎限制)。类型/构建过。**
+
+- **标题栏灰**([styles.css](../src/renderer/src/styles.css) `body.has-media .titlebar`):纯 CSS 磨砂**做不到** —— 播放时那 32px 背后是 **mpv 的黑 margin**(video 被 `video-margin-ratio-top` 推下去),不是主窗亚克力(亚克力只在空状态/没被 mpv 盖住时透出来)。折中:播放态取**失焦时亚克力的纯色 fallback `rgb(62,62,63)`**(用户取色),让 空↔播 尽量不跳。真磨砂得把标题栏做成独立亚克力子窗(未做)。
+- **OSC 磨砂回归修复**(关键)([index.ts](../src/main/index.ts)):Phase 1 给 OSC 加的 `focusable:false` **会让 Win11 拒绝渲染它的 acrylic backdrop**(退成纯灰,无磨砂)—— 面板 `focusable:true` 所以正常,OSC 不正常。改回 `focusable:true`;副作用(全屏点按钮激活子窗、抢前台)用 `oscWin.on('focus') → win.focus()` **把焦点弹回主窗**化解(OSC 无文本输入,不需保留焦点)。真机 A/B(`MMP_OSC_FOCUSABLE` env 开关)实锤是它。
+- **无边框全屏 → 修任务栏冒头**([index.ts](../src/main/index.ts) `toggleFullscreen`/`syncFsTopmost`):原生 `setFullScreen(true)` 下 **Electron 忽略 `setAlwaysOnTop`**,所以点 OSC 抢前台那一帧 shell 会把任务栏弹出来、压不住。改成**无边框全屏**(铺满整块显示器 `screen.getDisplayMatching().bounds` + `setAlwaysOnTop(true,'screen-saver')`),置顶盖在任务栏 z 序上 → 任务栏那帧落在窗口后面、看不见。置顶与"app 是否在前台"绑定(`syncFsTopmost`,接进 `updateFocus`)→ Alt-Tab 切走自动松开、不赖在别的程序上;`fsWasMaximized` 记原最大化态、退出还原。
+- **HDR 字幕亮度(定性 = mpv 引擎限制,非本项目 bug)**:`sub-hdr-peak`(文字/ASS)+ 新增 `image-subs-hdr-peak`(位图/PGS)都接了([index.ts](../src/main/index.ts) `applyMpvSettings` + `settings:set`)。但**真机 + IPC 实测**:PGS 字幕对 `image-subs-hdr-peak` 从 10→10000、`blend-subtitles` yes/video、`target-trc=pq` **全程零反应**(`sub-visibility` 关→开确认重合成有效)。查证 mpv issue #13673/#13680/#16523 —— gpu-next 的 HDR 字幕亮度**只对文字字幕生效,位图(PGS)引擎没接**。MPC 能压是渲染器层缩放叠加层,mpv 不暴露此开关。设置保留(对 SRT/ASS 有效)。曾试 `--blend-subtitles=yes` 已回退(对 PGS 无用 + 会让 SVP 补帧把字幕卷入插值)。
+- **顺带发现(待办)**:bundled mpv **没传 `--no-config`**,会读用户 `%APPDATA%\mpv\input.conf` → 个人快捷键泄漏进 app。该做配置隔离(独立 config-dir),未做。
+
+---
+
 ## 当前状态（2026-07-19 · 音频直通开关 + OSC 自动隐藏时长可调）
 
 **阶段：两个设置项 —— 音频直通(bitstream 到外接功放/解码器)+ OSC 自动隐藏时长可调。类型/构建过;待用户实测。**

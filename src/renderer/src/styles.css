@@ -71,9 +71,17 @@ body,
 }
 
 /* with a video loaded, the title bar is an opaque grey chrome strip and the
-   video is pushed below it (mpv top margin, see updateVideoMargin in main) */
+   video is pushed below it (mpv top margin, see updateVideoMargin in main).
+   NOTE: it can't be frosted with CSS alone — the 32px behind it is mpv's black
+   video margin, not the main window's acrylic (that only shows in the empty /
+   uncovered state). Frosting it would need a separate inset video window. So we
+   just tint it to sit close to how the frosted empty-state acrylic reads —
+   same cool-grey hue as --panel, brightened toward the acrylic's rendered tone —
+   so the empty→playing jump is as small as an opaque strip can be. */
 body.has-media .titlebar {
-  background: rgba(34, 34, 37, 1);
+  /* the exact solid colour Win11 falls the title-bar acrylic back to when the
+     window is inactive — sampled from the empty state so the two never jar */
+  background: rgba(62, 62, 63, 1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
