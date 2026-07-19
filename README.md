@@ -1,28 +1,69 @@
-# MMPlayer
+# Lunoir
 
-A media player with an [mpv](https://mpv.io/) core and an [IINA](https://iina.io/)-inspired interface, built with Electron + React.
+A Windows media player with an [**mpv**](https://mpv.io/) core and an
+[**IINA**](https://iina.io/)-inspired interface — frameless, frosted-glass, and
+built for people who care about frame accuracy and colour fidelity.
 
-## Architecture
+Built with Electron + React. mpv does the heavy lifting; Lunoir wraps it in a
+clean Win11 acrylic UI.
 
-- **Core**: `mpv.exe` embedded via `--wid` for video rendering, controlled over a JSON IPC named pipe.
-- **Main process** (`src/main`): spawns/controls mpv, manages a two-window setup — a frameless *video window* (mpv output) with a transparent *UI window* floating on top for the controls.
-- **Renderer** (`src/renderer`): React UI — floating OSC control bar, title bar, drag-and-drop, keyboard shortcuts.
+![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-early-orange)
 
-## Setup
+> ⚠️ Early / personal project. Windows-only for now. Expect rough edges.
+
+## Screenshots
+
+<!-- Drop PNGs into docs/screenshots/ and uncomment the lines below. -->
+<!-- ![Home](docs/screenshots/home.png) -->
+<!-- ![Playing](docs/screenshots/playing.png) -->
+<!-- ![Settings](docs/screenshots/settings.png) -->
+
+_📸 Screenshots coming soon — add them to `docs/screenshots/`._
+
+## Features
+
+**Playback (mpv core)**
+- Plays essentially everything mpv/FFmpeg does — MKV, MP4, MOV, TS, M2TS, WebM…
+- `gpu-next` rendering: Dolby Vision, HDR10 / HDR10+ tone-mapping, 10-bit
+- Blu-ray / DVD disc **folders** (`bd://` / `dvd://`), plays the main title
+- Online video & **playlists** via yt-dlp (YouTube, etc.)
+
+**Interface**
+- Floating IINA-style OSC that frosts the video (real Win11 acrylic window)
+- Acrylic side panels — playlist / chapters / audio & subtitle tracks, and settings
+- Frameless, drag-and-drop, remembers window size & volume
+- Right-click context menu
+
+**Niceties**
+- Rich track info via MediaInfo — commercial audio names (Dolby TrueHD / Atmos,
+  DTS-HD) and an HDR-flavour badge (DV / HDR10 / HDR10+)
+- Screenshots (PNG / JPG, with or without subtitles, custom folder)
+- A-B loop, playback speed (keeps pitch), auto-load external subtitles
+- Audio passthrough (bitstream to a receiver), adjustable OSC auto-hide delay
+- Resume playback — per file *and* per playlist
+
+## Requirements
+
+- Windows 10 / 11 (acrylic effects look best on Win11)
+- [Node.js](https://nodejs.org/) 18+ (to build from source)
+
+## Getting started
 
 ```bash
 npm install      # install dependencies
-npm run setup    # download mpv.exe into resources/mpv/
+npm run setup    # download mpv + MediaInfo into resources/
 npm run dev      # launch in development
 ```
 
-## Build
+## Building an installer
 
 ```bash
 npm run dist     # produce a Windows installer in dist/
 ```
 
-## Shortcuts
+## Keyboard shortcuts
 
 | Key | Action |
 | --- | --- |
@@ -33,7 +74,24 @@ npm run dist     # produce a Windows installer in dist/
 | M | Mute |
 | Ctrl+O | Open file |
 
-## Status
+More actions live in the **right-click menu** and the **settings panel**.
 
-First milestone: basic playback (open, play/pause, seek, volume, fullscreen).
-Planned: playlist, subtitle/audio track switching, speed control, screenshots, filters.
+## How it works
+
+mpv renders video into the main window via `--wid` and is controlled over a JSON
+IPC named pipe. The frosted controls (OSC) and the side panels are **separate
+Win11 acrylic child windows** layered over the video — the only way to get the
+system frosted-glass effect to actually sample the mpv video underneath. The
+React renderer is window-agnostic; the Electron main process owns mpv, the
+windows, and their layout/animation.
+
+## Credits
+
+Powered by [mpv](https://mpv.io/), [FFmpeg](https://ffmpeg.org/),
+[yt-dlp](https://github.com/yt-dlp/yt-dlp) and
+[MediaInfo](https://mediaarea.net/en/MediaInfo); UI inspired by
+[IINA](https://iina.io/). See [CREDITS.md](CREDITS.md) for licenses.
+
+## License
+
+[MIT](LICENSE) © 2026 Yao666
