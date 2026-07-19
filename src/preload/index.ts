@@ -127,6 +127,8 @@ const api = {
     subscribe('ui:panel-open', (open: boolean) => cb(open)),
   onPanelWidth: (cb: (w: number) => void): Unsubscribe =>
     subscribe('ui:panel-width', (w: number) => cb(w)),
+  onPanelReveal: (cb: (open: boolean) => void): Unsubscribe =>
+    subscribe('panel:reveal', (open: boolean) => cb(open)),
 
   // --- app / window ---
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),
@@ -145,7 +147,11 @@ const api = {
   minimize: (): void => ipcRenderer.send('win:minimize'),
   toggleMaximize: (): void => ipcRenderer.send('win:toggle-maximize'),
   close: (): void => ipcRenderer.send('win:close'),
-  toggleFullscreen: (): void => ipcRenderer.send('win:toggle-fullscreen')
+  toggleFullscreen: (): void => ipcRenderer.send('win:toggle-fullscreen'),
+  // panel-window resize grips → resize the main window
+  getWinBounds: (): Promise<{ x: number; y: number; width: number; height: number } | null> =>
+    ipcRenderer.invoke('win:get-bounds'),
+  setWinSize: (width: number, height: number): void => ipcRenderer.send('win:set-size', width, height)
 }
 
 contextBridge.exposeInMainWorld('mmp', api)

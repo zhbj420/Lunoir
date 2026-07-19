@@ -43,7 +43,13 @@ const PANEL_MAX_W = 440 // comfortable panel width (= --panel-w default)
 const OSC_GAP = 80 // OSC breathing room within its area (≈ 40px each side)
 const WIN_MIN_W = PANEL_MIN_W + OSC_MIN_W + OSC_GAP // 850
 const TITLEBAR_H = 32 // grey title strip reserved above the video (logical px)
-let panelOpen = false
+let panelOpen = false // right (playlist) panel open → drives OSC shrink/shift
+let leftPanelOpen = false // left (settings) panel open
+// side panels as real acrylic child windows (like the OSC), so they frost the video
+let rightPanelWin: BrowserWindow | null = null
+let leftPanelWin: BrowserWindow | null = null
+let rightPanelAnim: NodeJS.Timeout | null = null
+let leftPanelAnim: NodeJS.Timeout | null = null
 let hideTimer: NodeJS.Timeout | null = null
 let oscAnim: NodeJS.Timeout | null = null
 let oscShown = false
@@ -655,7 +661,7 @@ function loadRenderer(w: BrowserWindow, query = ''): void {
 }
 
 function broadcast(channel: string, ...args: unknown[]): void {
-  for (const w of [win, oscWin]) {
+  for (const w of [win, oscWin, rightPanelWin, leftPanelWin]) {
     if (w && !w.isDestroyed()) w.webContents.send(channel, ...args)
   }
 }
@@ -772,6 +778,89 @@ function slideOscToRest(): void {
   }, 16)
 }
 
+// ---------- Side panels (acrylic child windows, cloned from the OSC) ----------
+
+/** Resting bounds of a side panel: a full-height strip on the given edge, below
+ *  the title bar (top = 0 in fullscreen), width = panelW. */
+function panelBounds(side: 'right' | 'left'): Electron.Rectangle {
+  const b = win!.getBounds()
+  const top = preFsBounds ? 0 : TITLEBAR_H
+  const w = panelW(b.width)
+  return {
+    x: side === 'right' ? b.x + b.width - w : b.x,
+    y: b.y + top,
+    width: w,
+    height: b.height - top
+  }
+}
+
+const panelWinOf = (side: 'right' | 'left') => (side === 'right' ? rightPanelWin : leftPanelWin)
+function setPanelAnim(side: 'right' | 'left', t: NodeJS.Timeout | null): void {
+  if (side === 'right') rightPanelAnim = t
+  else leftPanelAnim = t
+}
+
+/**
+ * Fade a side-panel window in/out *in place* (at its resting bounds). A separate
+ * window can't be clipped to the parent, so a slide would spill the panel out over
+ * the desktop — hence a pure opacity fade, never moving outside the window. When
+ * closed we leave it at rest (opacity 0) but click-through, so it neither pops
+ * Windows' scale animation (never hidden) nor blocks clicks on the video beneath.
+ */
+function animatePanel(side: 'right' | 'left', reveal: boolean): void {
+  const pw = panelWinOf(side)
+  if (!win || !pw || win.isDestroyed() || pw.isDestroyed()) return
+  const prev = side === 'right' ? rightPanelAnim : leftPanelAnim
+  if (prev) clearInterval(prev)
+  const dur = reveal ? 240 : 180
+  if (reveal) {
+    pw.setBounds(panelBounds(side)) // always at rest — within the window, never outside
+    pw.setIgnoreMouseEvents(false)
+    if (!pw.isVisible()) {
+      pw.setOpacity(0)
+      pw.showInactive()
+    }
+  }
+  const fromOp = pw.getOpacity()
+  const toOp = reveal ? 1 : 0
+  const t0 = Date.now()
+  const timer = setInterval(() => {
+    if (!pw || pw.isDestroyed()) {
+      setPanelAnim(side, null)
+      clearInterval(timer)
+      return
+    }
+    const p = Math.min(1, (Date.now() - t0) / dur)
+    const e = reveal ? 1 - Math.pow(1 - p, 3) : p * p
+    pw.setOpacity(fromOp + (toOp - fromOp) * e)
+    if (p >= 1) {
+      clearInterval(timer)
+      setPanelAnim(side, null)
+      if (!reveal && !pw.isDestroyed()) pw.setIgnoreMouseEvents(true) // closed → don't block the video
+    }
+  }, 16)
+  setPanelAnim(side, timer)
+}
+
+/** Keep an open panel glued to the window on move/resize (skip mid-animation). */
+function layoutPanel(side: 'right' | 'left'): void {
+  const pw = panelWinOf(side)
+  const open = side === 'right' ? panelOpen : leftPanelOpen
+  const anim = side === 'right' ? rightPanelAnim : leftPanelAnim
+  if (!win || !pw || win.isDestroyed() || pw.isDestroyed()) return
+  if (open && !anim) pw.setBounds(panelBounds(side))
+}
+
+/** Toggle the right (playlist) panel window; it shifts the OSC out of the way. */
+function togglePlaylistPanel(): void {
+  if (!rightPanelWin) return
+  panelOpen = !panelOpen
+  animatePanel('right', panelOpen) // window fades in place
+  rightPanelWin.webContents.send('panel:reveal', panelOpen) // content slides within it
+  slideOscToRest() // re-center the OSC around the panel
+  broadcast('ui:panel-open', panelOpen) // OSC list button pressed-state
+}
+
 function revealUi(): void {
   if (menuOpen) return // don't pop the OSC over/under the open context menu
   broadcast('ui:reveal')
@@ -807,13 +896,28 @@ function toggleFullscreen(): void {
   // the window size just changed — snap the OSC to the new bottom-center and
   // cancel any in-flight reveal/hide so it doesn't settle at the old position
   const placeOsc = (): void => {
-    if (!oscWin || oscWin.isDestroyed() || !oscShown) return
-    if (oscAnim) {
-      clearInterval(oscAnim)
-      oscAnim = null
+    if (oscWin && !oscWin.isDestroyed() && oscShown) {
+      if (oscAnim) {
+        clearInterval(oscAnim)
+        oscAnim = null
+      }
+      oscWin.setOpacity(1)
+      oscWin.setBounds(oscRestBounds())
     }
-    oscWin.setOpacity(1)
-    oscWin.setBounds(oscRestBounds())
+    // snap any open panels to their new full-height bounds (top = 0 in fullscreen)
+    for (const side of ['right', 'left'] as const) {
+      const pw = panelWinOf(side)
+      const open = side === 'right' ? panelOpen : leftPanelOpen
+      if (pw && !pw.isDestroyed() && open) {
+        const anim = side === 'right' ? rightPanelAnim : leftPanelAnim
+        if (anim) {
+          clearInterval(anim)
+          setPanelAnim(side, null)
+        }
+        pw.setOpacity(1)
+        pw.setBounds(panelBounds(side))
+      }
+    }
   }
   placeOsc()
   setTimeout(placeOsc, 60)
@@ -877,6 +981,41 @@ function fitWindowToVideo(aspect: number): void {
   updateVideoMargin()
 }
 
+/** An acrylic side-panel child window (clone of the OSC), square-cornered since
+ *  it docks to the window edge. Loaded with `?win=panel&kind=…`; shown on open. */
+function makePanelWindow(kind: 'playlist' | 'settings'): BrowserWindow {
+  const pw = new BrowserWindow({
+    width: PANEL_MAX_W,
+    height: 600, // placeholders; real bounds set on open by panelBounds()
+    frame: false,
+    transparent: false,
+    backgroundMaterial: 'acrylic',
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    focusable: true, // settings has text inputs; panels take focus on click
+    hasShadow: false,
+    roundedCorners: false, // docked to the edge → square reads better than the OSC's rounding
+    parent: win!,
+    show: false,
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+  })
+  loadRenderer(pw, `win=panel&kind=${kind}`)
+  pw.webContents.once('did-finish-load', () => {
+    if (!pw.isDestroyed()) {
+      removeBorderLine(pw)
+      setCornerPreference(pw, CORNER_DONOTROUND)
+    }
+  })
+  pw.on('closed', () => {
+    if (kind === 'playlist') rightPanelWin = null
+    else leftPanelWin = null
+  })
+  return pw
+}
+
 function createWindows(): void {
   const settings = getSettings()
   const saved = settings.rememberWindow ? settings.windowBounds : null
@@ -914,7 +1053,10 @@ function createWindows(): void {
     minimizable: false,
     maximizable: false,
     skipTaskbar: true,
-    focusable: true,
+    // not focusable: clicking a button must not activate the OSC child window —
+    // in fullscreen that would drop the main window's foreground state and pop the
+    // taskbar. It has no text inputs, so clicks/drags still work without focus.
+    focusable: false,
     hasShadow: false,
     roundedCorners: true,
     parent: win,
@@ -923,12 +1065,20 @@ function createWindows(): void {
   })
   loadRenderer(oscWin, 'win=osc')
 
-  // keep the OSC glued to the main window
-  win.on('move', () => layoutOsc())
+  rightPanelWin = makePanelWindow('playlist')
+
+  // keep the OSC + panels glued to the main window
+  win.on('move', () => {
+    layoutOsc()
+    layoutPanel('right')
+    layoutPanel('left')
+  })
   win.on('resize', () => {
     layoutOsc()
     updateVideoMargin() // keep the reserved title strip proportional as height changes
     pushPanelWidth() // panel width tracks the window width
+    layoutPanel('right')
+    layoutPanel('left')
   })
 
   // broadcast app active/inactive so the renderer can compensate the acrylic
@@ -938,7 +1088,8 @@ function createWindows(): void {
       'app:focus',
       BrowserWindow.getAllWindows().some(w => !w.isDestroyed() && w.isFocused())
     )
-  for (const w of [win, oscWin]) {
+  for (const w of [win, oscWin, rightPanelWin, leftPanelWin]) {
+    if (!w) continue
     w.on('focus', updateFocus)
     w.on('blur', () => setTimeout(updateFocus, 30))
   }
@@ -957,7 +1108,9 @@ function createWindows(): void {
   // save volume / bounds / resume position while the window still exists
   win.on('close', () => persistState())
   win.on('closed', () => {
-    if (oscWin && !oscWin.isDestroyed()) oscWin.close()
+    for (const w of [oscWin, rightPanelWin, leftPanelWin]) {
+      if (w && !w.isDestroyed()) w.close()
+    }
     mpv?.quit()
     win = null
   })
@@ -1222,18 +1375,12 @@ function registerIpc(): void {
     if (!res.canceled && res.filePaths.length) addToPlaylist(res.filePaths)
   })
 
-  // side panels (playlist / settings) live in the main window; the OSC buttons
-  // (in the acrylic child window) request a toggle through main
-  ipcMain.on('ui:panel-toggle', (_e, name: string) =>
-    win?.webContents.send('ui:panel-toggle', name)
-  )
-  // overlay reports whether a panel is open, so the OSC can move out of the way
-  // and its list button can show a pressed state
-  ipcMain.on('ui:panel-state', (_e, open: boolean) => {
-    if (panelOpen === open) return
-    panelOpen = open
-    slideOscToRest() // glide the OSC to re-center, in sync with the panel's slide
-    broadcast('ui:panel-open', open)
+  // OSC buttons (in the acrylic child window) request a panel toggle through main.
+  // The right (playlist) panel is now its own acrylic window, owned by main; the
+  // left (settings) panel is still rendered in the main window (Phase 1).
+  ipcMain.on('ui:panel-toggle', (_e, name: string) => {
+    if (name === 'playlist') togglePlaylistPanel()
+    else win?.webContents.send('ui:panel-toggle', name)
   })
 
   ipcMain.handle('app:open-dialog', async () => {
@@ -1285,6 +1432,18 @@ function registerIpc(): void {
   })
   ipcMain.on('win:close', () => win?.close())
   ipcMain.on('win:toggle-fullscreen', () => toggleFullscreen())
+  // a panel window's resize grips resize the MAIN window (they sit over its edge)
+  ipcMain.handle('win:get-bounds', () => (win && !win.isDestroyed() ? win.getBounds() : null))
+  ipcMain.on('win:set-size', (_e, width: number, height: number) => {
+    if (!win || win.isDestroyed() || win.isMaximized() || preFsBounds) return
+    const b = win.getBounds() // top-left stays fixed (right/bottom-docked grips)
+    win.setBounds({
+      x: b.x,
+      y: b.y,
+      width: Math.max(WIN_MIN_W, Math.round(width)),
+      height: Math.max(320, Math.round(height))
+    })
+  })
 }
 
 function buildMenu(): void {

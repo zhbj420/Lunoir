@@ -647,6 +647,74 @@ body.fullscreen .panel {
   box-shadow: 10px 0 34px rgba(0, 0, 0, 0.28);
 }
 
+/* A panel rendered inside its OWN acrylic child window (body.panel-win): the
+   window provides the frost + slides itself, so the panel just fills it with the
+   same translucent scrim the OSC uses (--panel). No near-opaque bg, no transform,
+   no title-bar offset (the window is placed below the title bar by main). */
+body.panel-win .panel,
+body.panel-win .panel.left {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  width: 100%;
+  transform: none;
+  background: var(--panel);
+  border: none;
+  box-shadow: none;
+  /* a thin frosted margin on the window-frame edges (right+bottom for the
+     right-docked panel) where the resize grips live, so they never sit on the
+     scrollbar / collapse button / tools bar. The inner edge (left) stays flush. */
+  padding-right: 8px;
+  padding-bottom: 8px;
+  overflow: hidden; /* clip the content-slide (below) to the window */
+}
+
+/* The frosted window fades in place; the CONTENT slides in within it (off the
+   window edge is clipped). translateX is toward the docked edge: from the right
+   for the right panel, from the left for settings. */
+body.panel-win .panel > *,
+body.panel-win .panel.left > * {
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+body.panel-win .panel > * {
+  transform: translateX(34px);
+}
+body.panel-win .panel.left > * {
+  transform: translateX(-34px);
+}
+body.panel-win.panel-shown .panel > *,
+body.panel-win.panel-shown .panel.left > * {
+  transform: translateX(0);
+}
+
+/* invisible resize grips on a panel window's edges → resize the main window
+   (the panel covers the OS resize border there). Rendered above the panel body. */
+.resize-grip {
+  position: fixed;
+  z-index: 100;
+}
+.resize-e {
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+}
+.resize-s {
+  left: 0;
+  bottom: 0;
+  height: 8px;
+  width: 100%;
+  cursor: ns-resize;
+}
+.resize-se {
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+}
+
 /* ---- settings rows ---- */
 .settings-body {
   padding: 2px 0 14px;

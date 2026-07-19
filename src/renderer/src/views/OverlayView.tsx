@@ -3,7 +3,6 @@ import { usePlayer } from '../usePlayer'
 import { useShortcuts } from '../useShortcuts'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
-import RightPanel from '../components/RightPanel'
 import SettingsPanel from '../components/SettingsPanel'
 import ContextMenu, { MenuNode } from '../components/ContextMenu'
 
@@ -161,9 +160,8 @@ export default function OverlayView() {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])
 
-  // tell main whether a panel is open so the OSC moves out of its way
-  // only the right (playlist) panel makes the OSC slide over; settings is on the left
-  useEffect(() => window.mmp.setPanelState(panel === 'playlist'), [panel])
+  // (the right playlist panel is now its own acrylic window, owned by main, which
+  // tracks its open state + slides the OSC; settings is still in-page for now)
   // hide the OSC (a separate window on top) while the context menu is open
   useEffect(() => {
     window.mmp.setMenuOpen(menu !== null)
@@ -304,7 +302,7 @@ export default function OverlayView() {
         </div>
       )}
 
-      <RightPanel open={panel === 'playlist'} onClose={() => setPanel(null)} />
+      {/* right (playlist) panel is now its own acrylic window; settings still in-page */}
       <SettingsPanel open={panel === 'settings'} onClose={() => setPanel(null)} />
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}

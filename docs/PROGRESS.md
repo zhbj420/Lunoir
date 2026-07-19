@@ -2,6 +2,18 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-19 · 面板亚克力化 Phase 1:右面板成独立亚克力窗口）
+
+**阶段：把右（playlist/chapters/audio&sub）面板从主窗口内嵌 DOM 改成真·Win11 亚克力子窗口(克隆 OSC 那套)——终于能磨砂到视频上。方案见 [plan](../.claude/plans/synchronous-giggling-kernighan.md)。类型/构建过;真机迭代中。**
+
+- **架构**:`broadcast()` 从硬编码 `[win, oscWin]` 改为扇出到面板窗口([index.ts](../src/main/index.ts));[App.tsx](../src/renderer/src/App.tsx) `?win=panel&kind=…` 路由 → 新 [PanelView](../src/renderer/src/views/PanelView.tsx)(挂 `usePlayer`+`useShortcuts`、加 `body.panel-win`、Esc 关);`RightPanel` 从 [OverlayView](../src/renderer/src/views/OverlayView.tsx) 移除;**主进程接管开关**(`ui:panel-toggle` playlist → `togglePlaylistPanel`)。
+- **窗口**:`makePanelWindow` 克隆 OSC 选项(acrylic、frameless、`parent:win`、`show:false`),**直角**(`CORNER_DONOTROUND`,贴边)。`panelBounds` 从 `win.getBounds()` 算(右边条,标题栏下,全屏顶到 0),`layoutPanel` 在 move/resize/全屏跟随;保留 `panelOpen → oscRestBounds/slideOscToRest` 让 OSC 让位。
+- **动画(关键权衡)**:独立窗口没法裁剪到父窗口,窗口一滑就飘到桌面外 → 改成**窗口原地淡入淡出 + 内容在窗口内 translateX 滑入**(超出被窗口裁掉)。`panel:reveal` IPC 通知渲染层滑内容。关闭时 opacity 0 + `setIgnoreMouseEvents(true)`(不挡视频、不触发系统缩放动画)。CSS:`body.panel-win .panel` 填满窗口、透明(用 `--panel` 磨砂 scrim)、`overflow:hidden` 裁内容滑动。
+- **缩放条**([ResizeGrips](../src/renderer/src/components/ResizeGrips.tsx)):面板窗口盖住主窗口右/右下的 OS 缩放边 → 在面板**右/下/右下角**(藏在 8px 磨砂内边距里、不碰滚动条/折叠键/工具栏)放隐形 grip,拖它们经 `win:get-bounds`/`win:set-size` 缩放**主窗口**(右 docked → 左上角钉死)。
+- **OSC `focusable:false`**:点 OSC 按钮不再激活子窗口抢前台 → 修复**全屏点 OSC 暂停冒出任务栏**;OSC 无文本输入,点击/拖动照常。
+
+---
+
 ## 当前状态（2026-07-19 · 蓝光/DVD 原盘 + 打开文件夹 + 双击手势）
 
 **阶段：能放蓝光/DVD 原盘目录(bd:// / dvd://)+ 打开普通文件夹排列表 + "Open File" 双击开文件夹。真机实测通过(《红番区》UHD 原盘,标题栏正确显示碟名)。**
