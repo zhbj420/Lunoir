@@ -750,6 +750,16 @@ body.panel-win.panel-shown .panel.left > * {
   padding: 9px 16px;
 }
 
+/* indented sub-options revealed under a parent toggle (e.g. passthrough formats) */
+.set-suboptions {
+  margin: 0 16px 4px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(255, 255, 255, 0.09);
+}
+.set-suboptions .set-row {
+  padding: 7px 0 7px 4px;
+}
+
 .set-text {
   flex: 1;
   min-width: 0;

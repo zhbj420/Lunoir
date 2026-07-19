@@ -16,6 +16,9 @@ const DEFAULTS: Settings = {
   subLang: '',
   subsDefaultOn: true,
   autoLoadSubs: true,
+  audioPassthrough: false,
+  passthroughCodecs: 'ac3,eac3,truehd,dts,dts-hd',
+  oscHideDelay: 5, // seconds the OSC lingers after activity before auto-hiding
   subHdrPeak: 120, // dimmer than mpv's ~SDR-white default so HDR subs aren't harsh
   hwdec: 'auto',
   streamQuality: 'best',

@@ -13,6 +13,9 @@ export interface Settings {
   subLang: string
   subsDefaultOn: boolean
   autoLoadSubs: boolean // auto-load matching external subtitle files (mpv sub-auto)
+  audioPassthrough: boolean // bitstream compressed audio to an external receiver (mpv audio-spdif)
+  passthroughCodecs: string // which formats to passthrough (comma list: ac3,eac3,truehd,dts,dts-hd)
+  oscHideDelay: number // seconds the OSC stays before auto-hiding
   subHdrPeak: number // peak nits for subtitles over HDR video (mpv sub-hdr-peak)
   hwdec: Hwdec
   streamQuality: StreamQuality // online (yt-dlp) max quality

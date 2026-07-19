@@ -2,6 +2,15 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-19 · 音频直通开关 + OSC 自动隐藏时长可调）
+
+**阶段：两个设置项 —— 音频直通(bitstream 到外接功放/解码器)+ OSC 自动隐藏时长可调。类型/构建过;待用户实测。**
+
+- **音频直通**(mpv `audio-spdif`):[settings](../src/main/settings.ts) `audioPassthrough:false` + `passthroughCodecs:'ac3,eac3,truehd,dts,dts-hd'`;[index.ts](../src/main/index.ts) `applyAudioPassthrough()`(开→ `audio-spdif` 设为勾选的格式,关→空=软解),在 `applyMpvSettings` 和 `settings:set` 里生效。[SettingsPanel](../src/renderer/src/components/SettingsPanel.tsx) 主开关默认关;**打开后**下面 `.set-suboptions`(左边框缩进)列出 5 个格式子开关(AC-3 / E-AC-3 / TrueHD·Atmos / DTS / DTS-HD·DTS:X),关闭时收起。**不做自动 fallback**(用户无硬件可测,按需自选)。
+- **OSC 自动隐藏时长**:[settings](../src/main/settings.ts) `oscHideDelay:5`(秒);`revealUi` 的隐藏定时器从硬编码 5000ms 改读 `getSettings().oscHideDelay*1000`(悬停 linger 走同一路径,一并生效)。[SettingsPanel](../src/renderer/src/components/SettingsPanel.tsx) 新增 **Controls** 分区,滑条 1–15s + 数字框(手输可到 120s),默认 5(说明第二行标 `Default = 5 seconds`)。
+
+---
+
 ## 当前状态（2026-07-19 · 面板亚克力化 Phase 2:左设置面板 + 互斥 + 动画打磨）
 
 **阶段：左（设置）面板也成独立亚克力窗口(复用右面板那套);两面板互斥+双侧让 OSC;动画/缩放/配色打磨。类型/构建过;真机迭代确认。**

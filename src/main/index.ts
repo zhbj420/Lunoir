@@ -911,11 +911,12 @@ function revealUi(): void {
   // ±1px difference every mouse move (visible jitter)
   if (hasMedia && !oscShown) animateOsc(true)
   if (hideTimer) clearTimeout(hideTimer)
+  const delayMs = Math.max(1, getSettings().oscHideDelay) * 1000
   hideTimer = setTimeout(() => {
     if (oscHovered) return // pointer is over the OSC — keep it up (no flicker)
     broadcast('ui:hide')
     animateOsc(false) // slide down + fade out
-  }, 5000)
+  }, delayMs)
 }
 
 function toggleFullscreen(): void {
@@ -1183,6 +1184,15 @@ function applyMpvSettings(): void {
   mpv.setProperty('audio-pitch-correction', s.keepPitch) // keep pitch when changing speed
   mpv.setProperty('ytdl-format', YTDL_FORMAT[s.streamQuality]) // online quality cap
   applyYtdlCookies()
+  applyAudioPassthrough()
+}
+
+/** Audio passthrough (bitstream to an external receiver/DAC). Off → decode in
+ *  software; on → send the raw stream for the listed codecs (mpv audio-spdif). */
+function applyAudioPassthrough(): void {
+  if (!mpv) return
+  const s = getSettings()
+  mpv.setProperty('audio-spdif', s.audioPassthrough ? s.passthroughCodecs : '')
 }
 
 /** Screenshot image format: PNG (lossless) or JPG (high quality, smaller files). */
@@ -1467,6 +1477,7 @@ function registerIpc(): void {
       else if (key === 'autoLoadSubs') mpv.setProperty('sub-auto', value ? 'fuzzy' : 'no')
       else if (key === 'subHdrPeak') mpv.setProperty('sub-hdr-peak', value)
       else if (key === 'keepPitch') mpv.setProperty('audio-pitch-correction', value)
+      else if (key === 'audioPassthrough' || key === 'passthroughCodecs') applyAudioPassthrough()
       else if (key === 'streamQuality') mpv.setProperty('ytdl-format', YTDL_FORMAT[value as Settings['streamQuality']])
       else if (key === 'useCookies' || key === 'cookiesBrowser') applyYtdlCookies()
       else if (key === 'screenshotDir') applyScreenshotDir()

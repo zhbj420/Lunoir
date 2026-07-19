@@ -12,6 +12,9 @@ interface Settings {
   subLang: string
   subsDefaultOn: boolean
   autoLoadSubs: boolean
+  audioPassthrough: boolean
+  passthroughCodecs: string
+  oscHideDelay: number
   subHdrPeak: number
   hwdec: 'auto' | 'auto-copy' | 'no'
   streamQuality: 'best' | '2160' | '1080' | '720' | '480'
@@ -50,6 +53,14 @@ const QUALITY_OPTS: Opt[] = [
 const SCREENSHOT_FMT_OPTS: Opt[] = [
   { value: 'png', label: 'PNG (lossless)' },
   { value: 'jpg', label: 'JPG (high quality)' }
+]
+// mpv audio-spdif codec names → human labels (Atmos rides on TrueHD, DTS:X on DTS-HD)
+const PASSTHROUGH_CODECS = [
+  { code: 'ac3', label: 'Dolby Digital (AC-3)' },
+  { code: 'eac3', label: 'Dolby Digital Plus' },
+  { code: 'truehd', label: 'Dolby TrueHD / Atmos' },
+  { code: 'dts', label: 'DTS' },
+  { code: 'dts-hd', label: 'DTS-HD / DTS:X' }
 ]
 const BROWSER_OPTS: Opt[] = [
   { value: 'edge', label: 'Edge' },
@@ -246,6 +257,15 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
     if (dir) set('screenshotDir', dir)
   }
 
+  // passthrough codec set (persisted as a comma list, kept in a canonical order)
+  const hasCodec = (c: string): boolean => (s?.passthroughCodecs ?? '').split(',').includes(c)
+  const toggleCodec = (c: string, on: boolean): void => {
+    const cur = new Set((s?.passthroughCodecs ?? '').split(',').filter(Boolean))
+    if (on) cur.add(c)
+    else cur.delete(c)
+    set('passthroughCodecs', PASSTHROUGH_CODECS.filter(x => cur.has(x.code)).map(x => x.code).join(','))
+  }
+
   return (
     <div
       className={`panel left ${open ? 'open' : ''}`}
@@ -279,6 +299,27 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label="Keep pitch when changing speed" desc="Time-stretch audio so voices don't go chipmunky at higher playback speeds.">
             <Toggle on={s.keepPitch} onChange={v => set('keepPitch', v)} />
           </Row>
+          <Row
+            label="Audio passthrough"
+            desc={
+              <>
+                Bitstream compressed audio to an external receiver / DAC — it decodes, not the app.
+                <br />
+                Needs hardware that supports the format (no sound if it doesn't).
+              </>
+            }
+          >
+            <Toggle on={s.audioPassthrough} onChange={v => set('audioPassthrough', v)} />
+          </Row>
+          {s.audioPassthrough && (
+            <div className="set-suboptions">
+              {PASSTHROUGH_CODECS.map(c => (
+                <Row key={c.code} label={c.label}>
+                  <Toggle on={hasCodec(c.code)} onChange={v => toggleCodec(c.code, v)} />
+                </Row>
+              ))}
+            </div>
+          )}
           <Row
             label="Preferred audio language"
             desc={
@@ -379,6 +420,31 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               </button>
             </div>
           </div>
+
+          <div className="set-sec">Controls</div>
+          <Row
+            label="Auto-hide delay"
+            desc={
+              <>
+                How long the on-screen controls linger after the mouse stops, then fade out.
+                <br />
+                Default = 5 seconds.
+              </>
+            }
+          >
+            <div className="set-slider">
+              <input
+                type="range"
+                className="set-range"
+                min={1}
+                max={15}
+                step={1}
+                value={Math.min(15, Math.max(1, s.oscHideDelay))}
+                onChange={e => set('oscHideDelay', Number(e.target.value))}
+              />
+              <NumInput value={s.oscHideDelay} min={1} max={120} onChange={v => set('oscHideDelay', v)} />
+            </div>
+          </Row>
 
           <div className="set-sec">Window</div>
           <Row label="Remember size &amp; position">
