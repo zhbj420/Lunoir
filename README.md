@@ -19,12 +19,13 @@ clean Win11 acrylic UI.
 
 ## Screenshots
 
-<!-- Drop PNGs into docs/screenshots/ and uncomment the lines below. -->
-<!-- ![Home](docs/screenshots/home.png) -->
-<!-- ![Playing](docs/screenshots/playing.png) -->
-<!-- ![Settings](docs/screenshots/settings.png) -->
+<p align="center">
+  <img src="docs/screenshots/playing.png" alt="Lunoir playing a video — the floating OSC frosts the frame" width="100%">
+</p>
 
-_📸 Screenshots coming soon — add them to `docs/screenshots/`._
+| Home | Settings | Audio &amp; subtitle tracks |
+| :---: | :---: | :---: |
+| ![Home screen](docs/screenshots/home.png) | ![Settings panel](docs/screenshots/settings.png) | ![Audio and subtitle track panel](docs/screenshots/panel.png) |
 
 ## Features
 
