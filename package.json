@@ -1,10 +1,16 @@
 {
   "name": "mmplayer",
+  "productName": "Lunoir",
   "version": "0.1.0",
-  "description": "A media player with mpv core and IINA-inspired UI",
+  "description": "A frameless mpv-core media player for Windows with an IINA-inspired frosted-glass UI",
   "main": "out/main/index.js",
-  "author": "",
+  "author": "Yao666",
   "license": "MIT",
+  "homepage": "https://github.com/zhbj420/Lunoir#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhbj420/Lunoir.git"
+  },
   "scripts": {
     "setup": "node scripts/download-mpv.mjs",
     "dev": "electron-vite dev",
