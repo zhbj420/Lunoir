@@ -97,6 +97,10 @@ Powered by [mpv](https://mpv.io/), [FFmpeg](https://ffmpeg.org/),
 [MediaInfo](https://mediaarea.net/en/MediaInfo); UI inspired by
 [IINA](https://iina.io/). See [CREDITS.md](CREDITS.md) for licenses.
 
+## Acknowledgments
+
+Built by [@zhbj420](https://github.com/zhbj420) together with [Claude](https://www.anthropic.com/claude) (Anthropic) as a pair-programmer — from the first prototype to this release.
+
 ## License
 
 [MIT](LICENSE) © 2026 Yao666
