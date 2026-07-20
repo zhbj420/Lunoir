@@ -434,6 +434,16 @@ body.fullscreen .titlebar {
   transform: scale(0.9);
 }
 
+/* No focus ring on OSC buttons. The OSC window keeps focus after a click (we no
+   longer bounce it back to main), and :focus-visible also fires whenever the last
+   input was the keyboard — so arrow-key frame-stepping kept lighting up whichever
+   button was clicked last. Every OSC action has a global keyboard shortcut, so the
+   ring carries no navigation value here. */
+.ib:focus,
+.ib:focus-visible {
+  outline: none;
+}
+
 .ib.play {
   color: var(--glyph-strong);
   padding: 7px;

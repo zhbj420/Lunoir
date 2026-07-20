@@ -72,14 +72,41 @@ const initial: PlayerState = {
 export function usePlayer() {
   const [state, setState] = useState<PlayerState>(initial)
   const [revealed, setRevealed] = useState(true)
+  // pending "we're playing again" update — see the pause handling below
+  const unpauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // while frame-stepping we ignore 'playing' outright, then re-read the real state
+  const steppingUntil = useRef(0)
+  const resyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Subscribe to mpv property changes forwarded from the main process.
   useEffect(() => {
     return window.mmp.onProperty(({ name, data }) => {
+      // mpv's frame-step means "play one frame, then pause again", so every step
+      // blips pause false→true and the play/pause button flickers (badly, when an
+      // arrow key is held). Pausing is applied at once; *unpausing* is deferred a
+      // moment, and a pause arriving first cancels it — so a step never shows, while
+      // a real play still lands (just fractionally later).
+      if (name === 'pause') {
+        if (unpauseTimer.current) {
+          clearTimeout(unpauseTimer.current)
+          unpauseTimer.current = null
+        }
+        if (data) {
+          setState(s => (s.pause ? s : { ...s, pause: true }))
+        } else if (Date.now() < steppingUntil.current) {
+          // mid-step: mpv doesn't always emit the matching pause=true in time, so a
+          // timer alone still lets the button blink. Ignore it; the resync below
+          // restores the truth once stepping stops.
+        } else {
+          unpauseTimer.current = setTimeout(() => {
+            unpauseTimer.current = null
+            setState(s => (s.pause ? { ...s, pause: false } : s))
+          }, 120)
+        }
+        return
+      }
       setState(s => {
         switch (name) {
-          case 'pause':
-            return { ...s, pause: Boolean(data) }
           case 'time-pos':
             // any playback position means media is loaded (robust against
             // missing the one-shot path/filename event on late subscribe)
@@ -146,6 +173,15 @@ export function usePlayer() {
     })
   }, [])
 
+  // don't leave a deferred unpause pending after teardown
+  useEffect(
+    () => () => {
+      if (unpauseTimer.current) clearTimeout(unpauseTimer.current)
+      if (resyncTimer.current) clearTimeout(resyncTimer.current)
+    },
+    []
+  )
+
   // The active audio track's commercial format (Atmos / DTS:X …) + native channel
   // count are resolved in main and pushed here; the OSC badge reads them. This is
   // the authoritative channel source for the badge (fires on every track switch,
@@ -196,8 +232,18 @@ export function usePlayer() {
     togglePause: () => window.mmp.command(['cycle', 'pause']),
     seekTo: (sec: number) => window.mmp.command(['seek', sec, 'absolute']),
     seekBy: (d: number) => window.mmp.command(['seek', d, 'relative']),
-    frameStep: (forward: boolean) =>
-      window.mmp.command([forward ? 'frame-step' : 'frame-back-step']),
+    frameStep: (forward: boolean) => {
+      // hold the "paused" icon steady across the step (frame-step briefly unpauses),
+      // and re-read the real state shortly after the last one
+      steppingUntil.current = Date.now() + 260
+      if (resyncTimer.current) clearTimeout(resyncTimer.current)
+      resyncTimer.current = setTimeout(async () => {
+        resyncTimer.current = null
+        const paused = await window.mmp.command(['get_property', 'pause'])
+        setState(s => (s.pause === Boolean(paused) ? s : { ...s, pause: Boolean(paused) }))
+      }, 300)
+      window.mmp.command([forward ? 'frame-step' : 'frame-back-step'])
+    },
     setVolume: (v: number) => {
       const vol = Math.max(0, Math.min(150, Math.round(v)))
       window.mmp.set('volume', vol)
