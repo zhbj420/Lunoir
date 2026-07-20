@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { LANG_OPTIONS, type LangSetting } from '@shared/i18n'
 
 // Mirrors main/settings.ts (the renderer defines its own view of shared shapes,
-// like the other components here).
+// like the other components here). uiLanguage is the exception — its type comes
+// from src/shared, which both sides can import.
 interface Settings {
+  uiLanguage: LangSetting
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
   resumePlaylistItem: boolean
@@ -306,6 +309,18 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
 
       {s && (
         <div className="panel-body settings-body">
+          <div className="set-sec">Interface</div>
+          <Row
+            label="Interface language"
+            desc="The language Lunoir's own menus and settings are written in. Not the same as the preferred audio / subtitle languages below — those pick tracks inside the video."
+          >
+            <Select
+              value={s.uiLanguage}
+              options={LANG_OPTIONS}
+              onChange={v => set('uiLanguage', v as Settings['uiLanguage'])}
+            />
+          </Row>
+
           <div className="set-sec">Playlist</div>
           <Row label="Scan folder into playlist" desc="When you open a file, also queue the other videos in its folder.">
             <Toggle on={s.scanFolderIntoPlaylist} onChange={v => set('scanFolderIntoPlaylist', v)} />

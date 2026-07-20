@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react'
 import logoUrl from '../assets/logo.png'
 import wordmarkUrl from '../assets/Lunoir.png'
+import { useT } from '../useT'
 
 export default function EmptyState({ onOpen }: { onOpen: () => void }) {
+  const t = useT()
   const [urlInput, setUrlInput] = useState(false)
   const [url, setUrl] = useState('')
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -37,7 +39,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
         aria-label="Lunoir"
         style={{ WebkitMaskImage: `url(${wordmarkUrl})`, maskImage: `url(${wordmarkUrl})` }}
       />
-      <div className="brand-tagline">Drop a video anywhere to play</div>
+      <div className="brand-tagline">{t('empty.tagline')}</div>
 
       {urlInput ? (
         <div
@@ -51,7 +53,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
             className="url-input"
             autoFocus
             spellCheck={false}
-            placeholder="Paste a video or stream URL…"
+            placeholder={t('empty.urlPlaceholder')}
             value={url}
             onChange={e => setUrl(e.target.value)}
             onKeyDown={e => {
@@ -59,7 +61,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
               else if (e.key === 'Escape') setUrlInput(false)
             }}
           />
-          <button className="url-go" onClick={submitUrl} title="Play">
+          <button className="url-go" onClick={submitUrl} title={t('empty.urlPlay')}>
             <svg width="16" height="16" viewBox="0 0 24 24">
               <path d="M8 5 L18 12 L8 19 Z" fill="currentColor" />
             </svg>
@@ -79,16 +81,16 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
             </svg>
-            Open File
+            {t('empty.openFile')}
           </button>
-          <div className="cta-hint">Double-click to open a folder · right-click for a URL</div>
+          <div className="cta-hint">{t('empty.hint')}</div>
         </div>
       )}
 
       {/* settings reachable before any media plays (the OSC gear is hidden then) */}
       <button
         className="settings-entry"
-        title="Settings"
+        title={t('common.settings')}
         onClick={() => window.mmp.togglePanel('settings')}
       >
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">

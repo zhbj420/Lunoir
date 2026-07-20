@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import type { LangSetting } from '@shared/i18n'
 
 // Persisted user settings (the IPC contract). main/settings.ts imports this type.
 export type Hwdec = 'auto' | 'auto-copy' | 'no'
@@ -7,6 +8,7 @@ export type ScreenshotFormat = 'png' | 'jpg'
 /** How the OSC prints position/duration. Click the readout to cycle. */
 export type TimeFormat = 'time' | 'timecode' | 'frame'
 export interface Settings {
+  uiLanguage: LangSetting // interface language; 'system' follows the OS locale
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
   resumePlaylistItem: boolean // reopening a playlist link jumps back to the last video watched
@@ -153,6 +155,8 @@ const api = {
     subscribe('app:focus', (focused: boolean) => cb(focused)),
   onFullscreen: (cb: (fs: boolean) => void): Unsubscribe =>
     subscribe('win:fullscreen', (fs: boolean) => cb(fs)),
+  onMaximized: (cb: (max: boolean) => void): Unsubscribe =>
+    subscribe('win:maximized', (max: boolean) => cb(max)),
 
   // --- playlist ---
   getPlaylist: (): Promise<Playlist> => ipcRenderer.invoke('playlist:get'),

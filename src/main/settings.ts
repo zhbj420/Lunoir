@@ -8,6 +8,7 @@ import type { Settings } from '../preload/index'
 export type { Settings }
 
 const DEFAULTS: Settings = {
+  uiLanguage: 'system', // follow the OS locale until the user picks one
   scanFolderIntoPlaylist: false,
   resumePlayback: true,
   resumePlaylistItem: true,

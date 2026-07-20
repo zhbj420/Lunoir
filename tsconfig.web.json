@@ -9,7 +9,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": { "@shared/*": ["src/shared/*"] }
   },
-  "include": ["src/renderer/**/*", "src/preload/index.d.ts"]
+  "include": ["src/renderer/**/*", "src/shared/**/*", "src/preload/index.d.ts"]
 }

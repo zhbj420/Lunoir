@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { PlayerState, TimeFormat, currentFrame as frameOf } from '../usePlayer'
+import { useT } from '../useT'
 
 function fmt(sec: number): string {
   if (!isFinite(sec) || sec < 0) sec = 0
@@ -97,6 +98,7 @@ interface Props {
 }
 
 export default function Controls(props: Props) {
+  const t = useT()
   const { state } = props
   const pct = state.duration > 0 ? (state.timePos / state.duration) * 100 : 0
   const volPct = Math.min(100, (state.volume / 150) * 100)
@@ -139,7 +141,13 @@ export default function Controls(props: Props) {
       {/* Row 1: buttons */}
       <div className="osc-row osc-buttons">
         <div className="grp left">
-          <button className="ib s" onClick={props.onToggleMute} title="Mute">
+          {/* tooltip tracks what the click will do, not the icon: at volume 0
+              but un-muted the glyph reads muted, yet clicking still mutes */}
+          <button
+            className="ib s"
+            onClick={props.onToggleMute}
+            title={state.mute ? t('osc.unmute') : t('osc.mute')}
+          >
             {state.mute || state.volume === 0 ? <IcMute /> : <IcVolume />}
           </button>
           <div className="vol-wrap">
@@ -158,13 +166,17 @@ export default function Controls(props: Props) {
         </div>
 
         <div className="grp center">
-          <button className="ib" onClick={() => props.onSeekBy(-10)} title="Back 10s">
+          <button className="ib" onClick={() => props.onSeekBy(-10)} title={t('osc.back', { n: 10 })}>
             <IcRewind />
           </button>
-          <button className="ib play" onClick={props.onTogglePause} title="Play/Pause">
+          <button
+            className="ib play"
+            onClick={props.onTogglePause}
+            title={state.pause ? t('osc.play') : t('osc.pause')}
+          >
             {state.pause ? <IcPlay /> : <IcPause />}
           </button>
-          <button className="ib" onClick={() => props.onSeekBy(10)} title="Forward 10s">
+          <button className="ib" onClick={() => props.onSeekBy(10)} title={t('osc.forward', { n: 10 })}>
             <IcForward />
           </button>
         </div>
@@ -176,12 +188,16 @@ export default function Controls(props: Props) {
               {audio && <span className="fmt-badge">{audio}</span>}
             </div>
           )}
-          <button className="ib s" title="Settings" onClick={() => window.mmp.togglePanel('settings')}>
+          <button
+            className="ib s"
+            title={t('common.settings')}
+            onClick={() => window.mmp.togglePanel('settings')}
+          >
             <IcGear />
           </button>
           <button
             className={`ib s ${panelOpen ? 'on' : ''}`}
-            title="Playlist"
+            title={t('osc.panel')}
             onClick={() => window.mmp.togglePanel('playlist')}
           >
             <IcList />
@@ -194,7 +210,7 @@ export default function Controls(props: Props) {
         <span
           className="t cur clickable"
           onClick={props.onCycleTimeFormat}
-          title="Click to switch between time, timecode and frame number"
+          title={t('osc.timeFormat')}
         >
           {props.timeFormat === 'timecode'
             ? tcFromFrame(frameOf(state), state.fps)
@@ -228,7 +244,7 @@ export default function Controls(props: Props) {
         <span
           className="t dur clickable"
           onClick={props.onCycleTimeFormat}
-          title="Click to switch between time, timecode and frame number"
+          title={t('osc.timeFormat')}
         >
           {props.timeFormat === 'timecode'
             ? tcFromFrame(state.frameCount || Math.floor(state.duration * state.fps), state.fps)
