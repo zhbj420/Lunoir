@@ -43,8 +43,14 @@ Symptom of a missed glyph: one character in a line renders in a different font
   12.5px, which land on half device pixels). Below 21 device px per em, hanzi
   strokes alias and lines look uneven in any font. English tolerates small/
   fractional sizes; hanzi don't.
-- The stylesheet still has ~30 declarations at 10–13.5px from the English-only
-  era. When translating a surface, bump the ones that now carry Chinese.
+- **The English type scale is LOCKED. Never change a shared size/tracking/
+  line-height declaration to make Chinese bigger — it silently enlarges the
+  English the user already tuned against.** Scope every Chinese bump under
+  `:root[lang^='zh'] .thing { … }` and leave the base rule (= the English value)
+  untouched. The user reads the two languages against each other and *will* catch
+  a drifted English size; I have shipped this regression more than once. When a
+  surface's Chinese needs to be bigger/looser, add a `zh` override, don't edit the
+  base. (Sizes that were only ever English — OSC time, format badges — stay shared.)
 - Chinese `font-weight: 500+` is fine — the bundled subset keeps the variable
   wght axis, so it's real Medium/Bold, not faux.
 - Characters like 可/即/双/开 sitting slightly lower/smaller at their tops is
