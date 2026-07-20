@@ -26,6 +26,45 @@ extraResources:
     to: mediainfo
     filter:
       - '**/*'
+# Registering these only makes Lunoir *appear* in "Open with" and in Windows'
+# Default apps list — Windows hasn't let an installer seize existing defaults since
+# Win8, so nothing is taken over behind the user's back. Portable builds can't
+# register (no installer), but "Open with" still works there via argv.
+fileAssociations:
+  - ext:
+      - mkv
+      - mp4
+      - m4v
+      - mov
+      - avi
+      - wmv
+      - webm
+      - flv
+      - ts
+      - m2ts
+      - mts
+      - mpg
+      - mpeg
+      - vob
+      - rmvb
+      - 3gp
+    name: Video
+    description: Video
+    role: Viewer
+  - ext:
+      - mp3
+      - flac
+      - m4a
+      - aac
+      - wav
+      - ogg
+      - opus
+      - wma
+      - ape
+    name: Audio
+    description: Audio
+    role: Viewer
+
 win:
   target:
     - nsis

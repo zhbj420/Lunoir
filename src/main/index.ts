@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
-import { join, dirname, basename, extname } from 'node:path'
+import { join, dirname, basename, extname, resolve } from 'node:path'
 import { existsSync, readdirSync, readFileSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
 import { spawn, ChildProcess } from 'node:child_process'
 import { pipeline } from 'node:stream/promises'
@@ -1571,7 +1571,10 @@ function startMpv(): void {
     applyScreenshotDir()
     mpv!.setProperty('screenshot-template', '%F_%wH-%wM-%wS')
     applyScreenshotFormat()
-    if (process.env['MMP_OPEN']) {
+    const launchFile = fileFromArgv(process.argv)
+    if (launchFile) {
+      setTimeout(() => openMedia(launchFile), 300)
+    } else if (process.env['MMP_OPEN']) {
       setTimeout(() => openMedia(process.env['MMP_OPEN'] as string), 300)
       if (process.env['MMP_PANEL']) setTimeout(() => win?.webContents.send('ui:panel-toggle', 'playlist'), 900)
       if (process.env['MMP_PAUSE']) setTimeout(() => mpv?.setProperty('pause', true), 1200)
@@ -1830,6 +1833,49 @@ function buildMenu(): void {
     { label: 'View', submenu: [{ role: 'toggleDevTools' }, { role: 'reload' }] }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
+/**
+ * The path Windows hands us when a file is opened with this app.
+ *
+ * Double-clicking a video, "Open with", or dropping a file on the exe all boil
+ * down to the same thing: the shell runs `Lunoir.exe "D:\clip.mkv"`, passing the
+ * path as a plain argument. Skip switches and the app's own path (in dev, argv[1]
+ * is "."), and only accept something that actually exists.
+ */
+function fileFromArgv(argv: string[]): string | null {
+  for (const raw of argv.slice(1)) {
+    if (!raw || raw.startsWith('-')) continue
+    try {
+      const p = resolve(raw)
+      if (p === resolve(app.getAppPath()) || p === resolve(process.execPath)) continue
+      if (existsSync(p)) return p
+    } catch {
+      /* not a path */
+    }
+  }
+  return null
+}
+
+/** Bring the existing window forward — a second launch should feel like a re-focus. */
+function focusMainWindow(): void {
+  if (!win || win.isDestroyed()) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+// One player, one window: opening three files in a row should queue them into the
+// running instance, not spawn three Lunoirs (which would also fight over mpv's
+// fixed IPC pipe name). The second launch hands its argv to the first and exits.
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', (_e, argv) => {
+    const file = fileFromArgv(argv)
+    if (file) openMedia(file)
+    focusMainWindow()
+  })
 }
 
 app.whenReady().then(() => {
