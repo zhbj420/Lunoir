@@ -13,6 +13,7 @@ them at build time from the sources below.
 | [MediaInfo](https://mediaarea.net/en/MediaInfo) | Track metadata (commercial codec names, HDR flavour) | BSD-2-Clause-style | [MediaArea/MediaInfo](https://github.com/MediaArea/MediaInfo) |
 | [Electron](https://www.electronjs.org/) | App shell | MIT | — |
 | [React](https://react.dev/) + [electron-vite](https://electron-vite.org/) | UI framework / build | MIT | — |
+| [Noto Sans SC](https://github.com/notofonts/noto-cjk) | Chinese UI text (a ~25 KB glyph subset, committed as `LunoirSansSC.woff2` and served under that family name) | [SIL OFL 1.1](https://openfontlicense.org/) | Google / Adobe |
 
 The interface is inspired by [IINA](https://iina.io/) (design only — no IINA code
 is used).

@@ -1,3 +1,13 @@
+/* Bundled CJK UI face — a 95-glyph Noto Sans SC subset built by
+   scripts/subset-font.mjs (re-run it when Chinese UI text changes). Variable
+   wght is kept, so 500+ is real Medium. */
+@font-face {
+  font-family: 'Lunoir Sans SC';
+  src: url('./assets/fonts/LunoirSansSC.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: block;
+}
+
 :root {
   /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
      brightness = the gray RGB, transparency = the alpha (lower = more frost). */
@@ -24,22 +34,19 @@
    don't agree — text visibly bobbing up and down. One font per line.
    <html lang> is set by useT.ts, which main.tsx imports in every window. */
 :root[lang^='zh'] {
-  /* Segoe UI first, SimHei behind it: Latin comes from Segoe (SimHei's own Latin
-     glyphs are half-width and ugly), hanzi fall through to SimHei.
-     SimHei for the hanzi is deliberate. YaHei / YaHei UI / STXihei are all hinted
-     hard for 96-DPI ClearType: they snap strokes onto the pixel grid, and a dense
-     character gets moved more than a sparse one, so a line of small hanzi reads as
-     though the glyphs vary in size and height. SimHei is the opposite — it barely
-     hints, which is exactly why it was thought poor on old low-DPI screens and
-     exactly why it's the most even here, on a high-DPI panel with grayscale AA.
-     (Noto Sans SC / Source Han are better still, but don't ship with Windows.)
-     Two fonts per line is fine — the earlier worry that mixing them misaligns the
-     baseline turned out to be wrong; DevTools showed the bad line was a single
-     font all along, and the unevenness was hinting. */
-  --ui-font: 'Segoe UI', 'SimHei', 'Microsoft YaHei UI', sans-serif;
-  /* A touch of tracking, Chinese only — Latin keeps `normal`. Kept small (0.02,
-     not 0.04) because SimHei is already loosely set; more just made the Latin
-     mixed into a Chinese UI look spaced out. */
+  /* Segoe UI first: Latin and the "·" come from Segoe, hanzi fall through to
+     YaHei UI. The font matters less than the size: hanzi only render evenly at
+     >=14px here (21 device px per em on a 150% display). Below that every
+     Windows CJK face degrades, each in its own way — YaHei's hinting shifts
+     dense glyphs, SimHei's unhinted strokes blur across pixel rows — so keep
+     Chinese UI text at 14px or above instead of hunting for a better font. */
+  /* The bundled Noto Sans SC subset takes the hanzi: its ink bottoms vary by
+     only ~0.2-0.3px per 21px em across a line (measured) vs ~0.7-0.8px for
+     YaHei UI / SimHei, so short lines sit visibly flatter. YaHei UI only
+     catches glyphs missing from the subset — if a line renders mixed-font,
+     re-run scripts/subset-font.mjs. */
+  --ui-font: 'Segoe UI', 'Lunoir Sans SC', 'Microsoft YaHei UI', sans-serif;
+  /* A touch of tracking, Chinese only — Latin keeps `normal`. */
   --ui-tracking: 0.02em;
 }
 
@@ -238,11 +245,10 @@ body.fullscreen .titlebar {
 
 .brand-tagline {
   margin-top: 20px;
-  /* Even px only — see the note on --ui-font. At 150% DPI an odd or half px size
-     lands on a half device pixel, and YaHei's hinting then rounds each glyph's
-     strokes independently: same font, same size, yet the characters look like
-     they're bobbing and changing weight. Latin hides it; hanzi don't. */
-  font-size: 12px;
+  /* 14px, not 12 — hanzi need >=21 device px per em to render evenly (see
+     --ui-font). Whole device px only: at 150% DPI, 13px = 19.5 device px lands
+     on a half pixel and every glyph rasterizes at a different phase. */
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.62);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
@@ -268,7 +274,8 @@ body.fullscreen .titlebar {
 }
 
 .cta-hint {
-  font-size: 12px;
+  /* 14px for the same reason as .brand-tagline — 12px hanzi fall apart. */
+  font-size: 14px;
   /* 0.58, not the 0.4 this used to be — at 40% the thin strokes of small hanzi
      antialias down to a very faint grey and the line stops holding together. */
   color: rgba(255, 255, 255, 0.58);

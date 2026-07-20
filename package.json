@@ -13,6 +13,7 @@
   },
   "scripts": {
     "setup": "node scripts/download-mpv.mjs",
+    "subset-font": "node scripts/subset-font.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
@@ -29,6 +30,7 @@
     "electron-vite": "^2.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "subset-font": "^2.5.0",
     "typescript": "^5.7.2",
     "vite": "^5.4.0"
   },
