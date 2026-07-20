@@ -475,8 +475,10 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
   const activeSub = subTracks.find(t => t.id === sid)
   const isImageSub = !!activeSub && IMAGE_SUB_CODECS.has((activeSub.codec || '').toLowerCase())
 
-  // apply + persist for the adjust rows. Size/Brightness take a display % and
-  // convert to the underlying mpv value (sub-scale multiplier / sub-color grey).
+  // Adjust rows are a *live, per-playback* nudge: they set the mpv property and
+  // nothing else, so they reset with the session and never touch the saved defaults
+  // in Settings (which is where the global baseline lives). Size/Brightness take a
+  // display % and convert to the underlying mpv value (sub-scale / sub-color grey).
   const setAudioDelayV = (v: number): void => {
     setAudioDelay(v)
     window.mmp.set('audio-delay', v)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { PlayerState, TimeFormat } from '../usePlayer'
+import { PlayerState, TimeFormat, currentFrame as frameOf } from '../usePlayer'
 
 function fmt(sec: number): string {
   if (!isFinite(sec) || sec < 0) sec = 0
@@ -13,23 +13,19 @@ function fmt(sec: number): string {
 // SMPTE-style HH:MM:SS:FF, non-drop — the frames field is just the sub-second
 // remainder at the container rate. (True drop-frame for 29.97/23.976 renumbers
 // frames and is a rabbit hole a player doesn't need.)
-function fmtTimecode(sec: number, fps: number): string {
-  if (!isFinite(sec) || sec < 0) sec = 0
+// Timecode is derived from the *integer* frame index, never from the float clock:
+// stepping parks time exactly on a frame boundary, where floor(time * fps) flips
+// either way and the frames field stutters. Nominal (rounded) rate, non-drop — so
+// at 23.976 this runs a hair ahead of the wall clock, exactly as non-drop does.
+function tcFromFrame(frame: number, fps: number): string {
+  const rate = Math.max(1, Math.round(fps) || 24)
+  const f = Math.max(0, Math.floor(frame))
   const pad = (n: number) => String(n).padStart(2, '0')
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec / 60) % 60)
-  const s2 = Math.floor(sec % 60)
-  const f = fps > 0 ? Math.floor((sec % 1) * fps) : 0
-  return `${pad(h)}:${pad(m)}:${pad(s2)}:${pad(f)}`
+  const secs = Math.floor(f / rate)
+  return `${pad(Math.floor(secs / 3600))}:${pad(Math.floor((secs / 60) % 60))}:${pad(secs % 60)}:${pad(f % rate)}`
 }
 
-// Frame index at the container rate. Derived from time rather than observed, since
-// mpv's estimated-frame-number ticks every single frame (far too chatty over IPC).
-// Exact for constant-rate sources; an estimate for VFR ones.
-function frameAt(sec: number, fps: number): number {
-  if (!isFinite(sec) || sec < 0 || fps <= 0) return 0
-  return Math.floor(sec * fps)
-}
+
 
 // The HDR badge. MediaInfo's flavour (Dolby Vision / HDR10+ / HDR10) is the
 // precise source — mpv can't tell DV from HDR10 (both are PQ). Fall back to the
@@ -201,9 +197,9 @@ export default function Controls(props: Props) {
           title="Click to switch between time, timecode and frame number"
         >
           {props.timeFormat === 'timecode'
-            ? fmtTimecode(state.timePos, state.fps)
+            ? tcFromFrame(frameOf(state), state.fps)
             : props.timeFormat === 'frame'
-              ? frameAt(state.timePos, state.fps).toLocaleString()
+              ? String(frameOf(state))
               : fmt(state.timePos)}
         </span>
         <div className="seek-wrap">
@@ -235,9 +231,9 @@ export default function Controls(props: Props) {
           title="Click to switch between time, timecode and frame number"
         >
           {props.timeFormat === 'timecode'
-            ? fmtTimecode(state.duration, state.fps)
+            ? tcFromFrame(state.frameCount || Math.floor(state.duration * state.fps), state.fps)
             : props.timeFormat === 'frame'
-              ? (state.frameCount || frameAt(state.duration, state.fps)).toLocaleString()
+              ? String(state.frameCount || Math.floor(state.duration * state.fps) || 0)
               : fmt(state.duration)}
         </span>
       </div>

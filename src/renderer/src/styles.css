@@ -1675,6 +1675,43 @@ body.panel-win.panel-shown .panel.left > * {
   font-size: 12.5px;
 }
 
+/* Always-on timecode + frame burn-in, top-left of the picture (below the title
+   strip). Monospace and tabular so the digits don't jitter as they count. Sits
+   above the video but below the panels; pointer-events off so it never eats a
+   click meant for the video. */
+.tc-burn {
+  position: absolute;
+  top: 44px;
+  left: 14px;
+  z-index: 18;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 11px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: 'Cascadia Mono', Consolas, 'SF Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  pointer-events: none;
+  user-select: none;
+}
+
+body.fullscreen .tc-burn {
+  top: 14px; /* no title strip in fullscreen */
+}
+
+.tc-main {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.02em;
+}
+
+.tc-frame {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 /* transient confirmation (e.g. "Screenshot saved") */
 .toast {
   position: absolute;

@@ -33,8 +33,12 @@ const OBSERVED = [
   'sub-pos',
   'sub-scale',
   'container-fps', // frame rate → timecode / frame-number readout
-  'estimated-frame-count', // total frames; the *current* frame is derived from
-  // time-pos rather than observed, since estimated-frame-number ticks every frame
+  'estimated-frame-count',
+  // mpv's own integer frame counter. Deriving it from time-pos instead looks
+  // cheaper (this ticks every frame) but is wrong: frame-stepping parks the clock
+  // exactly on a frame boundary, where floor(time * fps) lands on either side and
+  // the number jumps by 2 or sticks. Let mpv count.
+  'estimated-frame-number',
   'video-params/gamma', // transfer fn: 'pq'/'hlg' → HDR badge
   'video-params/h', // decoded height → resolution badge (useful for streams)
   'audio-codec-name', // e.g. 'eac3', 'truehd', 'dts' → audio format badge

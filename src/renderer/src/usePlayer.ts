@@ -25,10 +25,20 @@ function pickTitle(
  *  Mirrors the preload's TimeFormat; the renderer can't import from preload. */
 export type TimeFormat = 'time' | 'timecode' | 'frame'
 
+/** mpv's own count when we have it, else derived from the clock. Stepping parks
+ *  time on a frame boundary where floor(time * fps) is ambiguous, so mpv's integer
+ *  is always preferred. */
+export function currentFrame(s: PlayerState): number {
+  if (s.frameNumber > 0) return s.frameNumber
+  if (s.fps > 0 && isFinite(s.timePos) && s.timePos > 0) return Math.floor(s.timePos * s.fps)
+  return 0
+}
+
 export interface PlayerState {
   pause: boolean
   fps: number // container frame rate (0 = unknown) → timecode / frame readout
   frameCount: number
+  frameNumber: number // mpv's exact current frame (authoritative when stepping)
   timePos: number
   duration: number
   volume: number
@@ -55,6 +65,7 @@ const initial: PlayerState = {
   pause: true,
   fps: 0,
   frameCount: 0,
+  frameNumber: 0,
   timePos: 0,
   duration: 0,
   volume: 100,
@@ -131,6 +142,8 @@ export function usePlayer() {
             return { ...s, mute: Boolean(data) }
           case 'container-fps':
             return { ...s, fps: typeof data === 'number' && data > 0 ? data : 0 }
+          case 'estimated-frame-number':
+            return { ...s, frameNumber: typeof data === 'number' && data >= 0 ? Math.round(data) : s.frameNumber }
           case 'estimated-frame-count':
             return { ...s, frameCount: typeof data === 'number' && data > 0 ? Math.round(data) : 0 }
           case 'speed':

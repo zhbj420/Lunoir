@@ -12,6 +12,12 @@ interface Settings {
   subLang: string
   subsDefaultOn: boolean
   autoLoadSubs: boolean
+  subFont: string
+  subFontSize: number
+  subSpacing: number
+  subBold: boolean
+  subOutline: number
+  subMarginY: number
   audioPassthrough: boolean
   passthroughCodecs: string
   oscHideDelay: number
@@ -21,6 +27,7 @@ interface Settings {
   useCookies: boolean
   cookiesBrowser: string
   timeFormat: 'time' | 'timecode' | 'frame'
+  timecodeOverlay: boolean
   screenshotSubs: boolean
   screenshotFormat: 'png' | 'jpg'
   screenshotDir: string
@@ -51,6 +58,20 @@ const QUALITY_OPTS: Opt[] = [
   { value: '720', label: '720p' },
   { value: '480', label: '480p' }
 ]
+// Subtitle faces. mpv's own default ('sans-serif') resolves to whatever the system
+// picks, which on Japanese releases often lacks Simplified-only glyphs (们/吗) and
+// substitutes just those characters — visibly clashing mid-line.
+const SUB_FONT_OPTS: Opt[] = [
+  { value: 'Microsoft YaHei', label: '微软雅黑 (Microsoft YaHei)' },
+  { value: 'Microsoft JhengHei', label: '微軟正黑體 (JhengHei)' },
+  { value: 'SimHei', label: '黑体 (SimHei)' },
+  { value: 'Source Han Sans SC', label: '思源黑体 (Source Han Sans)' },
+  { value: 'Noto Sans CJK SC', label: 'Noto Sans CJK' },
+  { value: 'Yu Gothic UI', label: '游ゴシック (Yu Gothic)' },
+  { value: 'Segoe UI', label: 'Segoe UI' },
+  { value: 'sans-serif', label: 'System default (sans-serif)' }
+]
+
 const SCREENSHOT_FMT_OPTS: Opt[] = [
   { value: 'png', label: 'PNG (lossless)' },
   { value: 'jpg', label: 'JPG (high quality)' }
@@ -372,6 +393,76 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
                 onChange={e => set('subHdrPeak', Number(e.target.value))}
               />
               <NumInput value={s.subHdrPeak} min={10} max={10000} onChange={v => set('subHdrPeak', v)} />
+            </div>
+          </Row>
+
+          <div className="set-sec">Subtitle appearance</div>
+          <Row
+            label="Font"
+            desc="Applies to text subtitles (SRT/ASS without their own styling). Pick a face that fully covers your subtitle language — a font missing a few glyphs makes those characters fall back to another face mid-sentence."
+          >
+            <Select value={s.subFont} options={SUB_FONT_OPTS} onChange={v => set('subFont', v)} />
+          </Row>
+          <Row label="Font size">
+            <div className="set-slider">
+              <input
+                type="range"
+                className="set-range"
+                min={20}
+                max={80}
+                step={1}
+                value={Math.min(80, Math.max(20, s.subFontSize))}
+                onChange={e => set('subFontSize', Number(e.target.value))}
+              />
+              <NumInput value={s.subFontSize} min={10} max={200} onChange={v => set('subFontSize', v)} />
+            </div>
+          </Row>
+          <Row label="Letter spacing" desc="Extra space between characters.">
+            <div className="set-slider">
+              <input
+                type="range"
+                className="set-range"
+                min={-3}
+                max={10}
+                step={0.5}
+                value={Math.min(10, Math.max(-3, s.subSpacing))}
+                onChange={e => set('subSpacing', Number(e.target.value))}
+              />
+              <NumInput value={s.subSpacing} min={-10} max={10} onChange={v => set('subSpacing', v)} />
+            </div>
+          </Row>
+          <Row label="Outline" desc="Thickness of the dark border that keeps text readable over bright scenes.">
+            <div className="set-slider">
+              <input
+                type="range"
+                className="set-range"
+                min={0}
+                max={10}
+                step={0.5}
+                value={Math.min(10, Math.max(0, s.subOutline))}
+                onChange={e => set('subOutline', Number(e.target.value))}
+              />
+              <NumInput value={s.subOutline} min={0} max={20} onChange={v => set('subOutline', v)} />
+            </div>
+          </Row>
+          <Row label="Bold">
+            <Toggle on={s.subBold} onChange={v => set('subBold', v)} />
+          </Row>
+          <Row
+            label="Distance from bottom"
+            desc="Resting position. The right panel's Adjust ▸ subtitle position nudges the current video on top of this, without changing the default."
+          >
+            <div className="set-slider">
+              <input
+                type="range"
+                className="set-range"
+                min={0}
+                max={200}
+                step={2}
+                value={Math.min(200, Math.max(0, s.subMarginY))}
+                onChange={e => set('subMarginY', Number(e.target.value))}
+              />
+              <NumInput value={s.subMarginY} min={0} max={400} onChange={v => set('subMarginY', v)} />
             </div>
           </Row>
 

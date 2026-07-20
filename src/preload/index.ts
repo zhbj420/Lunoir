@@ -15,6 +15,12 @@ export interface Settings {
   subLang: string
   subsDefaultOn: boolean
   autoLoadSubs: boolean // auto-load matching external subtitle files (mpv sub-auto)
+  subFont: string // mpv sub-font. '' = mpv's own 'sans-serif' default
+  subFontSize: number // mpv sub-font-size
+  subSpacing: number // mpv sub-spacing, -10..10
+  subBold: boolean
+  subOutline: number // mpv sub-outline-size
+  subMarginY: number // mpv sub-margin-y — resting distance from the bottom edge
   audioPassthrough: boolean // bitstream compressed audio to an external receiver (mpv audio-spdif)
   passthroughCodecs: string // which formats to passthrough (comma list: ac3,eac3,truehd,dts,dts-hd)
   oscHideDelay: number // seconds the OSC stays before auto-hiding
@@ -24,6 +30,7 @@ export interface Settings {
   useCookies: boolean // read browser cookies for member/age-restricted/Premium content
   cookiesBrowser: string // which browser to read cookies from (yt-dlp cookies-from-browser)
   timeFormat: TimeFormat // OSC readout: 36:16 | 00:36:16:07 | frame 52831
+  timecodeOverlay: boolean // always-on timecode + frame burn-in in the video corner
   screenshotSubs: boolean
   screenshotFormat: ScreenshotFormat // PNG (lossless) or JPG (high-quality, smaller)
   screenshotDir: string // where screenshots are saved ('' = Pictures/Lunoir default)

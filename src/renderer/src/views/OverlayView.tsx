@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { usePlayer } from '../usePlayer'
+import { usePlayer, currentFrame } from '../usePlayer'
 import { useShortcuts } from '../useShortcuts'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
@@ -18,6 +18,21 @@ function cleanBaseName(fileName: string): string {
   n = n.replace(/[.\s_-]+$/, '') // trim trailing separators
   if (n.length > 50) n = n.slice(0, 50).replace(/[.\s_-]+$/, '') // hard backstop
   return n.replace(/%/g, '') // % starts a specifier in mpv's template
+}
+
+// Burn-in formatting — same maths as the OSC readout (non-drop HH:MM:SS:FF, frame
+// index derived from time x container fps).
+function fmtTc(frame: number, fps: number): string {
+  const rate = Math.max(1, Math.round(fps) || 24)
+  const f = Math.max(0, Math.floor(frame))
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  const secs = Math.floor(f / rate)
+  return [
+    pad(Math.floor(secs / 3600)),
+    pad(Math.floor((secs / 60) % 60)),
+    pad(secs % 60),
+    pad(f % rate)
+  ].join(':')
 }
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -89,8 +104,14 @@ export default function OverlayView() {
   // track the screenshot-subtitles setting (the menu's Screenshot uses it); relay
   // toasts pushed from main (e.g. "Resumed from …")
   useEffect(() => {
-    window.mmp.getSettings().then(s => setScreenshotSubs(s.screenshotSubs))
-    const offS = window.mmp.onSettingsChanged(s => setScreenshotSubs(s.screenshotSubs))
+    window.mmp.getSettings().then(s => {
+      setScreenshotSubs(s.screenshotSubs)
+      setTcOverlay(s.timecodeOverlay)
+    })
+    const offS = window.mmp.onSettingsChanged(s => {
+      setScreenshotSubs(s.screenshotSubs)
+      setTcOverlay(s.timecodeOverlay)
+    })
     const offT = window.mmp.onToast(showToast)
     const offL = window.mmp.onLoading(setLoading)
     return () => {
@@ -166,6 +187,7 @@ export default function OverlayView() {
 
   // the menu window hides the OSC, which would drop us into .ui-hidden (cursor:none)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [tcOverlay, setTcOverlay] = useState(false)
   useEffect(() => window.mmp.onMenuState(setMenuOpen), [])
 
   // a click in the menu window comes back here as an id → run that item's handler
@@ -256,6 +278,11 @@ export default function OverlayView() {
     { label: abLabel, checked: p.state.abLoopA != null && p.state.abLoopB != null, onClick: () => window.mmp.command(['ab-loop']) },
     { sep: true },
     { label: 'Screenshot', onClick: () => screenshot(!screenshotSubs) },
+    {
+      label: 'Timecode overlay',
+      checked: tcOverlay,
+      onClick: () => window.mmp.setSetting('timecodeOverlay', !tcOverlay)
+    },
     { sep: true },
     { label: 'Open file…', onClick: p.openFile },
     { label: 'Open URL…', onClick: () => { setUrlText(''); setUrlOpen(true) } },
@@ -326,6 +353,16 @@ export default function OverlayView() {
           the bare window + spinner, exactly like loading a single video; if it
           fails, end-file clears loading and the home screen comes back */}
       {!p.state.hasMedia && !loading && <EmptyState onOpen={p.openFile} />}
+
+      {/* Always-on timecode + frame burn-in. Deliberately independent of the OSC's
+          readout: the OSC auto-hides, and staring at frames is exactly when you
+          need the numbers to stay put. */}
+      {tcOverlay && p.state.hasMedia && (
+        <div className="tc-burn">
+          <span className="tc-main">{fmtTc(currentFrame(p.state), p.state.fps)}</span>
+          <span className="tc-frame">{currentFrame(p.state)}</span>
+        </div>
+      )}
 
       {loading && (
         <div className="loading-overlay">

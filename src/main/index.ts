@@ -1368,6 +1368,19 @@ function createWindows(): void {
   })
 }
 
+// fontconfig accepts a comma-separated family list and takes the first one that's
+// actually installed, so append a known-good CJK face. Without it, picking a font
+// the machine doesn't have (Source Han on a stock Windows, say) drops to whatever
+// the system feels like — often something missing Simplified-only glyphs, which is
+// the very problem the setting exists to fix.
+const SUB_FONT_FALLBACK = 'Microsoft YaHei'
+
+function subFontChain(font: string): string {
+  const f = font.trim()
+  if (!f || f === 'sans-serif') return 'sans-serif'
+  return f === SUB_FONT_FALLBACK ? f : `${f},${SUB_FONT_FALLBACK}`
+}
+
 /** Push settings mpv cares about: hwdec, preferred track languages, sub visibility. */
 function applyMpvSettings(): void {
   if (!mpv) return
@@ -1377,6 +1390,17 @@ function applyMpvSettings(): void {
   mpv.setProperty('slang', s.subLang)
   mpv.setProperty('sub-visibility', s.subsDefaultOn)
   mpv.setProperty('sub-auto', s.autoLoadSubs ? 'fuzzy' : 'no') // auto-pick external subs
+  // SRT carries no styling, so the font is entirely ours to pick. mpv's default
+  // 'sans-serif' resolves to whatever the system fancies, which on a Japanese
+  // release often lacks Simplified-only glyphs (们/吗) — libass then substitutes
+  // just those characters and they visibly clash with the rest of the line.
+  if (s.subFont) mpv.setProperty('sub-font', subFontChain(s.subFont))
+  if (s.subFontSize > 0) mpv.setProperty('sub-font-size', s.subFontSize)
+  mpv.setProperty('sub-spacing', s.subSpacing)
+  mpv.setProperty('sub-bold', s.subBold)
+  mpv.setProperty('sub-outline-size', s.subOutline)
+  // resting position; the right panel's Adjust nudges sub-pos on top of this
+  mpv.setProperty('sub-margin-y', s.subMarginY)
   // HDR subtitle brightness (nits); ignored for SDR. Two separate mpv props:
   // sub-hdr-peak = text subs (libass SRT/ASS), image-subs-hdr-peak = bitmap subs
   // (PGS/VOBSUB, what most UHD Blu-ray rips carry — its default 1000 nits is harsh).
@@ -1565,7 +1589,19 @@ function registerIpc(): void {
   // a null result the same as an empty/missing value, so no need to surface these.
   ipcMain.handle('mpv:command', async (_e, cmd: any[]) => {
     try {
-      return await mpv?.command(cmd)
+      const res = await mpv?.command(cmd)
+      // A paused mpv doesn't reliably push estimated-frame-number while stepping, so
+      // whoever asked for the step would be the only one to learn the new value —
+      // leaving the other windows' readouts stale (the OSC stepped cleanly while the
+      // burn-in in the main window drifted). Pull it once here and broadcast, so
+      // every window updates through the normal property path.
+      if (Array.isArray(cmd) && (cmd[0] === 'frame-step' || cmd[0] === 'frame-back-step')) {
+        const f = await mpv?.command(['get_property', 'estimated-frame-number'])
+        if (typeof f === 'number' && f >= 0) {
+          broadcast('mpv:property', { name: 'estimated-frame-number', data: Math.round(f) })
+        }
+      }
+      return res
     } catch {
       return null
     }
@@ -1725,6 +1761,12 @@ function registerIpc(): void {
       else if (key === 'subLang') mpv.setProperty('slang', value)
       else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)
       else if (key === 'autoLoadSubs') mpv.setProperty('sub-auto', value ? 'fuzzy' : 'no')
+      else if (key === 'subFont') mpv.setProperty('sub-font', subFontChain(String(value)))
+      else if (key === 'subFontSize') mpv.setProperty('sub-font-size', value)
+      else if (key === 'subSpacing') mpv.setProperty('sub-spacing', value)
+      else if (key === 'subBold') mpv.setProperty('sub-bold', value)
+      else if (key === 'subOutline') mpv.setProperty('sub-outline-size', value)
+      else if (key === 'subMarginY') mpv.setProperty('sub-margin-y', value)
       else if (key === 'subHdrPeak') {
         mpv.setProperty('sub-hdr-peak', value)
         mpv.setProperty('image-subs-hdr-peak', value) // bitmap subs (PGS) — see applyMpvSettings
