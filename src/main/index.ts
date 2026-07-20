@@ -49,6 +49,25 @@ let leftPanelOpen = false // left (settings) panel open
 // side panels as real acrylic child windows (like the OSC), so they frost the video
 let rightPanelWin: BrowserWindow | null = null
 let leftPanelWin: BrowserWindow | null = null
+
+// Context menu: its own acrylic window so it frosts the video like the OSC/panels
+// (a DOM menu can only paint a flat scrim — it can't reach mpv's surface). The
+// renderer measures its own content and reports the size, since the accordion
+// submenus change height; we only place/reveal the window once a size arrives.
+let menuWin: BrowserWindow | null = null
+let menuAnchor: { x: number; y: number } | null = null // screen coords of the click
+let menuShown = false
+let menuOrigin: { x: number; y: number } | null = null // where we actually placed it
+let menuAnim: ReturnType<typeof setInterval> | null = null
+// Accordion timing (easeOutQuad throughout — see animateMenuTo). Expanding is a
+// single motion: the window grows over MENU_GROW_MS. Collapsing is two halves that
+// must *feel* like one motion of the same length, so the renderer's fold matches
+// MENU_GROW_MS exactly, and the window shrink runs shorter so it always leads the
+// fold — a window taller than its content uncovers stale pixels (a ghost).
+const MENU_GROW_MS = 220 // window grows
+const MENU_UNFOLD_MS = MENU_GROW_MS // content unfolds in lockstep with it
+const MENU_FOLD_MS = MENU_GROW_MS // content folds; perceived length matches expanding
+const MENU_SHRINK_MS = MENU_FOLD_MS - 50 // window shrinks *ahead* of the fold
 let rightPanelAnim: NodeJS.Timeout | null = null
 let leftPanelAnim: NodeJS.Timeout | null = null
 let hideTimer: NodeJS.Timeout | null = null
@@ -662,7 +681,7 @@ function loadRenderer(w: BrowserWindow, query = ''): void {
 }
 
 function broadcast(channel: string, ...args: unknown[]): void {
-  for (const w of [win, oscWin, rightPanelWin, leftPanelWin]) {
+  for (const w of [win, oscWin, rightPanelWin, leftPanelWin, menuWin]) {
     if (w && !w.isDestroyed()) w.webContents.send(channel, ...args)
   }
 }
@@ -1118,6 +1137,120 @@ function makePanelWindow(kind: 'playlist' | 'settings'): BrowserWindow {
   return pw
 }
 
+/** Acrylic context-menu window (`?win=menu`). Focusable both because DWM only
+ *  frosts focusable windows and because we use its blur as "clicked outside". */
+function makeMenuWindow(): BrowserWindow {
+  const mw = new BrowserWindow({
+    width: 240,
+    height: 320, // placeholders; real bounds arrive with the renderer's measured size
+    frame: false,
+    transparent: false,
+    backgroundMaterial: 'acrylic',
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    focusable: true,
+    hasShadow: false,
+    parent: win!,
+    show: false,
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+  })
+  loadRenderer(mw, 'win=menu')
+  mw.webContents.once('did-finish-load', () => {
+    if (mw.isDestroyed()) return
+    removeBorderLine(mw)
+    // pre-warm like the panels so the first open doesn't play Windows' zoom-in
+    setWinOpacity(mw, 0)
+    mw.setIgnoreMouseEvents(true)
+    mw.showInactive()
+  })
+  mw.on('blur', () => hideMenu()) // clicking anywhere else dismisses
+  mw.on('closed', () => {
+    menuWin = null
+  })
+  return mw
+}
+
+/**
+ * Put the menu at the click. The corner is chosen ONCE, on the first size — later
+ * sizes (a submenu accordion opening) keep that same origin and are only nudged if
+ * growth would run off-screen. Re-deciding the flip on every resize made the whole
+ * menu jump around as you expanded a submenu.
+ */
+function placeMenu(w: number, h: number): void {
+  if (!menuWin || menuWin.isDestroyed() || !menuAnchor) return
+  const area = screen.getDisplayNearestPoint(menuAnchor).workArea
+  if (!menuOrigin) {
+    let x = menuAnchor.x
+    let y = menuAnchor.y
+    if (x + w > area.x + area.width) x = menuAnchor.x - w // flip left of the cursor
+    if (y + h > area.y + area.height) y = menuAnchor.y - h // flip above it
+    menuOrigin = { x, y }
+  }
+  // keep the chosen corner; only slide back in when the grown menu would overflow
+  const x = Math.max(area.x, Math.min(menuOrigin.x, area.x + area.width - w))
+  const y = Math.max(area.y, Math.min(menuOrigin.y, area.y + area.height - h))
+  menuWin.setBounds({ x: Math.round(x), y: Math.round(y), width: w, height: h })
+}
+
+/**
+ * Grow the menu to a new size with an ease-out settle (accordion expanding).
+ * Only bounds are animated — that's safe for the acrylic, unlike opacity (see
+ * setWinOpacity). Collapsing snaps instead: the renderer has already dropped those
+ * rows, so easing the window down would just trail an empty frosted strip.
+ */
+function animateMenuTo(w: number, h: number, allowShrink = false, onDone?: () => void): void {
+  if (!menuWin || menuWin.isDestroyed()) return
+  if (menuAnim) {
+    clearInterval(menuAnim)
+    menuAnim = null
+  }
+  const from = menuWin.getBounds().height
+  if (h <= from && !allowShrink) {
+    placeMenu(w, h)
+    return
+  }
+  const dur = allowShrink ? MENU_SHRINK_MS : MENU_GROW_MS
+  const t0 = Date.now()
+  menuAnim = setInterval(() => {
+    if (!menuWin || menuWin.isDestroyed() || !menuShown) {
+      if (menuAnim) clearInterval(menuAnim)
+      menuAnim = null
+      return
+    }
+    const p = Math.min(1, (Date.now() - t0) / dur)
+    // easeOutQuad, not Cubic: cubic front-loads ~70% of the distance into the first
+    // third of the time, so the long tail reads as a *second*, slower move rather
+    // than one gesture. Quad still settles softly but stays much more even.
+    const e = 1 - Math.pow(1 - p, 2)
+    placeMenu(w, Math.round(from + (h - from) * e))
+    if (p >= 1) {
+      clearInterval(menuAnim!)
+      menuAnim = null
+      onDone?.()
+    }
+  }, 16)
+}
+
+function hideMenu(): void {
+  if (!menuShown) return
+  menuShown = false
+  menuAnchor = null
+  menuOrigin = null
+  if (menuAnim) {
+    clearInterval(menuAnim)
+    menuAnim = null
+  }
+  menuOpen = false
+  broadcast('ui:menu', false)
+  if (menuWin && !menuWin.isDestroyed()) {
+    setWinOpacity(menuWin, 0)
+    menuWin.setIgnoreMouseEvents(true)
+  }
+}
+
 function createWindows(): void {
   const settings = getSettings()
   const saved = settings.rememberWindow ? settings.windowBounds : null
@@ -1176,6 +1309,7 @@ function createWindows(): void {
   // button press. The taskbar problem that bounce originally guarded against is
   // now handled by borderless fullscreen + always-on-top (see toggleFullscreen).
 
+  menuWin = makeMenuWindow()
   rightPanelWin = makePanelWindow('playlist')
   leftPanelWin = makePanelWindow('settings')
 
@@ -1203,7 +1337,7 @@ function createWindows(): void {
     )
     syncFsTopmost()
   }
-  for (const w of [win, oscWin, rightPanelWin, leftPanelWin]) {
+  for (const w of [win, oscWin, rightPanelWin, leftPanelWin, menuWin]) {
     if (!w) continue
     w.on('focus', updateFocus)
     w.on('blur', () => setTimeout(updateFocus, 30))
@@ -1455,6 +1589,55 @@ function registerIpc(): void {
       animateOsc(false)
     }
   })
+  // Context menu, in its own acrylic window. The renderer measures its own content
+  // (the accordion submenus change height), so we place + reveal only once a size
+  // has arrived — that way the window never flashes at the wrong size.
+  ipcMain.on('menu:open', (_e, x: number, y: number, items: unknown) => {
+    if (!menuWin || menuWin.isDestroyed()) return
+    menuAnchor = { x: Math.round(x), y: Math.round(y) }
+    menuOrigin = null // fresh open → pick the corner again
+    menuShown = true
+    menuOpen = true
+    // right-click dismisses the OSC, same as the old in-DOM menu did
+    if (hideTimer) {
+      clearTimeout(hideTimer)
+      hideTimer = null
+    }
+    broadcast('ui:hide')
+    animateOsc(false)
+    broadcast('ui:menu', true) // main window keeps the pointer visible while we're up
+    // the menu window is a dumb renderer: it draws these items and reports the size
+    // it wants. Actions stay in the main window — it sends back only the item id.
+    menuWin.webContents.send('menu:show', items, MENU_FOLD_MS, MENU_UNFOLD_MS)
+  })
+  // a leaf item was clicked: dismiss, then let the main window run its handler
+  ipcMain.on('menu:invoke', (_e, id: string) => {
+    hideMenu()
+    if (win && !win.isDestroyed()) win.webContents.send('menu:invoke', id)
+  })
+  ipcMain.on('menu:size', (_e, w: number, h: number) => {
+    if (!menuWin || menuWin.isDestroyed() || !menuShown) return
+    const firstSize = menuWin.getOpacity() < 1
+    const tw = Math.max(1, Math.round(w))
+    const th = Math.max(1, Math.round(h))
+    if (firstSize) placeMenu(tw, th) // opening: snap, there's nothing to grow from
+    else animateMenuTo(tw, th) // accordion: ease it open
+    if (firstSize) {
+      menuWin.setIgnoreMouseEvents(false)
+      setWinOpacity(menuWin, 1)
+      menuWin.focus() // focused → DWM keeps it frosted, and gives us blur-to-dismiss
+    }
+  })
+  // coordinated collapse: the renderer folds the submenu group to 0 over the same
+  // duration while we ease the window down, then we tell it the rows can go
+  ipcMain.on('menu:collapse', (_e, w: number, h: number) => {
+    if (!menuWin || menuWin.isDestroyed() || !menuShown) return
+    animateMenuTo(Math.max(1, Math.round(w)), Math.max(1, Math.round(h)), true, () => {
+      if (menuWin && !menuWin.isDestroyed()) menuWin.webContents.send('menu:collapsed')
+    })
+  })
+  ipcMain.on('menu:close', () => hideMenu())
+
   ipcMain.on('ui:osc-hover', (_e, hovering: boolean) => {
     oscHovered = Boolean(hovering)
     if (oscHovered) {

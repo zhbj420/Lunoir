@@ -35,6 +35,18 @@ export interface MpvProperty {
   data: unknown
 }
 
+/** A context-menu node as it crosses IPC to the menu window: data only, no
+ *  handlers. `id` is what comes back on click so the main window can run its own
+ *  onClick for that node. */
+export interface SerializedMenuNode {
+  id?: string
+  label?: string
+  disabled?: boolean
+  checked?: boolean
+  sep?: boolean
+  submenu?: SerializedMenuNode[]
+}
+
 export type RepeatMode = 'off' | 'all' | 'one'
 export interface Playlist {
   items: { path: string; name: string }[]
@@ -99,6 +111,30 @@ const api = {
   activity: (): void => ipcRenderer.send('ui:activity'),
   // context menu open/close — main hides the OSC while it's up (see main)
   setMenuOpen: (open: boolean): void => ipcRenderer.send('ui:menu-open', open),
+  // context menu lives in its own acrylic window: the main window asks main to open
+  // it at a screen point, the menu window reports the size it wants and can close
+  // itself (after a command / Esc). Main places + reveals it once a size arrives.
+  openMenu: (x: number, y: number, items: SerializedMenuNode[]): void =>
+    ipcRenderer.send('menu:open', x, y, items),
+  closeMenu: (): void => ipcRenderer.send('menu:close'),
+  // collapsing a submenu is coordinated: we fold the group while main eases the
+  // window down, and only drop the rows once main says the shrink is done
+  collapseMenu: (w: number, h: number): void => ipcRenderer.send('menu:collapse', w, h),
+  onMenuCollapsed: (cb: () => void): Unsubscribe => subscribe('menu:collapsed', () => cb()),
+  reportMenuSize: (w: number, h: number): void => ipcRenderer.send('menu:size', w, h),
+  onMenuShow: (
+    cb: (items: SerializedMenuNode[], foldMs: number, unfoldMs: number) => void
+  ): Unsubscribe =>
+    subscribe('menu:show', (items: SerializedMenuNode[], foldMs: number, unfoldMs: number) =>
+      cb(items, foldMs, unfoldMs)
+    ),
+  // menu window → main window: run the handler for this item, then it closes
+  invokeMenu: (id: string): void => ipcRenderer.send('menu:invoke', id),
+  // is the menu window up? the main window keeps the cursor visible while it is
+  onMenuState: (cb: (open: boolean) => void): Unsubscribe =>
+    subscribe('ui:menu', (open: boolean) => cb(open)),
+  onMenuInvoke: (cb: (id: string) => void): Unsubscribe =>
+    subscribe('menu:invoke', (id: string) => cb(id)),
   // pointer entered/left the OSC window — main pauses auto-hide while it's over
   setOscHover: (hovering: boolean): void => ipcRenderer.send('ui:osc-hover', hovering),
   onReveal: (cb: () => void): Unsubscribe => subscribe('ui:reveal', () => cb()),

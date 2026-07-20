@@ -11,6 +11,17 @@ export interface MenuNode {
   sep?: boolean
 }
 
+/** A MenuNode as it crosses IPC to the acrylic menu window: data only, no
+ *  handlers. `id` identifies the node so the main window can run its own onClick. */
+export interface SerializedMenuNode {
+  id?: string
+  label?: string
+  disabled?: boolean
+  checked?: boolean
+  sep?: boolean
+  submenu?: SerializedMenuNode[]
+}
+
 // Custom (non-native) context menu so it matches the dark, frameless look instead
 // of a stock Windows menu. Positioned at the cursor, clamped into the viewport;
 // submenus open on hover (mouse) or click (touch) and flip to the left near the

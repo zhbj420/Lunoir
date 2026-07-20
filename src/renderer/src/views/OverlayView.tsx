@@ -3,7 +3,7 @@ import { usePlayer } from '../usePlayer'
 import { useShortcuts } from '../useShortcuts'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
-import ContextMenu, { MenuNode } from '../components/ContextMenu'
+import type { MenuNode, SerializedMenuNode } from '../components/ContextMenu'
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
@@ -21,7 +21,6 @@ const ASPECTS: { key: string; label: string; apply: () => void }[] = [
 export default function OverlayView() {
   const p = usePlayer()
   const [dragging, setDragging] = useState(false)
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [plCount, setPlCount] = useState(0)
   const [hasChapters, setHasChapters] = useState(false)
   const [aspect, setAspect] = useState('default')
@@ -150,10 +149,13 @@ export default function OverlayView() {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])
 
-  // hide the OSC (a separate window on top) while the context menu is open
-  useEffect(() => {
-    window.mmp.setMenuOpen(menu !== null)
-  }, [menu])
+  // the menu window hides the OSC, which would drop us into .ui-hidden (cursor:none)
+  const [menuOpen, setMenuOpen] = useState(false)
+  useEffect(() => window.mmp.onMenuState(setMenuOpen), [])
+
+  // a click in the menu window comes back here as an id → run that item's handler
+  useEffect(() => window.mmp.onMenuInvoke(id => menuActions.current.get(id)?.()), [])
+
   // the URL overlay stays mounted (so it can fade in/out) — focus its input on open
   useEffect(() => {
     if (urlOpen) urlInputRef.current?.focus()
@@ -233,9 +235,32 @@ export default function OverlayView() {
     { label: 'Fullscreen', onClick: p.fullscreen }
   ]
 
+  // The menu is its own window now, so it can only be handed plain data: pack the
+  // tree (dropping the closures), remember each handler under the same id, and run
+  // it when the menu window reports back what was clicked.
+  const menuActions = useRef(new Map<string, () => void>())
+
+  const openMenuWindow = (screenX: number, screenY: number): void => {
+    menuActions.current.clear()
+    const pack = (nodes: MenuNode[], prefix = ''): SerializedMenuNode[] =>
+      nodes.map((n, i) => {
+        const id = `${prefix}${i}`
+        if (n.onClick) menuActions.current.set(id, n.onClick)
+        return {
+          id,
+          label: n.label,
+          disabled: n.disabled,
+          checked: n.checked,
+          sep: n.sep,
+          submenu: n.submenu ? pack(n.submenu, `${id}.`) : undefined
+        }
+      })
+    window.mmp.openMenu(screenX, screenY, pack(menuItems))
+  }
+
   return (
     <div
-      className={`app ${p.showUi ? 'ui-visible' : 'ui-hidden'} ${dragging ? 'dragging' : ''}`}
+      className={`app ${p.showUi ? 'ui-visible' : 'ui-hidden'} ${dragging ? 'dragging' : ''} ${menuOpen ? 'menu-open' : ''}`}
       onMouseEnter={() => {
         entering.current = true
         enterY.current = -1
@@ -266,7 +291,7 @@ export default function OverlayView() {
           // right-click menu only during playback (empty state keeps its URL shortcut)
           if (!p.state.hasMedia) return
           e.preventDefault()
-          setMenu({ x: e.clientX, y: e.clientY })
+          openMenuWindow(e.screenX, e.screenY)
         }}
       />
       {/* loading (a URL/playlist resolving) hides the home screen right away — just
@@ -282,8 +307,6 @@ export default function OverlayView() {
       )}
 
       {/* both side panels are now their own acrylic windows (owned by main) */}
-
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
 
       <div
         className={`url-overlay ${urlOpen ? 'open' : ''}`}

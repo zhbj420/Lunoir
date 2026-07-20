@@ -44,6 +44,13 @@ body,
   inset: 0;
 }
 
+/* The context-menu window hides the OSC, which drops us into .ui-hidden — but the
+   pointer must stay visible while a menu is up. (The old in-DOM menu got this from
+   its full-screen .ctx-backdrop; a separate window has no such backdrop here.) */
+.app.ui-hidden.menu-open {
+  cursor: default;
+}
+
 .app.ui-hidden {
   cursor: none;
 }
@@ -1559,7 +1566,7 @@ body.panel-win.panel-shown .panel.left > * {
 .ctx-item {
   display: flex;
   align-items: center;
-  height: 28px;
+  height: 24px;
   padding: 0 10px 0 4px;
   border-radius: 3px;
   cursor: pointer;
@@ -1607,8 +1614,45 @@ body.panel-win.panel-shown .panel.left > * {
 
 .ctx-sep {
   height: 1px;
-  margin: 5px 9px;
+  margin: 3px 9px;
   background: rgba(255, 255, 255, 0.09);
+}
+
+/* ── Context menu as its own acrylic window (?win=menu) ──────────────────────
+   The window itself supplies the frost and the rounded corners, so this container
+   only lays rows over the same scrim the OSC/panels use — no border, radius or
+   shadow of its own. width:max-content lets us measure the natural size and tell
+   main how large to make the window. */
+.ctx-win {
+  /* the scrim must cover the FULL window, not just the rows: while the window and
+     the content animate at slightly different rates, any uncovered strip would show
+     bare (unscrimmed) acrylic and read as a seam */
+  min-height: 100vh;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  user-select: none;
+}
+
+/* the measured box — this is what we ask main to size the window to */
+.ctx-win-inner {
+  width: max-content;
+  min-width: 178px;
+  padding: 4px;
+}
+
+/* the expanded block folds to height 0 on collapse (main shrinks the window in
+   step), so it must clip its rows while it animates */
+.ctx-sub-group {
+  overflow: hidden;
+}
+
+/* accordion children sit indented under their parent, and are tighter still —
+   they're short values (speeds, ratios), so the extra height only adds jump */
+.ctx-win .ctx-item.sub {
+  height: 21px;
+  padding-left: 20px;
+  font-size: 12.5px;
 }
 
 /* transient confirmation (e.g. "Screenshot saved") */
