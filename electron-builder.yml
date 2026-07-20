@@ -6,11 +6,22 @@ directories:
 files:
   - out/**/*
   - '!**/*.map'
+# Electron ships ~50 locale packs (~41MB) for *Chromium's own* UI strings — nothing
+# to do with this app's text. Keep only what a user might actually see.
+electronLanguages:
+  - en-US
+  - zh-CN
 extraResources:
   - from: resources/mpv
     to: mpv
+    # the shinchiro bundle also carries mpv's manual, icons, key-binding chart and
+    # its own install/uninstall/updater scripts — none of which belong inside a
+    # player that merely embeds mpv. d3dcompiler_43 stays: mpv may still want it to
+    # compile shaders on some setups, and 4MB isn't worth a broken renderer.
     filter:
-      - '**/*'
+      - mpv.exe
+      - fonts.conf
+      - d3dcompiler_43.dll
   - from: resources/mediainfo
     to: mediainfo
     filter:
