@@ -32,6 +32,9 @@ const OBSERVED = [
   'sub-delay',
   'sub-pos',
   'sub-scale',
+  'container-fps', // frame rate → timecode / frame-number readout
+  'estimated-frame-count', // total frames; the *current* frame is derived from
+  // time-pos rather than observed, since estimated-frame-number ticks every frame
   'video-params/gamma', // transfer fn: 'pq'/'hlg' → HDR badge
   'video-params/h', // decoded height → resolution badge (useful for streams)
   'audio-codec-name', // e.g. 'eac3', 'truehd', 'dts' → audio format badge

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { PlayerState } from '../usePlayer'
+import { PlayerState, TimeFormat } from '../usePlayer'
 
 function fmt(sec: number): string {
   if (!isFinite(sec) || sec < 0) sec = 0
@@ -8,6 +8,27 @@ function fmt(sec: number): string {
   const h = Math.floor(sec / 3600)
   const pad = (n: number) => String(n).padStart(2, '0')
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+}
+
+// SMPTE-style HH:MM:SS:FF, non-drop — the frames field is just the sub-second
+// remainder at the container rate. (True drop-frame for 29.97/23.976 renumbers
+// frames and is a rabbit hole a player doesn't need.)
+function fmtTimecode(sec: number, fps: number): string {
+  if (!isFinite(sec) || sec < 0) sec = 0
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec / 60) % 60)
+  const s2 = Math.floor(sec % 60)
+  const f = fps > 0 ? Math.floor((sec % 1) * fps) : 0
+  return `${pad(h)}:${pad(m)}:${pad(s2)}:${pad(f)}`
+}
+
+// Frame index at the container rate. Derived from time rather than observed, since
+// mpv's estimated-frame-number ticks every single frame (far too chatty over IPC).
+// Exact for constant-rate sources; an estimate for VFR ones.
+function frameAt(sec: number, fps: number): number {
+  if (!isFinite(sec) || sec < 0 || fps <= 0) return 0
+  return Math.floor(sec * fps)
 }
 
 // The HDR badge. MediaInfo's flavour (Dolby Vision / HDR10+ / HDR10) is the
@@ -75,6 +96,8 @@ interface Props {
   onSetVolume: (v: number) => void
   onToggleMute: () => void
   onFullscreen: () => void
+  timeFormat: TimeFormat
+  onCycleTimeFormat: () => void
 }
 
 export default function Controls(props: Props) {
@@ -172,7 +195,17 @@ export default function Controls(props: Props) {
 
       {/* Row 2: seek */}
       <div className="osc-row osc-seek">
-        <span className="t cur">{fmt(state.timePos)}</span>
+        <span
+          className="t cur clickable"
+          onClick={props.onCycleTimeFormat}
+          title="Click to switch between time, timecode and frame number"
+        >
+          {props.timeFormat === 'timecode'
+            ? fmtTimecode(state.timePos, state.fps)
+            : props.timeFormat === 'frame'
+              ? frameAt(state.timePos, state.fps).toLocaleString()
+              : fmt(state.timePos)}
+        </span>
         <div className="seek-wrap">
           <input
             className="rng seek"
@@ -196,7 +229,17 @@ export default function Controls(props: Props) {
         {Math.abs(state.speed - 1) > 0.01 && (
           <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
         )}
-        <span className="t dur">{fmt(state.duration)}</span>
+        <span
+          className="t dur clickable"
+          onClick={props.onCycleTimeFormat}
+          title="Click to switch between time, timecode and frame number"
+        >
+          {props.timeFormat === 'timecode'
+            ? fmtTimecode(state.duration, state.fps)
+            : props.timeFormat === 'frame'
+              ? (state.frameCount || frameAt(state.duration, state.fps)).toLocaleString()
+              : fmt(state.duration)}
+        </span>
       </div>
     </div>
   )

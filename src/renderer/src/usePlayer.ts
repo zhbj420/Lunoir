@@ -21,8 +21,14 @@ function pickTitle(
   return fileName || mediaTitle || 'Lunoir'
 }
 
+/** How the OSC prints position/duration — click the readout to cycle.
+ *  Mirrors the preload's TimeFormat; the renderer can't import from preload. */
+export type TimeFormat = 'time' | 'timecode' | 'frame'
+
 export interface PlayerState {
   pause: boolean
+  fps: number // container frame rate (0 = unknown) → timecode / frame readout
+  frameCount: number
   timePos: number
   duration: number
   volume: number
@@ -47,6 +53,8 @@ export interface PlayerState {
 
 const initial: PlayerState = {
   pause: true,
+  fps: 0,
+  frameCount: 0,
   timePos: 0,
   duration: 0,
   volume: 100,
@@ -121,6 +129,10 @@ export function usePlayer() {
             return { ...s, volume: typeof data === 'number' ? data : s.volume }
           case 'mute':
             return { ...s, mute: Boolean(data) }
+          case 'container-fps':
+            return { ...s, fps: typeof data === 'number' && data > 0 ? data : 0 }
+          case 'estimated-frame-count':
+            return { ...s, frameCount: typeof data === 'number' && data > 0 ? Math.round(data) : 0 }
           case 'speed':
             return { ...s, speed: typeof data === 'number' ? data : s.speed }
           case 'filename': {

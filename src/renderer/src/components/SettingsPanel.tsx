@@ -20,6 +20,7 @@ interface Settings {
   streamQuality: 'best' | '2160' | '1080' | '720' | '480'
   useCookies: boolean
   cookiesBrowser: string
+  timeFormat: 'time' | 'timecode' | 'frame'
   screenshotSubs: boolean
   screenshotFormat: 'png' | 'jpg'
   screenshotDir: string

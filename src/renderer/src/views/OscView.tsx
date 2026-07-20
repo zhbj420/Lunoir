@@ -1,11 +1,31 @@
 import { usePlayer } from '../usePlayer'
 import { useShortcuts } from '../useShortcuts'
+import { useEffect, useState } from 'react'
 import Controls from '../components/Controls'
+import type { TimeFormat } from '../usePlayer'
+
+// time → timecode → frame → time …
+const NEXT_FORMAT: Record<TimeFormat, TimeFormat> = {
+  time: 'timecode',
+  timecode: 'frame',
+  frame: 'time'
+}
 
 // Runs inside the Win11 acrylic window. The window itself provides the frosted
 // background; the panel fills it and stays transparent so the acrylic shows.
 export default function OscView() {
   const p = usePlayer()
+  // the readout format is persisted, so it survives a restart
+  const [timeFormat, setTimeFormat] = useState<TimeFormat>('time')
+  useEffect(() => {
+    window.mmp.getSettings().then(s => setTimeFormat(s.timeFormat))
+    return window.mmp.onSettingsChanged(s => setTimeFormat(s.timeFormat))
+  }, [])
+  const cycleTimeFormat = (): void => {
+    const next = NEXT_FORMAT[timeFormat]
+    setTimeFormat(next) // optimistic: don't wait for the round-trip
+    window.mmp.setSetting('timeFormat', next)
+  }
 
   useShortcuts({
     togglePause: p.togglePause,
@@ -35,6 +55,8 @@ export default function OscView() {
       onMouseLeave={() => window.mmp.setOscHover(false)}
     >
       <Controls
+        timeFormat={timeFormat}
+        onCycleTimeFormat={cycleTimeFormat}
         state={p.state}
         onTogglePause={p.togglePause}
         onSeek={p.seekTo}

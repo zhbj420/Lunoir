@@ -4,6 +4,8 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 export type Hwdec = 'auto' | 'auto-copy' | 'no'
 export type StreamQuality = 'best' | '2160' | '1080' | '720' | '480'
 export type ScreenshotFormat = 'png' | 'jpg'
+/** How the OSC prints position/duration. Click the readout to cycle. */
+export type TimeFormat = 'time' | 'timecode' | 'frame'
 export interface Settings {
   scanFolderIntoPlaylist: boolean
   resumePlayback: boolean
@@ -21,6 +23,7 @@ export interface Settings {
   streamQuality: StreamQuality // online (yt-dlp) max quality
   useCookies: boolean // read browser cookies for member/age-restricted/Premium content
   cookiesBrowser: string // which browser to read cookies from (yt-dlp cookies-from-browser)
+  timeFormat: TimeFormat // OSC readout: 36:16 | 00:36:16:07 | frame 52831
   screenshotSubs: boolean
   screenshotFormat: ScreenshotFormat // PNG (lossless) or JPG (high-quality, smaller)
   screenshotDir: string // where screenshots are saved ('' = Pictures/Lunoir default)

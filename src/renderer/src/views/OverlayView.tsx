@@ -5,6 +5,21 @@ import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
 import type { MenuNode, SerializedMenuNode } from '../components/ContextMenu'
 
+// Release filenames carry a tail of technical tags ("…S01E01.1080p.WEB-DL.AAC2.0
+// .x264-CHDWEB") that only bloat a screenshot's name. Cut at the first such tag,
+// keeping the parts a human cares about (title, season/episode, year).
+const TECH_TAG =
+  /[.\s_-](\d{3,4}p|4k|web-?dl|web-?rip|blu-?ray|bd-?rip|br-?rip|hdtv|remux|dvdrip|x26[45]|h\.?26[45]|hevc|avc|xvid|aac\d?|ac-?3|e-?ac-?3|ddp?\d?|dts(-hd)?|truehd|atmos|flac|opus|\d{1,2}bits?|hdr\d*\+?|dv|hi10p?|repack|proper|internal|\d+audio)/i
+
+function cleanBaseName(fileName: string): string {
+  let n = fileName.replace(/\.[^.]+$/, '') // drop the extension
+  const m = n.match(TECH_TAG)
+  if (m?.index) n = n.slice(0, m.index)
+  n = n.replace(/[.\s_-]+$/, '') // trim trailing separators
+  if (n.length > 50) n = n.slice(0, 50).replace(/[.\s_-]+$/, '') // hard backstop
+  return n.replace(/%/g, '') // % starts a specifier in mpv's template
+}
+
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
 // video-aspect-override values for the Aspect submenu. Stretch drops keepaspect.
@@ -175,6 +190,19 @@ export default function OverlayView() {
   // irrelevant); the OSC/UI never appear (they're a separate window / compositor
   // layer). 'video' mode drops subtitles, default keeps them.
   const screenshot = (noSubs: boolean): void => {
+    // Name it "<file>_<position>_<yymmdd>_<hhmmss>": the position comes first so a
+    // movie's shots sort in playback order, and the capture date/time guarantees
+    // uniqueness. Seconds are enough here — frame precision belongs on screen, not
+    // in a filename. mpv's %t* are strftime, but position has to be computed here.
+    const t = Math.max(0, p.state.timePos)
+    const pad = (n: number): string => String(n).padStart(2, '0')
+    const pos = [
+      pad(Math.floor(t / 3600)),
+      pad(Math.floor((t / 60) % 60)),
+      pad(Math.floor(t % 60))
+    ].join('-')
+    const base = cleanBaseName(p.state.fileName) || '%F'
+    window.mmp.set('screenshot-template', `${base}_${pos}_%ty%tm%td_%tH%tM%tS`)
     window.mmp.command(noSubs ? ['screenshot', 'video'] : ['screenshot'])
     showToast('Screenshot saved to Pictures › Lunoir')
   }

@@ -24,6 +24,7 @@ const DEFAULTS: Settings = {
   streamQuality: 'best',
   useCookies: false,
   cookiesBrowser: 'edge',
+  timeFormat: 'time',
   screenshotSubs: true,
   screenshotFormat: 'png',
   screenshotDir: '',
