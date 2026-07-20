@@ -181,6 +181,12 @@ export default function OverlayView() {
 
   // grey title strip only over video; hide it (and the reserved margin) fullscreen
   useEffect(() => window.mmp.onFullscreen(fs => document.body.classList.toggle('fullscreen', fs)), [])
+  // Windows won't give a maximized window the acrylic backdrop, so the empty state
+  // paints a solid fallback instead of showing through to black.
+  useEffect(
+    () => window.mmp.onMaximized(m => document.body.classList.toggle('maximized', m)),
+    []
+  )
   useEffect(() => {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])

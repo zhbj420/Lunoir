@@ -24,6 +24,15 @@ const isDev = !app.isPackaged
 // Disable the cache in dev to avoid it. (Must run before app is ready.)
 if (isDev) app.commandLine.appendSwitch('disable-http-cache')
 
+// Grayscale antialiasing instead of ClearType's subpixel (RGB) antialiasing.
+// Our text is light-on-dark and small, which is where subpixel AA is at its worst:
+// it fakes resolution by tinting the R/G/B subpixels, and on a dark background that
+// leaves coloured fringes around thin strokes — tinted differently per stroke, so a
+// line of hanzi reads as uneven weight. Grayscale AA has nothing to tint.
+// (CSS -webkit-font-smoothing is the macOS-only lever for the same thing; Blink
+// ignores it on Windows — verified on this machine, no change at all.)
+app.commandLine.appendSwitch('disable-lcd-text')
+
 // Main transparent window hosts mpv video (via --wid). The OSC lives in a
 // separate Win11 *acrylic* child window pinned to the bottom-center, so we can
 // see whether the OS frosted-glass material looks good over the video.
@@ -32,6 +41,10 @@ let oscWin: BrowserWindow | null = null
 let mpv: MpvController | null = null
 let preFsBounds: Electron.Rectangle | null = null
 let fsWasMaximized = false // restore the maximized state when leaving fullscreen
+// Bounds to go back to while "maximized", and the flag for being in that state.
+// We never use the OS maximize — see fakeMaximize().
+let preMaxBounds: Electron.Rectangle | null = null
+const isMaxed = (): boolean => preMaxBounds != null
 let lastAspect = 0 // last video aspect the window was fitted to (avoid re-jumping)
 
 const OSC_H = 92
@@ -730,6 +743,15 @@ function oscRestBounds(): Electron.Rectangle {
  */
 const wentLayered = new WeakMap<BrowserWindow, boolean>()
 
+/** Ask DWM for the acrylic backdrop again. Several things drop it (going layered,
+ *  maximizing) and Windows never puts it back by itself — the frost stays dead
+ *  until the window is rebuilt, which is why "minimize + restore" used to be the
+ *  only cure. Anything that can kill the backdrop must call this afterwards. */
+function reassertBackdrop(w: BrowserWindow | null): void {
+  if (!w || w.isDestroyed()) return
+  w.setBackgroundMaterial('acrylic')
+}
+
 function setWinOpacity(w: BrowserWindow | null, v: number): void {
   if (!w || w.isDestroyed()) return
   w.setOpacity(v)
@@ -741,7 +763,7 @@ function setWinOpacity(w: BrowserWindow | null, v: number): void {
   // the redundant DWM call makes the window visibly flash on every reveal
   if (wentLayered.get(w)) {
     wentLayered.set(w, false)
-    w.setBackgroundMaterial('acrylic')
+    reassertBackdrop(w)
   }
 }
 
@@ -980,6 +1002,31 @@ function syncFsTopmost(): void {
   win.setAlwaysOnTop(Boolean(preFsBounds) && appActive, 'screen-saver')
 }
 
+/**
+ * "Maximize" by covering the work area, never with the OS maximize.
+ *
+ * Entering the real maximized state permanently destroys the window's DWM acrylic
+ * backdrop: it does not come back on restore, and neither re-asserting the material
+ * nor toggling it through 'none' revives it (both tried) — only rebuilding the
+ * window does. Borderless fullscreen already proved that a window can cover the
+ * whole screen and keep its frost, so the size was never the problem; the maximized
+ * *state* is. Same escape as native fullscreen → borderless fullscreen.
+ */
+function fakeMaximize(): void {
+  if (!win || win.isDestroyed() || preMaxBounds) return
+  preMaxBounds = win.getBounds()
+  win.setBounds(screen.getDisplayMatching(preMaxBounds).workArea) // workArea = keeps the taskbar
+  win.webContents.send('win:maximized', true)
+}
+
+function unfakeMaximize(): void {
+  if (!win || win.isDestroyed() || !preMaxBounds) return
+  const restore = preMaxBounds
+  preMaxBounds = null
+  win.setBounds(restore)
+  win.webContents.send('win:maximized', false)
+}
+
 function toggleFullscreen(): void {
   if (!win) return
   suppressRevealUntil = Date.now() + 350 // don't let the resize's mousemove pop the OSC
@@ -988,8 +1035,8 @@ function toggleFullscreen(): void {
     const restore = preFsBounds
     preFsBounds = null
     win.setAlwaysOnTop(false)
-    if (fsWasMaximized) win.maximize()
-    else win.setBounds(restore)
+    win.setBounds(restore)
+    if (fsWasMaximized) fakeMaximize() // restore stored the pre-max bounds
     setCornerPreference(win, CORNER_DEFAULT) // rounded corners look good windowed
   } else {
     // ENTER — *borderless* fullscreen: cover the whole monitor (incl. the taskbar
@@ -997,9 +1044,11 @@ function toggleFullscreen(): void {
     // Windows ignore setAlwaysOnTop, so clicking the focusable OSC (which briefly
     // steals the foreground) lets the shell flash the taskbar up. Borderless +
     // topmost keeps that reveal *behind* our full-screen window, so it never shows.
-    fsWasMaximized = win.isMaximized()
-    preFsBounds = win.getBounds() // restore point + the "is fullscreen" flag
-    if (fsWasMaximized) win.unmaximize() // so setBounds takes effect
+    fsWasMaximized = isMaxed()
+    // restore point + the "is fullscreen" flag. When maximized, remember the bounds
+    // from *before* the maximize, so leaving fullscreen can re-derive both states.
+    preFsBounds = preMaxBounds ?? win.getBounds()
+    preMaxBounds = null
     win.setBounds(screen.getDisplayMatching(preFsBounds).bounds) // full monitor, not workArea
     setCornerPreference(win, CORNER_DONOTROUND)
   }
@@ -1066,7 +1115,7 @@ function fitWindowToVideo(aspect: number): void {
   // the ratio is unchanged, or when fullscreen / maximized. Manual resize after
   // this just lets mpv letterbox/pillarbox to keep the picture's own aspect
   // (standard contain fit — the window can be any shape).
-  if (!changed || preFsBounds || win.isMaximized()) return
+  if (!changed || preFsBounds || isMaxed()) return
 
   const b = win.getBounds()
   const disp = screen.getDisplayMatching(b).workArea
@@ -1355,6 +1404,15 @@ function createWindows(): void {
   })
 
   // save volume / bounds / resume position while the window still exists
+  // Aero Snap, Win+Up and a title-bar double-click can still reach the real OS
+  // maximize, which is the thing that kills the acrylic for good. Bounce straight
+  // back out of it and apply ours instead. (unmaximize() here fires 'unmaximize',
+  // which we deliberately don't listen for — we own that transition.)
+  win.on('maximize', () => {
+    win?.unmaximize()
+    fakeMaximize()
+  })
+
   win.on('close', () => persistState())
   win.on('closed', () => {
     for (const w of [oscWin, rightPanelWin, leftPanelWin]) {
@@ -1451,8 +1509,9 @@ function applyScreenshotDir(): void {
 function persistState(): void {
   const s = getSettings()
   if (s.rememberVolume) setSetting('volume', lastVolume)
-  if (s.rememberWindow && win && !win.isDestroyed() && !preFsBounds && !win.isMaximized()) {
-    setSetting('windowBounds', win.getBounds())
+  // while maximized, persist the bounds we'd restore to, not the work area
+  if (s.rememberWindow && win && !win.isDestroyed() && !preFsBounds) {
+    setSetting('windowBounds', preMaxBounds ?? win.getBounds())
   }
   if (s.resumePlayback && resumePath) {
     const nearEnd = lastDuration > 0 && resumePos > lastDuration - 10
@@ -1787,7 +1846,7 @@ function registerIpc(): void {
   ipcMain.on('ui:open-disc', () => promptOpenFolder()) // double-click Open File → folder/disc
   ipcMain.on('win:minimize', () => win?.minimize())
   ipcMain.on('win:toggle-maximize', () => {
-    win?.isMaximized() ? win.unmaximize() : win?.maximize()
+    isMaxed() ? unfakeMaximize() : fakeMaximize()
     setTimeout(layoutOsc, 40)
   })
   ipcMain.on('win:close', () => win?.close())
@@ -1797,7 +1856,7 @@ function registerIpc(): void {
   // docked side), main just clamps to the min size and applies it.
   ipcMain.handle('win:get-bounds', () => (win && !win.isDestroyed() ? win.getBounds() : null))
   ipcMain.on('win:set-bounds', (_e, x: number, y: number, width: number, height: number) => {
-    if (!win || win.isDestroyed() || win.isMaximized() || preFsBounds) return
+    if (!win || win.isDestroyed() || isMaxed() || preFsBounds) return
     const w = Math.max(WIN_MIN_W, Math.round(width))
     const h = Math.max(320, Math.round(height))
     // preserve the anchored edge when the size hits the minimum (x/y already carry it)

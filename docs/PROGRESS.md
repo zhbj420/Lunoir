@@ -2,6 +2,39 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-20 · 多语言基建 + 中文排版定稿 + 最大化磨砂修复）
+
+**阶段：多语言地基铺好（第一步，仅 3 个组件已中文化）；中文排版一路排查定稿；修掉「最大化后磨砂永久死亡」。类型/构建过，真机逐条确认。**
+
+### 多语言（第一步：基建 + 3 个组件）
+- **自己写，不用 i18n 库**（[src/shared/i18n/](../src/shared/i18n/)，约 40 行）：`en.ts` 是唯一真源 + 兜底，`zh-CN.ts` 是 `Partial<>`（翻一半也能编译，漏的自动回落英文），`index.ts` 提供 `translate()` + `{name}` 插值 + 系统语言解析。**不引库的理由**：主进程也要翻译（toast/菜单/对话框），库在 main 里很别扭；复数引擎/异步后端我们一个都用不上；而且要控体积。
+- **`src/shared/` 两个 tsconfig 的 `include` 都要加**（原本两边都不含 → 必撞 TS6307，这坑之前踩过两次），配 `@shared` 别名（三个 Vite 段都加）。
+- **`useT.ts`**：每个窗口一个模块级 locale store，**整窗只订阅一次** `settings:changed`，组件经 `useSyncExternalStore` 取。首帧直接读 `navigator.language`，不会先闪英文。由 **`main.tsx` 无条件 import** —— 挂在组件上会漏掉尚未中文化的窗口（面板/菜单窗），它们的 `<html lang>` 就不会设，字体栈跟着失效。
+- 设置项 `uiLanguage`（`'system' | 'en' | 'zh-CN'`，默认跟随系统）。设置页顶部新增 **Interface** 分区。**命名要小心**：已有的「首选音轨/字幕语言」是**媒体轨道**语言，界面语言必须叫 Interface language，否则必混。
+- 已转：`EmptyState` / `TitleBar` / `Controls`。**顺带修的文案 bug**：静音键一直写 `Mute`、播放键一直写 `Play/Pause`（图标早就随状态变了，提示没跟上）→ 改为随状态；列表按钮 `Playlist` → `Tracks & playlist`（它开的面板有三个页且默认停在 Audio & Sub）。
+- **未完**：设置页 / 右面板 / 右键菜单 / 主进程 toast 与菜单仍是英文 → 现在切中文是**中英混杂**，功能还不算能用。
+
+### 中文排版（排查过程比结论长，避免重走）
+- **症状**：小字号中文「字字大小不一、高低不齐」（`双`重 `击`轻 `开`偏上），英文同字号正常。
+- **根因 = 字体 hinting**。雅黑 / 雅黑 UI / 华文细黑都是为 96 DPI ClearType 做的重度 hinting，强行把笔画掰上像素网格，**笔画密的被掰得比笔画疏的多**。几乎不 hinting 的字体就没这问题。
+- **定稿：`--ui-font: 'Segoe UI', 'SimHei', 'Microsoft YaHei UI', sans-serif`**（`:root[lang^='zh']`）。**黑体**当年被嫌弃正因为不做 hinting，而在高 DPI + 灰度抗锯齿下这恰是优点；且 **Windows 自带，零打包 —— 开发者看到的 = 用户看到的**。Noto Sans SC / 思源效果更好（实测），但不随 Windows 分发，**不能拿它调设计**。
+- **西文字体必须排最前**：黑体自带的西文字形是半角、很丑，把 SimHei 放第一会让中文界面里所有英文都变难看。（最初把中文字体排前的理由是「一行一套字体，基线才齐」—— 这个理由**后来被证伪**：DevTools 的 Rendered Fonts 显示出问题那行本来就只有一个字体。）
+- `--disable-lcd-text`（[index.ts](../src/main/index.ts)）：灰度抗锯齿替代 ClearType 次像素抗锯齿。浅色小字压深色底是次像素抗锯齿最差的场景（染 RGB 子像素 → 彩边，且每笔染的程度不同 → 显得粗细不匀）。用户实测「舒服一点」。
+- `--ui-tracking: 0.02em`，只对中文（西文保持 `normal`）。曾试 0.04em，配黑体偏松。
+- 空状态字号改偶数 px（150% DPI 下奇数/半像素会落在半个设备像素上）。
+- **已排除、别再试**：字体回退混用（Rendered Fonts 实证单字体）；`letter-spacing: 0.02em` 有无（无差别）；`--disable-font-subpixel-positioning`（无效，已撤）；透明度 0.4→0.58（对整齐度无效，但可读性更好故保留）；**CSS `-webkit-font-smoothing`（Windows 上是空操作，Blink 只在 macOS 认它，已实测）**。
+- **待观察**：黑体**只有一个字重**（无 bold 文件），中文走 `font-weight: 600/700` 会是**伪粗体**，汉字容易糊。目前用粗体的地方（`.set-sec` / `.track-sec`）还都是英文，第二步译成中文后会现形 —— 届时倾向**中文标题不用粗体**（中文本就靠字距和留白分层，不靠字重）。
+
+### 最大化 → 磨砂永久死亡（已修）
+- **症状**：最大化后空状态变黑；**缩回来也不恢复**，一直黑到重启。
+- **根因是「最大化」这个窗口状态本身**（不是尺寸）—— 无边框全屏同样铺满整屏，磨砂从来没死过，这条对比锁定了病因。进入 WS_MAXIMIZE 会摧毁 DWM 背板，**`setBackgroundMaterial('acrylic')` 重申请无效，切 `'none'` 再切回（中间隔一拍以躲开 DWM 的「无变化」合并）也无效** —— 两种都试过，只有重建窗口才回来。
+- **修法：假最大化**（[index.ts](../src/main/index.ts) `fakeMaximize()` / `unfakeMaximize()`）—— `setBounds` 到 `screen.getDisplayMatching().workArea`，**永不进入系统最大化态**。用 `preMaxBounds` 记还原点，`isMaxed()` 取代所有 `win.isMaximized()`。和当初「原生全屏 → 无边框全屏」是同一个套路。
+- **Aero Snap / Win+↑ / 双击标题栏**仍会摸到真最大化 → `win.on('maximize')` 立刻 `unmaximize()` 再套我们自己的。这条路径会**灰一瞬但能恢复**，用户判定可接受。
+- **坑**：`persistState` 必须存 `preMaxBounds` 而非当前 bounds，否则最大化时退出 → 下次开一个「工作区那么大的普通窗口」，再也缩不回去。
+- 顺带抽出 `reassertBackdrop()`，`setWinOpacity` 也改调它 —— **全项目只有一处知道怎么复活磨砂**。
+
+---
+
 ## 当前状态（2026-07-21 · Phase 4 右键菜单亚克力化 —— 磨砂化收官）
 
 **阶段：右键菜单改成独立 Win11 亚克力窗口(`?win=menu`),UI 全部磨砂化完成。另修掉两个真 bug:磨砂会掉、逐帧长按乱跳。**
@@ -24,7 +57,12 @@
 
 **阶段：修一串真机暴露的问题 —— OSC 磨砂被 `focusable:false` 干掉、全屏点 OSC 冒任务栏、标题栏色差、HDR 字幕设置无效(定性为 mpv 引擎限制)。类型/构建过。**
 
-- **标题栏灰**([styles.css](../src/renderer/src/styles.css) `body.has-media .titlebar`):纯 CSS 磨砂**做不到** —— 播放时那 32px 背后是 **mpv 的黑 margin**(video 被 `video-margin-ratio-top` 推下去),不是主窗亚克力(亚克力只在空状态/没被 mpv 盖住时透出来)。折中:播放态取**失焦时亚克力的纯色 fallback `rgb(62,62,63)`**(用户取色),让 空↔播 尽量不跳。真磨砂得把标题栏做成独立亚克力子窗(未做)。
+- **标题栏灰**([styles.css](../src/renderer/src/styles.css) `body.has-media .titlebar`):纯 CSS 磨砂**做不到** —— 播放时那 32px 背后是 **mpv 的黑 margin**(video 被 `video-margin-ratio-top` 推下去),不是主窗亚克力(亚克力只在空状态/没被 mpv 盖住时透出来)。折中:播放态取**失焦时亚克力的纯色 fallback `rgb(62,62,63)`**(用户取色),让 空↔播 尽量不跳。~~真磨砂得把标题栏做成独立亚克力子窗(未做)。~~ **→ 已否决,见下方「标题栏真磨砂 = 死路」。**
+
+> **标题栏透明 / 真磨砂 = 死路(已定论,勿再提)**
+> 原始诉求是让标题栏**透出后面的桌面和窗口**(像空状态那样)。挡路的是 **mpv 那块不透明表面**:mpv 经 `--wid` 嵌入、铺满整个客户区,`--video-margin-ratio-top` 只把**画面**推下去,顶上那 32px 仍是 **mpv 自己画的黑**。它在 Chromium 合成层之后、却在窗口亚克力之前 → **CSS 再透明也只能透出 mpv 的黑,透不到桌面**(空状态能透,是因为那会儿 mpv 没在铺)。
+> 改做独立亚克力子窗也没用:磨的是同一片黑 → 出来还是暗灰,**和现在的纯色看不出区别**,还白搭上去不掉的 DWM 阴影 + resize 时跟不上主窗的重绘缝(整条顶栏上比侧面板明显得多)。
+> **纯色 `rgb(62,62,63)` 是这条路上的正确答案,不是妥协。**
 - **OSC 磨砂回归修复**(关键)([index.ts](../src/main/index.ts)):Phase 1 给 OSC 加的 `focusable:false` **会让 Win11 拒绝渲染它的 acrylic backdrop**(退成纯灰,无磨砂)—— 面板 `focusable:true` 所以正常,OSC 不正常。改回 `focusable:true`;副作用(全屏点按钮激活子窗、抢前台)用 `oscWin.on('focus') → win.focus()` **把焦点弹回主窗**化解(OSC 无文本输入,不需保留焦点)。真机 A/B(`MMP_OSC_FOCUSABLE` env 开关)实锤是它。
 - **无边框全屏 → 修任务栏冒头**([index.ts](../src/main/index.ts) `toggleFullscreen`/`syncFsTopmost`):原生 `setFullScreen(true)` 下 **Electron 忽略 `setAlwaysOnTop`**,所以点 OSC 抢前台那一帧 shell 会把任务栏弹出来、压不住。改成**无边框全屏**(铺满整块显示器 `screen.getDisplayMatching().bounds` + `setAlwaysOnTop(true,'screen-saver')`),置顶盖在任务栏 z 序上 → 任务栏那帧落在窗口后面、看不见。置顶与"app 是否在前台"绑定(`syncFsTopmost`,接进 `updateFocus`)→ Alt-Tab 切走自动松开、不赖在别的程序上;`fsWasMaximized` 记原最大化态、退出还原。
 - **HDR 字幕亮度(定性 = mpv 引擎限制,非本项目 bug)**:`sub-hdr-peak`(文字/ASS)+ 新增 `image-subs-hdr-peak`(位图/PGS)都接了([index.ts](../src/main/index.ts) `applyMpvSettings` + `settings:set`)。但**真机 + IPC 实测**:PGS 字幕对 `image-subs-hdr-peak` 从 10→10000、`blend-subtitles` yes/video、`target-trc=pq` **全程零反应**(`sub-visibility` 关→开确认重合成有效)。查证 mpv issue #13673/#13680/#16523 —— gpu-next 的 HDR 字幕亮度**只对文字字幕生效,位图(PGS)引擎没接**。MPC 能压是渲染器层缩放叠加层,mpv 不暴露此开关。设置保留(对 SRT/ASS 有效)。曾试 `--blend-subtitles=yes` 已回退(对 PGS 无用 + 会让 SVP 补帧把字幕卷入插值)。
