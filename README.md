@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="Lunoir player" width="30%">
 </p>
 
-# Lunoir
+<img src="assets/Lunoir.png" alt="Lunoir player" width="20%">
 
 A Modern Windows media player with an [**mpv**](https://mpv.io/) core and an
 [**IINA**](https://iina.io/)-inspired interface — frameless, frosted-glass, and
