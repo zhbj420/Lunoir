@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Lunoir player" width="30%">
+</p>
+
 # Lunoir
 
-A Windows media player with an [**mpv**](https://mpv.io/) core and an
+A Modern Windows media player with an [**mpv**](https://mpv.io/) core and an
 [**IINA**](https://iina.io/)-inspired interface — frameless, frosted-glass, and
 built for people who care about frame accuracy and colour fidelity.
 
@@ -74,6 +78,7 @@ npm run dist     # produce a Windows installer in dist/
 | --- | --- |
 | Space / K | Play / Pause |
 | ← / → | Seek ∓5s |
+| ← / → | Step frame (When Paused) |
 | ↑ / ↓ | Volume ±5 |
 | F | Fullscreen |
 | M | Mute |
