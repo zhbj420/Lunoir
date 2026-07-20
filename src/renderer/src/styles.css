@@ -1125,6 +1125,14 @@ body.panel-win.panel-shown .panel.left > * {
   color: var(--text);
 }
 
+/* Chinese only: bigger and more spread than the Latin above. Uppercase does
+   nothing to hanzi, so a two-character heading like 设置 needs size and tracking
+   to read as a heading rather than as body text. English stays at its tuned size. */
+:root[lang^='zh'] .panel-tab {
+  font-size: 13px;
+  letter-spacing: 0.2em;
+}
+
 .panel-tab.active::after {
   content: '';
   position: absolute;
