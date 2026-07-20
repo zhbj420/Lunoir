@@ -1,6 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { LANG_OPTIONS, type LangSetting } from '@shared/i18n'
+import { useT, type T } from '../useT'
+
+// Render a translated string that carries \n line breaks as separate lines. The
+// break points live in the copy (and differ between languages), not in the JSX.
+const multiline = (s: string): ReactNode =>
+  s.split('\n').map((line, i) => (
+    <Fragment key={i}>
+      {i > 0 && <br />}
+      {line}
+    </Fragment>
+  ))
 
 // Mirrors main/settings.ts (the renderer defines its own view of shared shapes,
 // like the other components here). uiLanguage is the exception — its type comes
@@ -42,20 +53,24 @@ interface Settings {
 
 type Opt = { value: string; label: string }
 
-// Short, value-dependent explanation shown under Hardware decoding.
-const HWDEC_DESC: Record<Settings['hwdec'], string> = {
-  auto: 'GPU decoding, most efficient — frames stay in video memory.',
-  'auto-copy': 'GPU decoding, copied to RAM — needed for CPU filters like SVP.',
-  no: 'CPU (software) decoding — most compatible, but heavier.'
-}
+// Option lists that carry prose are built from `t` at render time so they follow a
+// language change like everything else. Format, codec, browser and font-family
+// names are NOT translated — they read the same in every language.
 
-const HWDEC_OPTS: Opt[] = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'auto-copy', label: 'Auto (copy back)' },
-  { value: 'no', label: 'Off (software)' }
+// Short, value-dependent explanation shown under Hardware decoding.
+const hwdecDesc = (t: T): Record<Settings['hwdec'], string> => ({
+  auto: t('set.hwdec.auto'),
+  'auto-copy': t('set.hwdec.autoCopy'),
+  no: t('set.hwdec.off')
+})
+
+const hwdecOpts = (t: T): Opt[] => [
+  { value: 'auto', label: t('opt.hwdec.auto') },
+  { value: 'auto-copy', label: t('opt.hwdec.autoCopy') },
+  { value: 'no', label: t('opt.hwdec.off') }
 ]
-const QUALITY_OPTS: Opt[] = [
-  { value: 'best', label: 'Best' },
+const qualityOpts = (t: T): Opt[] => [
+  { value: 'best', label: t('opt.quality.best') },
   { value: '2160', label: '2160p (4K)' },
   { value: '1080', label: '1080p' },
   { value: '720', label: '720p' },
@@ -64,7 +79,7 @@ const QUALITY_OPTS: Opt[] = [
 // Subtitle faces. mpv's own default ('sans-serif') resolves to whatever the system
 // picks, which on Japanese releases often lacks Simplified-only glyphs (们/吗) and
 // substitutes just those characters — visibly clashing mid-line.
-const SUB_FONT_OPTS: Opt[] = [
+const subFontOpts = (t: T): Opt[] => [
   { value: 'Microsoft YaHei', label: '微软雅黑 (Microsoft YaHei)' },
   { value: 'Microsoft JhengHei', label: '微軟正黑體 (JhengHei)' },
   { value: 'SimHei', label: '黑体 (SimHei)' },
@@ -72,12 +87,12 @@ const SUB_FONT_OPTS: Opt[] = [
   { value: 'Noto Sans CJK SC', label: 'Noto Sans CJK' },
   { value: 'Yu Gothic UI', label: '游ゴシック (Yu Gothic)' },
   { value: 'Segoe UI', label: 'Segoe UI' },
-  { value: 'sans-serif', label: 'System default (sans-serif)' }
+  { value: 'sans-serif', label: t('opt.subFont.system') }
 ]
 
-const SCREENSHOT_FMT_OPTS: Opt[] = [
-  { value: 'png', label: 'PNG (lossless)' },
-  { value: 'jpg', label: 'JPG (high quality)' }
+const screenshotFmtOpts = (t: T): Opt[] => [
+  { value: 'png', label: t('opt.shot.png') },
+  { value: 'jpg', label: t('opt.shot.jpg') }
 ]
 // mpv audio-spdif codec names → human labels (Atmos rides on TrueHD, DTS:X on DTS-HD)
 const PASSTHROUGH_CODECS = [
@@ -95,19 +110,22 @@ const BROWSER_OPTS: Opt[] = [
   { value: 'opera', label: 'Opera' }
 ]
 // language codes match track tags (a few carry variants, e.g. Chinese chi/zho)
-const LANG_OPTS: Opt[] = [
-  { value: '', label: 'Default' },
-  { value: 'eng', label: 'English' },
-  { value: 'chi,zho', label: 'Chinese' },
-  { value: 'jpn', label: 'Japanese' },
-  { value: 'kor', label: 'Korean' },
-  { value: 'fre', label: 'French' },
-  { value: 'ger', label: 'German' },
-  { value: 'spa', label: 'Spanish' },
-  { value: 'ita', label: 'Italian' },
-  { value: 'rus', label: 'Russian' },
-  { value: 'por', label: 'Portuguese' }
+const langOpts = (t: T): Opt[] => [
+  { value: '', label: t('common.default') },
+  { value: 'eng', label: t('opt.lang.english') },
+  { value: 'chi,zho', label: t('opt.lang.chinese') },
+  { value: 'jpn', label: t('opt.lang.japanese') },
+  { value: 'kor', label: t('opt.lang.korean') },
+  { value: 'fre', label: t('opt.lang.french') },
+  { value: 'ger', label: t('opt.lang.german') },
+  { value: 'spa', label: t('opt.lang.spanish') },
+  { value: 'ita', label: t('opt.lang.italian') },
+  { value: 'rus', label: t('opt.lang.russian') },
+  { value: 'por', label: t('opt.lang.portuguese') }
 ]
+// 'System' is the only translatable label here — the rest name themselves.
+const uiLangOpts = (t: T): Opt[] =>
+  LANG_OPTIONS.map(o => (o.value === 'system' ? { ...o, label: t('opt.uiLang.system') } : o))
 
 // Custom dropdown — native <select> popups render broken in this frameless window.
 // The list is portaled to <body> (escaping the panel's transform + overflow) and
@@ -122,7 +140,7 @@ function Select({ value, options, onChange }: { value: string; options: Opt[]; o
     const el = btnRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    const listH = options.length * 30 + 8
+    const listH = options.length * 32 + 8 // item height (28) + gap, keep in sync with .set-dropdown-item
     const up = r.bottom + listH > window.innerHeight - 8
     setBox({ top: up ? r.top - listH - 4 : r.bottom + 4, left: r.left, width: r.width })
     setOpen(true)
@@ -249,13 +267,18 @@ function Row({
   desc?: React.ReactNode
   children: React.ReactNode
 }) {
+  // Label and control share the top line; the description sits BELOW them at full
+  // panel width. Keeping the description out of the flex row gives every one of
+  // them the same right edge (the panel's), which is what lets justify line up —
+  // when it shared the row, a wide control (a dropdown) squeezed it to a different
+  // width than a narrow one (a toggle), so no two blocks aligned.
   return (
     <div className="set-row">
-      <div className="set-text">
+      <div className="set-head">
         <div className="set-label">{label}</div>
-        {desc && <div className="set-desc">{desc}</div>}
+        <div className="set-control">{children}</div>
       </div>
-      <div className="set-control">{children}</div>
+      {desc && <div className="set-desc">{desc}</div>}
     </div>
   )
 }
@@ -263,6 +286,7 @@ function Row({
 // Left-hand settings panel (opened from the OSC gear). Reads/writes settings via
 // the main process; changes apply immediately.
 export default function SettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT()
   const [s, setS] = useState<Settings | null>(null)
   const [pathEdit, setPathEdit] = useState<string | null>(null) // non-null while typing the folder
 
@@ -298,9 +322,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
       onWheel={e => e.stopPropagation()}
     >
       <div className="panel-tabs">
-        <button className="panel-tab active">Settings</button>
+        <button className="panel-tab active">{t('common.settings')}</button>
         <span className="panel-tabs-spacer" />
-        <button className="panel-collapse" title="Collapse panel" onClick={onClose}>
+        <button className="panel-collapse" title={t('common.collapse')} onClick={onClose}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 4l-4 4 4 4M7 4l-4 4 4 4" />
           </svg>
@@ -309,43 +333,31 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
 
       {s && (
         <div className="panel-body settings-body">
-          <div className="set-sec">Interface</div>
-          <Row
-            label="Interface language"
-            desc="The language Lunoir's own menus and settings are written in. Not the same as the preferred audio / subtitle languages below — those pick tracks inside the video."
-          >
+          <div className="set-sec">{t('set.sec.interface')}</div>
+          <Row label={t('set.uiLang.label')} desc={t('set.uiLang.desc')}>
             <Select
               value={s.uiLanguage}
-              options={LANG_OPTIONS}
+              options={uiLangOpts(t)}
               onChange={v => set('uiLanguage', v as Settings['uiLanguage'])}
             />
           </Row>
 
-          <div className="set-sec">Playlist</div>
-          <Row label="Scan folder into playlist" desc="When you open a file, also queue the other videos in its folder.">
+          <div className="set-sec">{t('set.sec.playlist')}</div>
+          <Row label={t('set.scanFolder.label')} desc={t('set.scanFolder.desc')}>
             <Toggle on={s.scanFolderIntoPlaylist} onChange={v => set('scanFolderIntoPlaylist', v)} />
           </Row>
-          <Row label="Resume playback" desc="Remember where each file was left off and jump back on reopen.">
+          <Row label={t('set.resume.label')} desc={t('set.resume.desc')}>
             <Toggle on={s.resumePlayback} onChange={v => set('resumePlayback', v)} />
           </Row>
-          <Row label="Resume playlists" desc="Reopening a playlist link jumps back to the last video you watched in it.">
+          <Row label={t('set.resumePlaylist.label')} desc={t('set.resumePlaylist.desc')}>
             <Toggle on={s.resumePlaylistItem} onChange={v => set('resumePlaylistItem', v)} />
           </Row>
 
-          <div className="set-sec">Audio &amp; subtitles</div>
-          <Row label="Keep pitch when changing speed" desc="Time-stretch audio so voices don't go chipmunky at higher playback speeds.">
+          <div className="set-sec">{t('set.sec.audioSubs')}</div>
+          <Row label={t('set.keepPitch.label')} desc={t('set.keepPitch.desc')}>
             <Toggle on={s.keepPitch} onChange={v => set('keepPitch', v)} />
           </Row>
-          <Row
-            label="Audio passthrough"
-            desc={
-              <>
-                Bitstream compressed audio to an external receiver / DAC — it decodes, not the app.
-                <br />
-                Needs hardware that supports the format (no sound if it doesn't).
-              </>
-            }
-          >
+          <Row label={t('set.passthrough.label')} desc={multiline(t('set.passthrough.desc'))}>
             <Toggle on={s.audioPassthrough} onChange={v => set('audioPassthrough', v)} />
           </Row>
           {s.audioPassthrough && (
@@ -357,46 +369,19 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               ))}
             </div>
           )}
-          <Row
-            label="Preferred audio language"
-            desc={
-              <>
-                Auto-select this language when opening a file.
-                <br />
-                Default = the file's own order.
-              </>
-            }
-          >
-            <Select value={s.audioLang} options={LANG_OPTS} onChange={v => set('audioLang', v)} />
+          <Row label={t('set.audioLang.label')} desc={multiline(t('set.audioLang.desc'))}>
+            <Select value={s.audioLang} options={langOpts(t)} onChange={v => set('audioLang', v)} />
           </Row>
-          <Row
-            label="Preferred subtitle language"
-            desc={
-              <>
-                Auto-select this language when opening a file.
-                <br />
-                Default = the file's own order.
-              </>
-            }
-          >
-            <Select value={s.subLang} options={LANG_OPTS} onChange={v => set('subLang', v)} />
+          <Row label={t('set.subLang.label')} desc={multiline(t('set.subLang.desc'))}>
+            <Select value={s.subLang} options={langOpts(t)} onChange={v => set('subLang', v)} />
           </Row>
-          <Row label="Subtitles on by default">
+          <Row label={t('set.subsDefault.label')}>
             <Toggle on={s.subsDefaultOn} onChange={v => set('subsDefaultOn', v)} />
           </Row>
-          <Row label="Auto-load external subtitles" desc="Automatically pick up matching .srt/.ass files sitting next to the video.">
+          <Row label={t('set.autoLoadSubs.label')} desc={t('set.autoLoadSubs.desc')}>
             <Toggle on={s.autoLoadSubs} onChange={v => set('autoLoadSubs', v)} />
           </Row>
-          <Row
-            label="HDR subtitle brightness"
-            desc={
-              <>
-                Peak nits for text subtitles (SRT/ASS) over HDR video — lower is dimmer.
-                <br />
-                Image subtitles (PGS, e.g. Blu-ray) aren&apos;t supported by mpv. SDR is unaffected.
-              </>
-            }
-          >
+          <Row label={t('set.hdrSubPeak.label')} desc={multiline(t('set.hdrSubPeak.desc'))}>
             <div className="set-slider">
               <input
                 type="range"
@@ -411,14 +396,11 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </Row>
 
-          <div className="set-sec">Subtitle appearance</div>
-          <Row
-            label="Font"
-            desc="Applies to text subtitles (SRT/ASS without their own styling). Pick a face that fully covers your subtitle language — a font missing a few glyphs makes those characters fall back to another face mid-sentence."
-          >
-            <Select value={s.subFont} options={SUB_FONT_OPTS} onChange={v => set('subFont', v)} />
+          <div className="set-sec">{t('set.sec.subAppearance')}</div>
+          <Row label={t('set.subFont.label')} desc={t('set.subFont.desc')}>
+            <Select value={s.subFont} options={subFontOpts(t)} onChange={v => set('subFont', v)} />
           </Row>
-          <Row label="Font size">
+          <Row label={t('set.subSize.label')}>
             <div className="set-slider">
               <input
                 type="range"
@@ -432,7 +414,7 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               <NumInput value={s.subFontSize} min={10} max={200} onChange={v => set('subFontSize', v)} />
             </div>
           </Row>
-          <Row label="Letter spacing" desc="Extra space between characters.">
+          <Row label={t('set.subSpacing.label')} desc={t('set.subSpacing.desc')}>
             <div className="set-slider">
               <input
                 type="range"
@@ -446,7 +428,7 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               <NumInput value={s.subSpacing} min={-10} max={10} onChange={v => set('subSpacing', v)} />
             </div>
           </Row>
-          <Row label="Outline" desc="Thickness of the dark border that keeps text readable over bright scenes.">
+          <Row label={t('set.subOutline.label')} desc={t('set.subOutline.desc')}>
             <div className="set-slider">
               <input
                 type="range"
@@ -460,13 +442,10 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               <NumInput value={s.subOutline} min={0} max={20} onChange={v => set('subOutline', v)} />
             </div>
           </Row>
-          <Row label="Bold">
+          <Row label={t('set.subBold.label')}>
             <Toggle on={s.subBold} onChange={v => set('subBold', v)} />
           </Row>
-          <Row
-            label="Distance from bottom"
-            desc="Resting position. The right panel's Adjust ▸ subtitle position nudges the current video on top of this, without changing the default."
-          >
+          <Row label={t('set.subMargin.label')} desc={t('set.subMargin.desc')}>
             <div className="set-slider">
               <input
                 type="range"
@@ -481,33 +460,33 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </Row>
 
-          <div className="set-sec">Video</div>
-          <Row label="Hardware decoding" desc={HWDEC_DESC[s.hwdec]}>
-            <Select value={s.hwdec} options={HWDEC_OPTS} onChange={v => set('hwdec', v as Settings['hwdec'])} />
+          <div className="set-sec">{t('set.sec.video')}</div>
+          <Row label={t('set.hwdec.label')} desc={hwdecDesc(t)[s.hwdec]}>
+            <Select value={s.hwdec} options={hwdecOpts(t)} onChange={v => set('hwdec', v as Settings['hwdec'])} />
           </Row>
-          <Row label="Online video quality" desc="An upper limit — the real quality still depends on the source (a 1080p-max video plays at 1080p even if you pick higher). Best = highest the source offers. Applies to the next stream.">
-            <Select value={s.streamQuality} options={QUALITY_OPTS} onChange={v => set('streamQuality', v as Settings['streamQuality'])} />
+          <Row label={t('set.quality.label')} desc={t('set.quality.desc')}>
+            <Select value={s.streamQuality} options={qualityOpts(t)} onChange={v => set('streamQuality', v as Settings['streamQuality'])} />
           </Row>
-          <Row label="Use browser cookies" desc="Reads your logged-in cookies so member / age-restricted / Premium videos work. Off by default — your call.">
+          <Row label={t('set.cookies.label')} desc={t('set.cookies.desc')}>
             <Toggle on={s.useCookies} onChange={v => set('useCookies', v)} />
           </Row>
           {s.useCookies && (
-            <Row label="Cookies from">
+            <Row label={t('set.cookiesFrom.label')}>
               <Select value={s.cookiesBrowser} options={BROWSER_OPTS} onChange={v => set('cookiesBrowser', v)} />
             </Row>
           )}
 
-          <div className="set-sec">Screenshots</div>
-          <Row label="Include subtitles" desc="Burn the on-screen subtitles into the screenshot.">
+          <div className="set-sec">{t('set.sec.screenshots')}</div>
+          <Row label={t('set.shotSubs.label')} desc={t('set.shotSubs.desc')}>
             <Toggle on={s.screenshotSubs} onChange={v => set('screenshotSubs', v)} />
           </Row>
-          <Row label="Format" desc="PNG is lossless; JPG is far smaller at near-invisible quality loss (95%).">
-            <Select value={s.screenshotFormat} options={SCREENSHOT_FMT_OPTS} onChange={v => set('screenshotFormat', v as Settings['screenshotFormat'])} />
+          <Row label={t('set.shotFormat.label')} desc={t('set.shotFormat.desc')}>
+            <Select value={s.screenshotFormat} options={screenshotFmtOpts(t)} onChange={v => set('screenshotFormat', v as Settings['screenshotFormat'])} />
           </Row>
           <div className="set-row col">
             <div className="set-text">
-              <div className="set-label">Save folder</div>
-              <div className="set-desc">Where screenshots are written. Type a path or browse.</div>
+              <div className="set-label">{t('set.shotDir.label')}</div>
+              <div className="set-desc">{t('set.shotDir.desc')}</div>
             </div>
             <div className="set-path">
               <input
@@ -529,7 +508,7 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
                   }
                 }}
               />
-              <button className="set-path-btn" title="Browse…" onClick={browseFolder}>
+              <button className="set-path-btn" title={t('set.shotDir.browse')} onClick={browseFolder}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 </svg>
@@ -537,14 +516,14 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </div>
 
-          <div className="set-sec">Controls</div>
+          <div className="set-sec">{t('set.sec.controls')}</div>
           <Row
-            label="Auto-hide delay"
+            label={t('set.oscDelay.label')}
             desc={
               <>
-                How long the on-screen controls linger after the mouse stops, then fade out.
+                {t('set.oscDelay.desc1')}
                 <br />
-                Default = 5 seconds.
+                {t('set.oscDelay.desc2')}
               </>
             }
           >
@@ -562,11 +541,11 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </Row>
 
-          <div className="set-sec">Window</div>
-          <Row label="Remember size &amp; position">
+          <div className="set-sec">{t('set.sec.window')}</div>
+          <Row label={t('set.rememberWindow.label')}>
             <Toggle on={s.rememberWindow} onChange={v => set('rememberWindow', v)} />
           </Row>
-          <Row label="Remember volume">
+          <Row label={t('set.rememberVolume.label')}>
             <Toggle on={s.rememberVolume} onChange={v => set('rememberVolume', v)} />
           </Row>
         </div>
