@@ -16,8 +16,16 @@ import {
   savePlaylistItem,
   type Settings
 } from './settings'
+import { translate, effectiveLocale, type Key } from '@shared/i18n'
 
 const isDev = !app.isPackaged
+
+// Main-process translator. Resolves the locale fresh on every call from the saved
+// setting + OS locale, so toasts and dialogs follow a language change with no
+// wiring. (The renderer has useT; the main process just needs this thin helper.)
+function tr(key: Key, vars?: Record<string, string | number>): string {
+  return translate(effectiveLocale(getSettings().uiLanguage, app.getLocale()), key, vars)
+}
 
 // electron-vite dev restarts Electron constantly; its on-disk HTTP cache can
 // corrupt and then fail module loads with ERR_CACHE_READ_FAILURE (blank window).
@@ -162,7 +170,7 @@ async function downloadYtdl(): Promise<string | null> {
   const dest = ytdlExe()
   try {
     mkdirSync(dirname(dest), { recursive: true })
-    broadcast('ui:toast', 'Fetching yt-dlp…')
+    broadcast('ui:toast', tr('main.fetchingYtdl'))
     const res = await fetch(
       'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
       { headers: { 'User-Agent': 'lunoir' } }
@@ -173,7 +181,7 @@ async function downloadYtdl(): Promise<string | null> {
     renameSync(tmp, dest)
     return dest
   } catch {
-    broadcast('ui:toast', "Couldn't fetch yt-dlp")
+    broadcast('ui:toast', tr('main.ytdlFailed'))
     return null
   }
 }
@@ -257,7 +265,7 @@ async function promptOpenFolder(): Promise<void> {
   if (!win) return
   const res = await dialog.showOpenDialog(win, {
     properties: ['openDirectory'],
-    title: 'Select a folder (a video folder, or a Blu-ray/DVD disc)'
+    title: tr('dlg.selectFolder')
   })
   if (!res.canceled && res.filePaths[0]) openMedia(res.filePaths[0])
 }
@@ -294,7 +302,7 @@ function enumeratePlaylist(ytdlPath: string, url: string): Promise<{ url: string
 /** Load a playlist URL: fetch its entries via yt-dlp and queue them all. */
 async function loadPlaylistUrl(url: string): Promise<void> {
   broadcast('ui:loading', true)
-  broadcast('ui:toast', 'Loading playlist…')
+  broadcast('ui:toast', tr('main.loadingPlaylist'))
   const ytdl = await ensureYtdl()
   if (!ytdl) {
     broadcast('ui:loading', false) // ensureYtdl already toasted the failure
@@ -303,7 +311,7 @@ async function loadPlaylistUrl(url: string): Promise<void> {
   const entries = await enumeratePlaylist(ytdl, url)
   if (!entries.length) {
     broadcast('ui:loading', false)
-    broadcast('ui:toast', "Couldn't load playlist")
+    broadcast('ui:toast', tr('main.playlistFailed'))
     return
   }
   playlist = entries.map(e => e.url)
@@ -395,11 +403,11 @@ function openMedia(target: string): void {
     // videos — e.g. a parent of disc folders — just reports it, no silent hang.
     let files = scanFolder(target)
     if (!files.length) {
-      broadcast('ui:toast', 'No playable media in this folder')
+      broadcast('ui:toast', tr('main.noMedia'))
       return
     }
     if (files.length > MAX_FOLDER_SCAN) {
-      broadcast('ui:toast', `Folder has ${files.length} videos — loading the first ${MAX_FOLDER_SCAN}`)
+      broadcast('ui:toast', tr('main.folderTruncated', { count: files.length, max: MAX_FOLDER_SCAN }))
       files = files.slice(0, MAX_FOLDER_SCAN)
     }
     playlist = files
@@ -1598,7 +1606,7 @@ function startMpv(): void {
       if (pendingResumeToast) {
         // now that playback actually started, announce the resume (not during the
         // grey loading gap — which for streams comes well before this)
-        broadcast('ui:toast', `Resumed from ${pendingResumeToast}`)
+        broadcast('ui:toast', tr('main.resumed', { time: pendingResumeToast }))
         pendingResumeToast = ''
       }
     }
@@ -1757,11 +1765,11 @@ function registerIpc(): void {
   ipcMain.on('playlist:repeat-cycle', () => cycleRepeat())
   ipcMain.on('sub:add', async () => {
     const res = await dialog.showOpenDialog(win!, {
-      title: 'Add Subtitle',
+      title: tr('dlg.addSubtitle'),
       properties: ['openFile'],
       filters: [
-        { name: 'Subtitles', extensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'sup', 'idx', 'lrc'] },
-        { name: 'All Files', extensions: ['*'] }
+        { name: tr('dlg.filter.subtitles'), extensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'sup', 'idx', 'lrc'] },
+        { name: tr('dlg.filter.allFiles'), extensions: ['*'] }
       ]
     })
     if (!res.canceled && res.filePaths[0]) {
@@ -1774,11 +1782,11 @@ function registerIpc(): void {
   })
   ipcMain.on('playlist:add', async () => {
     const res = await dialog.showOpenDialog(win!, {
-      title: 'Add to Playlist',
+      title: tr('dlg.addToPlaylist'),
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: 'Media', extensions: VIDEO_EXT },
-        { name: 'All Files', extensions: ['*'] }
+        { name: tr('dlg.filter.media'), extensions: VIDEO_EXT },
+        { name: tr('dlg.filter.allFiles'), extensions: ['*'] }
       ]
     })
     if (!res.canceled && res.filePaths.length) addToPlaylist(res.filePaths)
@@ -1794,11 +1802,11 @@ function registerIpc(): void {
 
   ipcMain.handle('app:open-dialog', async () => {
     const res = await dialog.showOpenDialog(win!, {
-      title: 'Open Media',
+      title: tr('dlg.openMedia'),
       properties: ['openFile'],
       filters: [
-        { name: 'Media', extensions: VIDEO_EXT },
-        { name: 'All Files', extensions: ['*'] }
+        { name: tr('dlg.filter.media'), extensions: VIDEO_EXT },
+        { name: tr('dlg.filter.allFiles'), extensions: ['*'] }
       ]
     })
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
@@ -1807,7 +1815,7 @@ function registerIpc(): void {
   // settings
   ipcMain.handle('app:pick-folder', async () => {
     const res = await dialog.showOpenDialog(win!, {
-      title: 'Choose screenshot folder',
+      title: tr('dlg.chooseShotDir'),
       defaultPath: screenshotDir(),
       properties: ['openDirectory', 'createDirectory']
     })
@@ -1816,6 +1824,9 @@ function registerIpc(): void {
   ipcMain.handle('settings:get', () => getSettings())
   ipcMain.on('settings:set', (_e, key: keyof Settings, value: unknown) => {
     setSetting(key, value as never)
+    // rebuild the native menu in the new language (its labels are resolved once at
+    // build time, unlike toasts/dialogs which translate at call time)
+    if (key === 'uiLanguage') buildMenu()
     // live-apply just the changed mpv property (languages take effect next file load)
     if (mpv) {
       if (key === 'hwdec') mpv.setProperty('hwdec', value)
@@ -1867,21 +1878,21 @@ function registerIpc(): void {
 function buildMenu(): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'File',
+      label: tr('appmenu.file'),
       submenu: [
         {
-          label: 'Open...',
+          label: tr('appmenu.open'),
           accelerator: 'CmdOrCtrl+O',
           click: async () => {
             const res = await dialog.showOpenDialog(win!, {
               properties: ['openFile'],
-              filters: [{ name: 'Media', extensions: VIDEO_EXT }, { name: 'All', extensions: ['*'] }]
+              filters: [{ name: tr('dlg.filter.media'), extensions: VIDEO_EXT }, { name: tr('dlg.filter.allFiles'), extensions: ['*'] }]
             })
             if (!res.canceled && res.filePaths[0]) mpv?.loadFile(res.filePaths[0])
           }
         },
         {
-          label: 'Open Folder…',
+          label: tr('appmenu.openFolder'),
           accelerator: 'CmdOrCtrl+Shift+O', // reachable even though the frameless window hides the menu bar
           click: () => promptOpenFolder()
         },
@@ -1889,7 +1900,7 @@ function buildMenu(): void {
         { role: 'quit' }
       ]
     },
-    { label: 'View', submenu: [{ role: 'toggleDevTools' }, { role: 'reload' }] }
+    { label: tr('appmenu.view'), submenu: [{ role: 'toggleDevTools' }, { role: 'reload' }] }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
