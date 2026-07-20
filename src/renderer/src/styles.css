@@ -89,7 +89,14 @@ body.has-media .titlebar {
   /* the exact solid colour Win11 falls the title-bar acrylic back to when the
      window is inactive — sampled from the empty state so the two never jar */
   background: rgba(62, 62, 63, 1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* The title's drop shadow only earned its keep back when the bar was transparent
+   over the video. On the opaque strip it just makes the text look smudged, so drop
+   it once media is loaded — the empty state keeps it, since there the bar really is
+   see-through onto a possibly bright desktop. */
+body.has-media .title-text {
+  text-shadow: none;
 }
 
 /* fullscreen is immersive: no strip, the video fills the screen */
@@ -110,7 +117,9 @@ body.fullscreen .titlebar {
 .title-text {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-dim);
+  /* a touch brighter than --text-dim (0.6): the title is the one bit of text on the
+     bar, and it reads too recessed once the shadow is gone */
+  color: rgba(255, 255, 255, 0.72);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
   overflow: hidden;
@@ -139,7 +148,8 @@ body.fullscreen .titlebar {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  /* no drop shadow: like the title text, it was only there for when the bar was
+     transparent over the video — on the opaque strip it just muddies the glyphs */
   transition: background 0.12s, color 0.12s;
 }
 
