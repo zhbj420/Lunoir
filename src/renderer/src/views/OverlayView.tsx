@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePlayer, currentFrame } from '../usePlayer'
 import { useShortcuts } from '../useShortcuts'
+import { useT } from '../useT'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
 import type { MenuNode, SerializedMenuNode } from '../components/ContextMenu'
@@ -49,6 +50,7 @@ const ASPECTS: { key: string; label: string; apply: () => void }[] = [
 // Main window: title bar, empty state, video-surface gestures, side panels. The
 // OSC lives in the separate acrylic window (OscView).
 export default function OverlayView() {
+  const t = useT()
   const p = usePlayer()
   const [dragging, setDragging] = useState(false)
   const [plCount, setPlCount] = useState(0)
@@ -222,17 +224,17 @@ export default function OverlayView() {
     // movie's shots sort in playback order, and the capture date/time guarantees
     // uniqueness. Seconds are enough here — frame precision belongs on screen, not
     // in a filename. mpv's %t* are strftime, but position has to be computed here.
-    const t = Math.max(0, p.state.timePos)
+    const ts = Math.max(0, p.state.timePos)
     const pad = (n: number): string => String(n).padStart(2, '0')
     const pos = [
-      pad(Math.floor(t / 3600)),
-      pad(Math.floor((t / 60) % 60)),
-      pad(Math.floor(t % 60))
+      pad(Math.floor(ts / 3600)),
+      pad(Math.floor((ts / 60) % 60)),
+      pad(Math.floor(ts % 60))
     ].join('-')
     const base = cleanBaseName(p.state.fileName) || '%F'
     window.mmp.set('screenshot-template', `${base}_${pos}_%ty%tm%td_%tH%tM%tS`)
     window.mmp.command(noSubs ? ['screenshot', 'video'] : ['screenshot'])
-    showToast('Screenshot saved to Pictures › Lunoir')
+    showToast(t('toast.screenshotSaved'))
   }
 
   const submitUrl = (): void => {
@@ -246,33 +248,34 @@ export default function OverlayView() {
   // A-B loop cycles: no A → set A, A set → set B, both set → clear (mpv 'ab-loop')
   const abLabel =
     p.state.abLoopA == null
-      ? 'A-B loop: set start (A)'
+      ? t('menu.abStart')
       : p.state.abLoopB == null
-        ? 'A-B loop: set end (B)'
-        : 'A-B loop: clear'
+        ? t('menu.abEnd')
+        : t('menu.abClear')
   const menuItems: MenuNode[] = [
-    { label: p.state.pause ? 'Play' : 'Pause', onClick: p.togglePause },
+    { label: p.state.pause ? t('osc.play') : t('osc.pause'), onClick: p.togglePause },
     { sep: true },
-    { label: 'Previous', onClick: () => window.mmp.playPrev(), disabled: !multi },
-    { label: 'Next', onClick: () => window.mmp.playNext(), disabled: !multi },
-    { label: 'Previous chapter', onClick: () => window.mmp.command(['add', 'chapter', -1]), disabled: !hasChapters },
-    { label: 'Next chapter', onClick: () => window.mmp.command(['add', 'chapter', 1]), disabled: !hasChapters },
+    { label: t('menu.previous'), onClick: () => window.mmp.playPrev(), disabled: !multi },
+    { label: t('menu.next'), onClick: () => window.mmp.playNext(), disabled: !multi },
+    { label: t('menu.prevChapter'), onClick: () => window.mmp.command(['add', 'chapter', -1]), disabled: !hasChapters },
+    { label: t('menu.nextChapter'), onClick: () => window.mmp.command(['add', 'chapter', 1]), disabled: !hasChapters },
     { sep: true },
     {
-      label: 'Speed',
+      label: t('menu.speed'),
       submenu: SPEEDS.map(v => ({
-        label: v === 1 ? 'Normal' : `${v}×`,
+        label: v === 1 ? t('menu.speedNormal') : `${v}×`,
         checked: Math.abs(p.state.speed - v) < 0.01,
         onClick: () => {
           window.mmp.set('speed', v)
-          showToast(v === 1 ? 'Normal speed' : `Speed ${v}×`)
+          showToast(v === 1 ? t('toast.speedNormal') : t('toast.speed', { v }))
         }
       }))
     },
     {
-      label: 'Aspect ratio',
+      label: t('menu.aspect'),
+      // ratios (16:9…) name themselves; only Default and Stretch are words
       submenu: ASPECTS.map(a => ({
-        label: a.label,
+        label: a.key === 'default' ? t('common.default') : a.key === 'stretch' ? t('menu.aspectStretch') : a.label,
         checked: aspect === a.key,
         onClick: () => {
           setAspect(a.key)
@@ -283,17 +286,17 @@ export default function OverlayView() {
     { sep: true },
     { label: abLabel, checked: p.state.abLoopA != null && p.state.abLoopB != null, onClick: () => window.mmp.command(['ab-loop']) },
     { sep: true },
-    { label: 'Screenshot', onClick: () => screenshot(!screenshotSubs) },
+    { label: t('menu.screenshot'), onClick: () => screenshot(!screenshotSubs) },
     {
-      label: 'Timecode overlay',
+      label: t('menu.tcOverlay'),
       checked: tcOverlay,
       onClick: () => window.mmp.setSetting('timecodeOverlay', !tcOverlay)
     },
     { sep: true },
-    { label: 'Open file…', onClick: p.openFile },
-    { label: 'Open URL…', onClick: () => { setUrlText(''); setUrlOpen(true) } },
+    { label: t('menu.openFile'), onClick: p.openFile },
+    { label: t('menu.openUrl'), onClick: () => { setUrlText(''); setUrlOpen(true) } },
     { sep: true },
-    { label: 'Fullscreen', onClick: p.fullscreen }
+    { label: t('menu.fullscreen'), onClick: p.fullscreen }
   ]
 
   // The menu is its own window now, so it can only be handed plain data: pack the
@@ -373,7 +376,7 @@ export default function OverlayView() {
       {loading && (
         <div className="loading-overlay">
           <div className="spinner" />
-          <div className="loading-text">Loading…</div>
+          <div className="loading-text">{t('toast.loading')}</div>
         </div>
       )}
 
@@ -388,7 +391,7 @@ export default function OverlayView() {
             ref={urlInputRef}
             className="url-input"
             spellCheck={false}
-            placeholder="Paste a video or stream URL…"
+            placeholder={t('empty.urlPlaceholder')}
             value={urlText}
             onChange={e => setUrlText(e.target.value)}
             onKeyDown={e => {
@@ -397,7 +400,7 @@ export default function OverlayView() {
               else if (e.key === 'Escape') setUrlOpen(false)
             }}
           />
-          <button className="url-go" onClick={submitUrl} title="Play">
+          <button className="url-go" onClick={submitUrl} title={t('empty.urlPlay')}>
             <svg width="16" height="16" viewBox="0 0 24 24">
               <path d="M8 5 L18 12 L8 19 Z" fill="currentColor" />
             </svg>

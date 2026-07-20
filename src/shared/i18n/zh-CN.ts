@@ -118,5 +118,97 @@ export const zhCN: Partial<Record<Key, string>> = {
   'opt.lang.italian': '意大利语',
   'opt.lang.russian': '俄语',
   'opt.lang.portuguese': '葡萄牙语',
-  'opt.uiLang.system': '跟随系统'
+  'opt.uiLang.system': '跟随系统',
+
+  // ---- 右面板：标签页 ----
+  'panel.tab.audioSub': '音轨与字幕',
+  'panel.tab.playlist': '播放列表',
+  'panel.tab.chapters': '章节',
+
+  // ---- 右面板：播放列表 ----
+  'panel.empty.queue': '列表为空',
+  'panel.repeat.off': '循环：关闭',
+  'panel.repeat.all': '循环：全部',
+  'panel.repeat.one': '循环：单个',
+  'panel.shuffle.on': '随机：开',
+  'panel.shuffle.off': '随机：关',
+  'panel.addFiles': '添加文件',
+  'panel.removeCurrent': '移除当前',
+
+  // ---- 右面板：章节 ----
+  'panel.empty.chapters': '无章节',
+  'panel.chapterN': '第 {n} 章',
+
+  // ---- 右面板：音轨与字幕 ----
+  'panel.sec.audio': '音轨',
+  'panel.sec.subtitles': '字幕',
+  'panel.empty.audio': '无音轨',
+  'panel.subNone': '无',
+  'panel.addSub': '添加字幕…',
+  'panel.trackN': '轨道 {n}',
+
+  // ---- 右面板：字幕/音频微调 ----
+  'adjust.label': '调整',
+  'adjust.active': '已应用微调',
+  'adjust.reset': '重置',
+  'adjust.delay': '延迟',
+  'adjust.position': '位置',
+  'adjust.size': '大小',
+  'adjust.brightness': '亮度',
+  'adjust.earlier': '提前（−0.1 秒）',
+  'adjust.later': '延后（+0.1 秒）',
+  'adjust.moveUp': '上移',
+  'adjust.moveDown': '下移',
+  'adjust.smaller': '缩小',
+  'adjust.larger': '放大',
+  'adjust.dimmer': '调暗',
+  'adjust.brighter': '调亮',
+  'adjust.imageSubHint': '图形字幕 — 仅可调位置与延迟',
+
+  // ---- 右键菜单 ----
+  'menu.previous': '上一个',
+  'menu.next': '下一个',
+  'menu.prevChapter': '上一章',
+  'menu.nextChapter': '下一章',
+  'menu.speed': '播放速度',
+  'menu.speedNormal': '正常',
+  'menu.aspect': '画面比例',
+  'menu.aspectStretch': '拉伸铺满',
+  'menu.abStart': 'A-B 循环：设起点 (A)',
+  'menu.abEnd': 'A-B 循环：设终点 (B)',
+  'menu.abClear': 'A-B 循环：清除',
+  'menu.screenshot': '截图',
+  'menu.tcOverlay': '时间码角标',
+  'menu.openFile': '打开文件…',
+  'menu.openUrl': '打开 URL…',
+  'menu.fullscreen': '全屏',
+
+  // ---- 提示浮层（渲染层） ----
+  'toast.speedNormal': '正常速度',
+  'toast.speed': '速度 {v}×',
+  'toast.screenshotSaved': '截图已保存至 图片 › Lunoir',
+  'toast.loading': '加载中…',
+
+  // ---- 提示 / 对话框（主进程） ----
+  'main.fetchingYtdl': '正在获取 yt-dlp…',
+  'main.ytdlFailed': 'yt-dlp 获取失败',
+  'main.loadingPlaylist': '正在加载播放列表…',
+  'main.playlistFailed': '播放列表加载失败',
+  'main.noMedia': '此文件夹中没有可播放的媒体',
+  'main.folderTruncated': '文件夹内有 {count} 个视频 — 仅加载前 {max} 个',
+  'main.resumed': '已从 {time} 继续播放',
+  'dlg.selectFolder': '选择文件夹（视频文件夹，或蓝光 / DVD 原盘）',
+  'dlg.addSubtitle': '添加字幕',
+  'dlg.addToPlaylist': '添加到播放列表',
+  'dlg.openMedia': '打开媒体',
+  'dlg.chooseShotDir': '选择截图文件夹',
+  'dlg.filter.subtitles': '字幕文件',
+  'dlg.filter.media': '媒体文件',
+  'dlg.filter.allFiles': '所有文件',
+
+  // ---- 原生应用菜单（无边框窗口中隐藏，可用快捷键触发） ----
+  'appmenu.file': '文件',
+  'appmenu.open': '打开…',
+  'appmenu.openFolder': '打开文件夹…',
+  'appmenu.view': '视图'
 }

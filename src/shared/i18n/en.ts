@@ -146,7 +146,99 @@ export const en = {
   'opt.lang.italian': 'Italian',
   'opt.lang.russian': 'Russian',
   'opt.lang.portuguese': 'Portuguese',
-  'opt.uiLang.system': 'System'
+  'opt.uiLang.system': 'System',
+
+  // ---- right panel: tabs ----
+  'panel.tab.audioSub': 'Audio & Sub',
+  'panel.tab.playlist': 'Playlist',
+  'panel.tab.chapters': 'Chapters',
+
+  // ---- right panel: playlist ----
+  'panel.empty.queue': 'Nothing queued',
+  'panel.repeat.off': 'Repeat: off',
+  'panel.repeat.all': 'Repeat: all',
+  'panel.repeat.one': 'Repeat: one',
+  'panel.shuffle.on': 'Shuffle: on',
+  'panel.shuffle.off': 'Shuffle: off',
+  'panel.addFiles': 'Add files',
+  'panel.removeCurrent': 'Remove current',
+
+  // ---- right panel: chapters ----
+  'panel.empty.chapters': 'No chapters',
+  'panel.chapterN': 'Chapter {n}',
+
+  // ---- right panel: tracks (audio & sub) ----
+  'panel.sec.audio': 'Audio',
+  'panel.sec.subtitles': 'Subtitles',
+  'panel.empty.audio': 'No audio tracks',
+  'panel.subNone': 'None',
+  'panel.addSub': 'Add subtitle…',
+  'panel.trackN': 'Track {n}',
+
+  // ---- right panel: subtitle/audio adjust ----
+  'adjust.label': 'Adjust',
+  'adjust.active': 'Adjustments active',
+  'adjust.reset': 'Reset',
+  'adjust.delay': 'Delay',
+  'adjust.position': 'Position',
+  'adjust.size': 'Size',
+  'adjust.brightness': 'Brightness',
+  'adjust.earlier': 'Earlier (−0.1s)',
+  'adjust.later': 'Later (+0.1s)',
+  'adjust.moveUp': 'Move up',
+  'adjust.moveDown': 'Move down',
+  'adjust.smaller': 'Smaller',
+  'adjust.larger': 'Larger',
+  'adjust.dimmer': 'Dimmer',
+  'adjust.brighter': 'Brighter',
+  'adjust.imageSubHint': 'Image subtitle — position & delay only',
+
+  // ---- right-click menu ----
+  'menu.previous': 'Previous',
+  'menu.next': 'Next',
+  'menu.prevChapter': 'Previous chapter',
+  'menu.nextChapter': 'Next chapter',
+  'menu.speed': 'Speed',
+  'menu.speedNormal': 'Normal',
+  'menu.aspect': 'Aspect ratio',
+  'menu.aspectStretch': 'Stretch to fill',
+  'menu.abStart': 'A-B loop: set start (A)',
+  'menu.abEnd': 'A-B loop: set end (B)',
+  'menu.abClear': 'A-B loop: clear',
+  'menu.screenshot': 'Screenshot',
+  'menu.tcOverlay': 'Timecode overlay',
+  'menu.openFile': 'Open file…',
+  'menu.openUrl': 'Open URL…',
+  'menu.fullscreen': 'Fullscreen',
+
+  // ---- toasts (renderer) ----
+  'toast.speedNormal': 'Normal speed',
+  'toast.speed': 'Speed {v}×',
+  'toast.screenshotSaved': 'Screenshot saved to Pictures › Lunoir',
+  'toast.loading': 'Loading…',
+
+  // ---- toasts / dialogs (main process) ----
+  'main.fetchingYtdl': 'Fetching yt-dlp…',
+  'main.ytdlFailed': "Couldn't fetch yt-dlp",
+  'main.loadingPlaylist': 'Loading playlist…',
+  'main.playlistFailed': "Couldn't load playlist",
+  'main.noMedia': 'No playable media in this folder',
+  'main.folderTruncated': 'Folder has {count} videos — loading the first {max}',
+  'main.resumed': 'Resumed from {time}',
+  'dlg.selectFolder': 'Select a folder (a video folder, or a Blu-ray/DVD disc)',
+  'dlg.addSubtitle': 'Add Subtitle',
+  'dlg.addToPlaylist': 'Add to Playlist',
+  'dlg.openMedia': 'Open Media',
+  'dlg.chooseShotDir': 'Choose screenshot folder',
+  'dlg.filter.subtitles': 'Subtitles',
+  'dlg.filter.media': 'Media',
+  'dlg.filter.allFiles': 'All Files',
+
+  // ---- native app menu (hidden in the frameless window; reachable by shortcut) ----
+  'appmenu.file': 'File',
+  'appmenu.open': 'Open…',
+  'appmenu.openFolder': 'Open Folder…',
+  'appmenu.view': 'View'
 }
 
 export type Key = keyof typeof en

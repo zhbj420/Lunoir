@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useT, type T } from '../useT'
 
 type Tab = 'playlist' | 'chapters' | 'tracks'
 type RepeatMode = 'off' | 'all' | 'one'
@@ -86,7 +87,7 @@ function subFmt(codec?: string): string {
 // Subtitle left label. The format lives in the right-hand tag (subFmt), so strip
 // format tokens out of the title ("English-PGS" → "English") and don't repeat the
 // codec. Keeps meaningful descriptors like SDH / Forced. Falls back to language.
-function subName(t: Track): string {
+function subName(t: Track, tr: T): string {
   let title = t.title && !looksLikeFilename(t.title) ? t.title : ''
   if (title) {
     title = title
@@ -96,7 +97,7 @@ function subName(t: Track): string {
       .trim()
   }
   const lang = langName(t.lang)
-  if (!title) return lang || `Track ${t.id}`
+  if (!title) return lang || tr('panel.trackN', { n: t.id })
   // prefix the language only if the title doesn't already name it
   if (lang && !title.toLowerCase().includes(lang.toLowerCase())) return `${lang} ${title}`
   return title
@@ -177,7 +178,7 @@ function audioFormatName(t: Track, ff?: ProbeStream): string {
 // DD 5.1: a 640k main + a 448k track). MediaInfo (ff) supplies the per-track
 // bitrate + commercial format that mpv can't report for inactive tracks; we fall
 // back to mpv's demux-bitrate when it's absent. Keep a descriptive title too.
-function audioTrackLabel(t: Track, ff?: ProbeStream): string {
+function audioTrackLabel(t: Track, ff: ProbeStream | undefined, tr: T): string {
   let main = [langName(t.lang), audioFormatName(t, ff), chLayout(t['demux-channel-count'])]
     .filter(Boolean)
     .join(' ')
@@ -187,7 +188,7 @@ function audioTrackLabel(t: Track, ff?: ProbeStream): string {
   if (main && br) main = `${main}${gap}${br}`
   const title = t.title && !looksLikeFilename(t.title) ? t.title : ''
   if (title && main) return `${title} · ${main}`
-  return main || title || `Track ${t.id}`
+  return main || title || tr('panel.trackN', { n: t.id })
 }
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v))
@@ -288,6 +289,7 @@ function AdjustRow({
   rightTitle?: string
   onChange: (v: number) => void
 }) {
+  const t = useT()
   const [text, setText] = useState<string | null>(null) // non-null while editing
   const factor = Math.pow(10, decimals)
   const round = (v: number): number => Math.round(v * factor) / factor
@@ -342,7 +344,7 @@ function AdjustRow({
           <Right />
         </button>
       </div>
-      <button className="adjust-reset" title="Reset" disabled={disabled || !offset} onClick={() => onChange(resetValue)}>
+      <button className="adjust-reset" title={t('adjust.reset')} disabled={disabled || !offset} onClick={() => onChange(resetValue)}>
         <IconReset />
       </button>
     </div>
@@ -357,6 +359,7 @@ const Chevron = () => (
 
 // The right-hand context panel. Tabs: Playlist, Chapters, Audio & Sub.
 export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT()
   const [tab, setTab] = useState<Tab>('tracks') // Audio & Sub is the default tab
   const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false })
   const [chapters, setChapters] = useState<Chapter[]>([])
@@ -520,16 +523,16 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
     >
       <div className="panel-tabs">
         <button className={`panel-tab ${tab === 'tracks' ? 'active' : ''}`} onClick={() => setTab('tracks')}>
-          Audio &amp; Sub
+          {t('panel.tab.audioSub')}
         </button>
         <button className={`panel-tab ${tab === 'playlist' ? 'active' : ''}`} onClick={() => setTab('playlist')}>
-          Playlist
+          {t('panel.tab.playlist')}
         </button>
         <button className={`panel-tab ${tab === 'chapters' ? 'active' : ''}`} onClick={() => setTab('chapters')}>
-          Chapters
+          {t('panel.tab.chapters')}
         </button>
         <span className="panel-tabs-spacer" />
-        <button className="panel-collapse" title="Collapse panel" onClick={onClose}>
+        <button className="panel-collapse" title={t('common.collapse')} onClick={onClose}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 4l4 4-4 4M9 4l4 4-4 4" />
           </svg>
@@ -540,7 +543,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
         <>
           <div className="panel-body">
             {pl.items.length === 0 ? (
-              <div className="panel-empty">Nothing queued</div>
+              <div className="panel-empty">{t('panel.empty.queue')}</div>
             ) : (
               pl.items.map((it, i) => (
                 <div
@@ -567,7 +570,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
           <div className="panel-tools">
             <button
               className="tool"
-              title={repeat === 'off' ? 'Repeat: off' : repeat === 'all' ? 'Repeat: all' : 'Repeat: one'}
+              title={repeat === 'off' ? t('panel.repeat.off') : repeat === 'all' ? t('panel.repeat.all') : t('panel.repeat.one')}
               onClick={() => window.mmp.cycleRepeat()}
             >
               {repeat === 'off' ? <IconRepeatOff /> : <IconRepeat />}
@@ -575,20 +578,20 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
             </button>
             <button
               className={`tool ${pl.shuffle ? 'on' : ''}`}
-              title={pl.shuffle ? 'Shuffle: on' : 'Shuffle: off'}
+              title={pl.shuffle ? t('panel.shuffle.on') : t('panel.shuffle.off')}
               onClick={() => window.mmp.toggleShuffle()}
             >
               <IconShuffle />
             </button>
             <span className="panel-tools-spacer" />
-            <button className="tool" title="Add files" onClick={() => window.mmp.addToPlaylist()}>
+            <button className="tool" title={t('panel.addFiles')} onClick={() => window.mmp.addToPlaylist()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <path d="M12 4v16M4 12h16" />
               </svg>
             </button>
             <button
               className="tool"
-              title="Remove current"
+              title={t('panel.removeCurrent')}
               disabled={pl.index < 0}
               onClick={() => pl.index >= 0 && window.mmp.removeFromPlaylist(pl.index)}
             >
@@ -605,7 +608,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       {tab === 'chapters' && (
         <div className="panel-body">
           {chapters.length === 0 ? (
-            <div className="panel-empty">No chapters</div>
+            <div className="panel-empty">{t('panel.empty.chapters')}</div>
           ) : (
             chapters.map((ch, i) => (
               <div
@@ -622,7 +625,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
                     <span className="pl-idx">{i + 1}</span>
                   )}
                 </span>
-                <span className="pl-name">{ch.title || `Chapter ${i + 1}`}</span>
+                <span className="pl-name">{ch.title || t('panel.chapterN', { n: i + 1 })}</span>
                 <span className="pl-time">{fmt(ch.time)}</span>
               </div>
             ))
@@ -633,25 +636,25 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       {tab === 'tracks' && (
         <>
           <div className="panel-body">
-            <div className="track-sec">Audio</div>
+            <div className="track-sec">{t('panel.sec.audio')}</div>
             {audioTracks.length === 0 ? (
-              <div className="track-empty">No audio tracks</div>
+              <div className="track-empty">{t('panel.empty.audio')}</div>
             ) : (
-              audioTracks.map(t => (
+              audioTracks.map(tk => (
                 <div
-                  key={`a${t.id}`}
-                  className={`pl-item ${t.id === aid ? 'active' : ''}`}
-                  onClick={() => window.mmp.set('aid', t.id)}
+                  key={`a${tk.id}`}
+                  className={`pl-item ${tk.id === aid ? 'active' : ''}`}
+                  onClick={() => window.mmp.set('aid', tk.id)}
                 >
-                  <span className="pl-mark">{t.id === aid ? <Check /> : null}</span>
+                  <span className="pl-mark">{tk.id === aid ? <Check /> : null}</span>
                   <span className="pl-name" onMouseEnter={e => clipTitle(e.currentTarget)}>
-                    {audioTrackLabel(t, t['ff-index'] != null ? probe[t['ff-index']] : undefined)}
+                    {audioTrackLabel(tk, tk['ff-index'] != null ? probe[tk['ff-index']] : undefined, t)}
                   </span>
                 </div>
               ))
             )}
             <AdjustRow
-              label="Delay"
+              label={t('adjust.delay')}
               variant="step"
               value={audioDelay}
               min={-1000}
@@ -662,30 +665,30 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
               decimals={1}
               signed
               disabled={audioTracks.length === 0}
-              leftTitle="Earlier (−0.1s)"
-              rightTitle="Later (+0.1s)"
+              leftTitle={t('adjust.earlier')}
+              rightTitle={t('adjust.later')}
               onChange={setAudioDelayV}
             />
 
-            <div className="track-sec">Subtitles</div>
+            <div className="track-sec">{t('panel.sec.subtitles')}</div>
             <div
               className={`pl-item ${sid === false ? 'active' : ''}`}
               onClick={() => window.mmp.set('sid', 'no')}
             >
               <span className="pl-mark">{sid === false ? <Check /> : null}</span>
-              <span className="pl-name">None</span>
+              <span className="pl-name">{t('panel.subNone')}</span>
             </div>
-            {subTracks.map(t => (
+            {subTracks.map(tk => (
               <div
-                key={`s${t.id}`}
-                className={`pl-item ${t.id === sid ? 'active' : ''}`}
-                onClick={() => window.mmp.set('sid', t.id)}
+                key={`s${tk.id}`}
+                className={`pl-item ${tk.id === sid ? 'active' : ''}`}
+                onClick={() => window.mmp.set('sid', tk.id)}
               >
-                <span className="pl-mark">{t.id === sid ? <Check /> : null}</span>
+                <span className="pl-mark">{tk.id === sid ? <Check /> : null}</span>
                 <span className="pl-name" onMouseEnter={e => clipTitle(e.currentTarget)}>
-                  {subName(t)}
+                  {subName(tk, t)}
                 </span>
-                {subFmt(t.codec) && <span className="pl-fmt">{subFmt(t.codec)}</span>}
+                {subFmt(tk.codec) && <span className="pl-fmt">{subFmt(tk.codec)}</span>}
               </div>
             ))}
 
@@ -693,7 +696,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              Add subtitle…
+              {t('panel.addSub')}
             </button>
           </div>
 
@@ -702,13 +705,13 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
           <div className={`sub-adjust ${subAdjOpen ? 'open' : ''}`}>
             <button className="sub-adjust-head" onClick={() => setSubAdjOpen(o => !o)}>
               <Chevron />
-              <span className="sub-adjust-label">Adjust</span>
-              {!subAdjOpen && subOffset && <span className="sub-adjust-dot" title="Adjustments active" />}
+              <span className="sub-adjust-label">{t('adjust.label')}</span>
+              {!subAdjOpen && subOffset && <span className="sub-adjust-dot" title={t('adjust.active')} />}
             </button>
             <div className="sub-adjust-anim">
               <div className="sub-adjust-body">
                 <AdjustRow
-                  label="Delay"
+                  label={t('adjust.delay')}
                   variant="step"
                   value={subDelay}
                   min={-1000}
@@ -719,12 +722,12 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
                   decimals={1}
                   signed
                   disabled={!hasSub}
-                  leftTitle="Earlier (−0.1s)"
-                  rightTitle="Later (+0.1s)"
+                  leftTitle={t('adjust.earlier')}
+                  rightTitle={t('adjust.later')}
                   onChange={setSubDelayV}
                 />
                 <AdjustRow
-                  label="Position"
+                  label={t('adjust.position')}
                   variant="pos"
                   value={subPos}
                   min={0}
@@ -734,12 +737,12 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
                   unit=""
                   decimals={0}
                   disabled={!hasSub}
-                  leftTitle="Move up"
-                  rightTitle="Move down"
+                  leftTitle={t('adjust.moveUp')}
+                  rightTitle={t('adjust.moveDown')}
                   onChange={setSubPosV}
                 />
                 <AdjustRow
-                  label="Size"
+                  label={t('adjust.size')}
                   variant="step"
                   value={Math.round(subScale * 100)}
                   min={0}
@@ -749,12 +752,12 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
                   unit="%"
                   decimals={0}
                   disabled={!hasSub || isImageSub}
-                  leftTitle="Smaller"
-                  rightTitle="Larger"
+                  leftTitle={t('adjust.smaller')}
+                  rightTitle={t('adjust.larger')}
                   onChange={setSubScaleV}
                 />
                 <AdjustRow
-                  label="Brightness"
+                  label={t('adjust.brightness')}
                   variant="step"
                   value={subBright}
                   min={0}
@@ -764,12 +767,12 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
                   unit="%"
                   decimals={0}
                   disabled={!hasSub || isImageSub}
-                  leftTitle="Dimmer"
-                  rightTitle="Brighter"
+                  leftTitle={t('adjust.dimmer')}
+                  rightTitle={t('adjust.brighter')}
                   onChange={setSubBrightV}
                 />
                 {isImageSub && (
-                  <div className="sub-adjust-hint">Image subtitle — position &amp; delay only</div>
+                  <div className="sub-adjust-hint">{t('adjust.imageSubHint')}</div>
                 )}
               </div>
             </div>
