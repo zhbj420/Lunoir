@@ -698,6 +698,34 @@ function oscRestBounds(): Electron.Rectangle {
   }
 }
 
+/**
+ * Opacity setter that keeps the acrylic alive.
+ *
+ * On Windows `setOpacity(<1)` turns the window LAYERED (WS_EX_LAYERED), and a
+ * layered window cannot keep its DWM system backdrop — so every OSC/panel fade
+ * silently killed the frost. Electron drops the layered style again at opacity 1,
+ * but the backdrop is NOT restored on its own: it only came back on minimize +
+ * restore (which rebuilds the window). So re-assert it every time we settle back
+ * to fully opaque. Symptom this fixes: pause (→ OSC reveal animation) left every
+ * acrylic surface flat until you minimized the app.
+ */
+const wentLayered = new WeakMap<BrowserWindow, boolean>()
+
+function setWinOpacity(w: BrowserWindow | null, v: number): void {
+  if (!w || w.isDestroyed()) return
+  w.setOpacity(v)
+  if (v < 1) {
+    wentLayered.set(w, true) // now layered → its backdrop is gone
+    return
+  }
+  // back to fully opaque: only re-assert if we actually dropped below 1, otherwise
+  // the redundant DWM call makes the window visibly flash on every reveal
+  if (wentLayered.get(w)) {
+    wentLayered.set(w, false)
+    w.setBackgroundMaterial('acrylic')
+  }
+}
+
 // Reveal / hide the OSC by fading + sliding the whole acrylic window as one unit
 // (setOpacity + setBounds). This avoids Windows' show() scale animation and the
 // "two layer" look of fading the content over a static frosted frame.
@@ -712,7 +740,7 @@ function animateOsc(reveal: boolean): void {
   const dur = reveal ? 260 : 190
   if (reveal && !oscWin.isVisible()) {
     // show while fully transparent so the OS open-animation isn't seen
-    oscWin.setOpacity(0)
+    setWinOpacity(oscWin, 0)
     oscWin.setBounds({ ...rest, y: rest.y + lift })
     oscWin.showInactive()
   }
@@ -730,7 +758,7 @@ function animateOsc(reveal: boolean): void {
     }
     const p = Math.min(1, (Date.now() - t0) / dur)
     const e = reveal ? 1 - Math.pow(1 - p, 3) : p * p
-    oscWin.setOpacity(fromOp + (toOp - fromOp) * e)
+    setWinOpacity(oscWin, fromOp + (toOp - fromOp) * e)
     oscWin.setBounds({ ...rest, y: Math.round(fromY + (toY - fromY) * e) })
     if (p >= 1) {
       clearInterval(oscAnim!)
@@ -759,7 +787,7 @@ function slideOscToRest(): void {
     clearInterval(oscAnim)
     oscAnim = null
   }
-  oscWin.setOpacity(1) // it's shown — snap opacity in case a reveal was mid-flight
+  setWinOpacity(oscWin, 1) // it's shown — snap opacity in case a reveal was mid-flight
   const dur = 420
   const t0 = Date.now()
   oscAnim = setInterval(() => {
@@ -824,7 +852,7 @@ function animatePanel(side: 'right' | 'left', reveal: boolean): void {
     pw.setBounds(panelBounds(side)) // always at rest — within the window, never outside
     pw.setIgnoreMouseEvents(false)
     if (!pw.isVisible()) {
-      pw.setOpacity(0)
+      setWinOpacity(pw, 0)
       pw.showInactive()
     }
   }
@@ -841,7 +869,7 @@ function animatePanel(side: 'right' | 'left', reveal: boolean): void {
     // easeOutCubic both ways: the fade starts FAST, so on close the frost drops out
     // immediately (in step with the content sliding away) instead of lingering
     const e = 1 - Math.pow(1 - p, 3)
-    pw.setOpacity(fromOp + (toOp - fromOp) * e)
+    setWinOpacity(pw, fromOp + (toOp - fromOp) * e)
     if (p >= 1) {
       clearInterval(timer)
       setPanelAnim(side, null)
@@ -967,7 +995,7 @@ function toggleFullscreen(): void {
         clearInterval(oscAnim)
         oscAnim = null
       }
-      oscWin.setOpacity(1)
+      setWinOpacity(oscWin, 1)
       oscWin.setBounds(oscRestBounds())
     }
     // snap any open panels to their new full-height bounds (top = 0 in fullscreen)
@@ -980,7 +1008,7 @@ function toggleFullscreen(): void {
           clearInterval(anim)
           setPanelAnim(side, null)
         }
-        pw.setOpacity(1)
+        setWinOpacity(pw, 1)
         pw.setBounds(panelBounds(side))
       }
     }
@@ -1078,7 +1106,7 @@ function makePanelWindow(kind: 'playlist' | 'settings'): BrowserWindow {
     // Every later open then finds it already shown → a clean fade, no first-time zoom.
     if (win && !win.isDestroyed()) {
       pw.setBounds(panelBounds(kind === 'playlist' ? 'right' : 'left'))
-      pw.setOpacity(0)
+      setWinOpacity(pw, 0)
       pw.setIgnoreMouseEvents(true)
       pw.showInactive()
     }
@@ -1142,13 +1170,11 @@ function createWindows(): void {
   })
   loadRenderer(oscWin, 'win=osc')
 
-  // Win11 needs the OSC focusable to frost it, but the OSC never needs to hold
-  // focus — so when a click activates it, hand focus straight back to the main
-  // window. That keeps a fullscreen main window in the foreground (no taskbar pop)
-  // while the acrylic still renders. Clicks/drags fire regardless of activation.
-  oscWin.on('focus', () => {
-    if (win && !win.isDestroyed()) win.focus()
-  })
+  // NOTE: we deliberately do NOT bounce focus back to the main window when the OSC
+  // is clicked. Win11 renders an *inactive* window's acrylic as a flat fallback
+  // colour, so stealing focus straight back left the OSC unfrosted after every
+  // button press. The taskbar problem that bounce originally guarded against is
+  // now handled by borderless fullscreen + always-on-top (see toggleFullscreen).
 
   rightPanelWin = makePanelWindow('playlist')
   leftPanelWin = makePanelWindow('settings')
