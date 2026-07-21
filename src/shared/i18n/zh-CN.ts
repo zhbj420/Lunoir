@@ -148,6 +148,8 @@ export const zhCN: Partial<Record<Key, string>> = {
   'panel.shuffle.on': '随机：开',
   'panel.shuffle.off': '随机：关',
   'panel.addFiles': '添加文件',
+  'panel.savePlaylist': '保存播放列表',
+  'panel.saveSource': '收藏此直播源',
   'panel.removeCurrent': '移除当前',
 
   // ---- 右面板：章节 ----

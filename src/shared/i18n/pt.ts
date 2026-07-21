@@ -158,6 +158,8 @@ export const pt: Partial<Record<Key, string>> = {
   'panel.shuffle.on': 'Aleatório: lig.',
   'panel.shuffle.off': 'Aleatório: desl.',
   'panel.addFiles': 'Adicionar ficheiros',
+  'panel.savePlaylist': 'Guardar lista',
+  'panel.saveSource': 'Guardar fonte',
   'panel.removeCurrent': 'Remover o atual',
 
   'panel.empty.chapters': 'Sem capítulos',

@@ -160,6 +160,8 @@ export const ko: Partial<Record<Key, string>> = {
   'panel.shuffle.on': '셔플: 켜기',
   'panel.shuffle.off': '셔플: 끄기',
   'panel.addFiles': '파일 추가',
+  'panel.savePlaylist': '재생목록 저장',
+  'panel.saveSource': '소스 저장',
   'panel.removeCurrent': '현재 항목 제거',
 
   'panel.empty.chapters': '챕터 없음',

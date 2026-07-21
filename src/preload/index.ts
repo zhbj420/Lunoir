@@ -45,8 +45,9 @@ export interface Settings {
 }
 
 // --- 收藏 (library): recents (auto) + favourites (manual) ---
-// 'list' = an IPTV/playlist source you drill into; file/url play directly.
-export type MediaKind = 'file' | 'url' | 'list'
+// 'list' = an IPTV channel directory; 'playlist' = a saved play-through queue;
+// 'file'/'url' play directly.
+export type MediaKind = 'file' | 'url' | 'list' | 'playlist'
 /** One channel inside a favourited list (snapshotted so dead ones can be deleted). */
 export interface Channel {
   name: string
@@ -64,7 +65,8 @@ export interface FavEntry {
   name: string
   kind: MediaKind
   at: number // added epoch ms
-  channels?: Channel[] // present for kind === 'list'
+  channels?: Channel[] // present for kind === 'list' (IPTV) — the parsed channels
+  items?: { path: string; name: string }[] // present for kind === 'playlist' — the queue
 }
 
 export interface MpvProperty {
@@ -242,6 +244,11 @@ const api = {
   favouriteCurrent: (): void => ipcRenderer.send('library:fav-current'), // right-click 收藏当前
   onCurrentFav: (cb: (fav: boolean) => void): Unsubscribe =>
     subscribe('library:current-fav', (fav: boolean) => cb(fav)),
+  // the right panel's bottom button: save the whole collection (queue → a saved
+  // playlist; IPTV → the m3u source). onCollectionSaved drives its saved/unsaved state.
+  saveCollection: (): void => ipcRenderer.send('library:save-collection'),
+  onCollectionSaved: (cb: (saved: boolean) => void): Unsubscribe =>
+    subscribe('library:collection-saved', (saved: boolean) => cb(saved)),
   removeFavourite: (target: string): void => ipcRenderer.send('library:fav-remove', target),
   removeFavouriteChannel: (listTarget: string, channelUrl: string): void =>
     ipcRenderer.send('library:fav-channel-remove', listTarget, channelUrl),

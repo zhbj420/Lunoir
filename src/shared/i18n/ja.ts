@@ -160,6 +160,8 @@ export const ja: Partial<Record<Key, string>> = {
   'panel.shuffle.on': 'シャッフル: オン',
   'panel.shuffle.off': 'シャッフル: オフ',
   'panel.addFiles': 'ファイルを追加',
+  'panel.savePlaylist': 'プレイリストを保存',
+  'panel.saveSource': 'ソースを保存',
   'panel.removeCurrent': '現在の項目を削除',
 
   'panel.empty.chapters': 'チャプターなし',

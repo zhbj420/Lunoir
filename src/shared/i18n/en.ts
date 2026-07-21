@@ -184,6 +184,8 @@ export const en = {
   'panel.shuffle.on': 'Shuffle: on',
   'panel.shuffle.off': 'Shuffle: off',
   'panel.addFiles': 'Add files',
+  'panel.savePlaylist': 'Save playlist',
+  'panel.saveSource': 'Save this source',
   'panel.removeCurrent': 'Remove current',
 
   // ---- right panel: chapters ----

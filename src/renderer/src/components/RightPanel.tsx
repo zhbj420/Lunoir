@@ -376,6 +376,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
   const [subScale, setSubScale] = useState(1) // sub-scale multiplier
   const [subBright, setSubBright] = useState(100) // % of white; local (sub-color)
   const [subAdjOpen, setSubAdjOpen] = useState(false)
+  const [collectionSaved, setCollectionSaved] = useState(false) // is this queue/source in 收藏?
 
   // playlist state, pushed from main
   useEffect(() => {
@@ -383,6 +384,9 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
     window.mmp.getPlaylist().then(p => mounted && setPl(p))
     return window.mmp.onPlaylistChanged(p => setPl(p))
   }, [])
+
+  // whether the current collection (queue / IPTV source) is saved → save-button state
+  useEffect(() => window.mmp.onCollectionSaved(setCollectionSaved), [])
 
   // chapters: fetch on mount / file change, and follow live position
   useEffect(() => {
@@ -570,6 +574,15 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
           </div>
 
           <div className="panel-tools">
+            <button
+              className={`tool ${collectionSaved ? 'on' : ''}`}
+              title={pl.sourceType === 'iptv' ? t('panel.saveSource') : t('panel.savePlaylist')}
+              onClick={() => window.mmp.saveCollection()}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={collectionSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round">
+                <path d="M12 4 l2.35 4.9 5.4 .7 -3.95 3.7 1.0 5.3 -4.8 -2.6 -4.8 2.6 1.0 -5.3 -3.95 -3.7 5.4 -.7 Z" />
+              </svg>
+            </button>
             <button
               className="tool"
               title={repeat === 'off' ? t('panel.repeat.off') : repeat === 'all' ? t('panel.repeat.all') : t('panel.repeat.one')}

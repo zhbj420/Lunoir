@@ -159,6 +159,8 @@ export const ru: Partial<Record<Key, string>> = {
   'panel.shuffle.on': 'Случайно: вкл.',
   'panel.shuffle.off': 'Случайно: выкл.',
   'panel.addFiles': 'Добавить файлы',
+  'panel.savePlaylist': 'Сохранить плейлист',
+  'panel.saveSource': 'Сохранить источник',
   'panel.removeCurrent': 'Убрать текущий',
 
   'panel.empty.chapters': 'Нет глав',

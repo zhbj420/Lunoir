@@ -517,10 +517,86 @@ function recordOpen(target: string): void {
   }
 }
 
-/** After any favourites mutation: refresh the overlay + the right-click toggle. */
+/** After any favourites mutation: refresh the overlay + the right-click toggle +
+ *  the panel's collection save-button state. */
 function afterFavChange(): void {
   broadcast('favourites:changed')
   broadcast('library:current-fav', curOpen ? isFavourite(curOpen.target) : false)
+  broadcast('library:collection-saved', collectionSaved())
+}
+
+// A content fingerprint of the current queue → a stable id, so saving the same
+// queue twice dedups (and the button can show a saved/unsaved toggle).
+function hashStr(s: string): string {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+const queueKey = (): string => 'pl:' + hashStr(playlist.join(' '))
+function queueName(): string {
+  const first = playlist[0]
+  if (!first) return 'Playlist'
+  const base = urlTitles[first] || basename(first)
+  const dir = isUrl(first) ? '' : basename(dirname(first))
+  return playlist.length > 1 && dir ? dir : base // a folder queue → the folder name
+}
+
+/** Is the current collection already saved? (the m3u source for IPTV, else the
+ *  current queue by fingerprint) — drives the panel's save-button state. */
+function collectionSaved(): boolean {
+  if (sourceType === 'iptv') return curOpen ? isFavourite(curOpen.target) : false
+  return playlist.length > 0 && isFavourite(queueKey())
+}
+
+/** The panel's bottom button: save/unsave the whole collection. IPTV → the m3u
+ *  source (kind 'list'); a queue → a saved playlist snapshot (kind 'playlist'). */
+function saveCollection(): void {
+  if (sourceType === 'iptv') {
+    if (!curOpen) return
+    if (isFavourite(curOpen.target)) {
+      removeFavourite(curOpen.target)
+      afterFavChange()
+      broadcast('ui:toast', tr('toast.unfavourited'))
+    } else {
+      favouriteTarget(curOpen.target)
+      broadcast('ui:toast', tr('toast.favourited'))
+    }
+    return
+  }
+  if (!playlist.length) return
+  const key = queueKey()
+  if (isFavourite(key)) {
+    removeFavourite(key)
+    afterFavChange()
+    broadcast('ui:toast', tr('toast.unfavourited'))
+  } else {
+    addFavourite({
+      target: key,
+      name: queueName(),
+      kind: 'playlist',
+      at: Date.now(),
+      items: playlist.map(p => ({ path: p, name: urlTitles[p] || basename(p) }))
+    })
+    afterFavChange()
+    broadcast('ui:toast', tr('toast.favourited'))
+  }
+}
+
+/** Reopen a saved playlist: load its snapshot items into the queue and play. */
+function loadSavedPlaylist(fav: FavEntry): void {
+  const items = fav.items ?? []
+  playlist = items.map(i => i.path)
+  urlTitles = {}
+  for (const i of items) urlTitles[i.path] = i.name
+  sourceType = 'queue'
+  curOpen = { target: fav.target, kind: 'playlist' } // so collection-saved reads true
+  curOpenChannels = null
+  curRecentPending = false
+  plIndex = 0
+  playlistKey = ''
+  discDevice = ''
+  resyncShuffle()
+  playCurrent()
 }
 
 /** Save a target to 收藏. Derives kind + a good name (prefers the resolved recents
@@ -610,6 +686,7 @@ function playCurrent(): void {
   // remember which item of this URL playlist we're on, so reopening resumes here
   if (playlistKey && getSettings().resumePlaylistItem) savePlaylistItem(playlistKey, target)
   broadcast('playlist:changed', playlistPayload())
+  broadcast('library:collection-saved', collectionSaved()) // panel save-button state
   if (mpv) {
     // a disc: point mpv at the device + give it a friendly title; else clear any
     // stale override (force-media-title is persistent across loads)
@@ -2196,11 +2273,14 @@ function registerIpc(): void {
   ipcMain.handle('library:recents', () => getRecents())
   ipcMain.handle('library:favourites', () => getFavourites())
   ipcMain.on('library:play', (_e, target: string) => {
-    if (typeof target === 'string' && target) {
-      closeLibrary()
-      openMedia(target)
-    }
+    if (typeof target !== 'string' || !target) return
+    closeLibrary()
+    // a saved playlist reopens its snapshot queue; everything else is a plain open
+    const fav = getFavourites().find(f => f.target === target)
+    if (fav && fav.kind === 'playlist' && fav.items?.length) loadSavedPlaylist(fav)
+    else openMedia(target)
   })
+  ipcMain.on('library:save-collection', () => saveCollection())
   ipcMain.on('library:recent-remove', (_e, target: string) => {
     removeRecent(target)
     broadcast('recents:changed')

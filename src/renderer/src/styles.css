@@ -548,11 +548,12 @@ body.fullscreen .titlebar {
   padding: 7px 3px;
 }
 
-/* toggled-on state (e.g. list button while the right panel is open): just the
-   bright glyph, no box (matches the box-free hover; the narrow icon made the box
-   an ugly tall rectangle). Hover still grows+brightens via the .grp.right rule. */
+/* toggled-on state (e.g. list button while the right panel is open): the glyph
+   brightens to the same level as a hovered transport button — clearly above the grey
+   idle icons, visually unified, no box (the narrow icon made a box an ugly tall
+   rectangle). glyph-strong was too close to the idle grey to read as on. */
 .ib.on {
-  color: var(--glyph-strong);
+  color: rgb(205, 205, 211);
 }
 
 .ib.dim {
@@ -1934,10 +1935,11 @@ body.library-win.library-shown .library {
   right: 58px;
 }
 
-/* open-state: brighten the glyph (no box, like the OSC on-state) while the surface
-   this entry toggles — settings panel / 收藏 overlay — is open */
+/* open-state: brighten the glyph (no box) while the surface this entry toggles —
+   settings panel / 收藏 overlay — is open. Same level as the OSC on-state so the
+   two corners read consistently. */
 .settings-entry.on {
-  color: var(--text);
+  color: rgb(205, 205, 211);
 }
 
 @media (hover: hover) {
