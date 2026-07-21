@@ -2,6 +2,35 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-21 · 收藏 library + IPTV 直播 + 录制 · v0.5.0 发布）
+
+**阶段：Home 从「空 Open File」升级成 **收藏启动器**（最近 / 收藏 / 播放列表 / 直播源 四 tab），新增 **IPTV m3u/txt 直播**（分组 + 搜索 + 打开即刷新）、**直播录制**（MKV 流复制）。类型 / `i18n-check`(9 语言) / 构建全绿；真机逐条测过；两个 exe（setup + portable）发 GitHub release，Latest。**
+
+### 收藏浮层 = 纯启动器（不下钻）
+- **一块磨砂居中子窗**（复用侧面板那套 acrylic 窗口），入口 = OSC 最左小星标 + 空状态右下角星标；打开时藏 OSC（同右键菜单）。**点一下就播**：曾做过浮层内「点列表→看频道」的下钻，用户否掉（"点了就直接播放"）→ 频道改在**右面板**显示（和从磁盘打开 m3u 一样）。
+- **4 tab 由一个扁平 favourites 存储按 `kind` 拆**：最近（`recents.json` 自动）/ 收藏（file·url）/ 播放列表（`playlist`，存队列快照）/ 直播源（`list`，存频道快照）。每行可**重命名（铅笔就地编辑）+ 删除（垃圾桶）**。
+- **最近的口径**：本地文件 + **可 seek 的点播** URL 才进；**IPTV 列表和直播流都不进**（文件在 `recordOpen` 即入，URL 挂 `curRecentPending`、只在 mpv 报 `seekable===true` 才入 → 直播永不进、死链也不进）。
+
+### IPTV 直播（`src/main/index.ts`）
+- `parseChannelList`（扩展 M3U `#EXTINF group-title=…,名字` + txt `分组,#genre#`；名字在最后一个 `"` 后的逗号切，避免属性里的逗号截断）、`fetchChannels`（远程 `fetch` **必须带浏览器 UA** 否则服务器回空；本地 `readFileSync`）、`loadChannelList`、`loadFavCollection`。`openMedia` 把 `.m3u`/`.txt` 路由到这（`.m3u8` = 单流，直接进 mpv）。
+- **右面板上下文标签**：`sourceType`(`queue`|`iptv`|`playlist-url`) 随 `playlistPayload` 下发 → 列表 tab 在 iptv 下叫 **频道**、普通队列叫 **播放列表**。频道按 `group-title` **分组折叠 + 搜索**（默认只展开第一组；折叠组里若含正在播的频道 → 该组头显**灰条**，不是提亮文字）。
+- **保存按钮**（右面板工具行的星）上下文化：队列→存 **播放列表**（target = 各项 URL 的 content-hash，重存自动去重）；IPTV→**收藏整个 m3u 源**（`kind:list`，频道快照）。右键「收藏当前」= **只加不删**（已存则 toast「已在收藏中」，删除走浮层垃圾桶）。
+- **打开即刷新**：`loadFavCollection` 重新抓源（URL 源拉最新频道、本地文件吃改动）并回写快照，**离线/失效则回落快照**；存的播放列表只播快照 items，不重抓。
+
+### 硬核踩坑（发布前逮到的，别重走）
+- **`force-media-title` 必须在 `loadFile` 之后设**，不能之前 —— mpv 自己 load 时的 `path` 事件会重置渲染层标题，之前设的会被抹掉、标题栏掉回丑陋的 URL 尾巴（`playlist.m3u8`）。
+- **IPTV 频道绝不走 yt-dlp** —— `needsYtdl` 靠「URL 不以媒体扩展名结尾」判定，会误伤 `.php`/带 query 的流地址 → 既跳了强制标题又错误 yt-dlp'd。用 `sourceType !== 'iptv'` 拦住；且 `media-title` 处理器对 iptv **不许覆盖** `urlTitles`（m3u 里的台名才权威）。
+- **播放列表/频道行的 React key 用原始 index，不用 `it.path`** —— m3u 可能重复同一 URL（多源），key 撞了会在搜索过滤后留下**组外鬼影行**。
+
+### 错误处理
+- 缺文件 / 死源过去是**静默黑屏**（mpv 清了 spinner 但没画面、无 toast，`onEnded` 只认真 EOF 故队列里死条目不自动跳）。现：`playCurrent` 对**本地文件** `existsSync` 守卫 → toast「文件不存在,请检查文件」+ 跳下一个可播的；死流/URL 走 mpv end-file `reason==='error'` → toast。
+
+### 遗留 / 待办
+- **单频道删除**（在侧面板频道列表里删死源）：下钻 backend（`library:open-at`、`removeFavouriteChannel/Item`、`lib.back`/`lib.emptyList`、`.lib-*` CSS）**休眠在 tree 里**，留给将来的侧面板频道管理 UI。
+- **A-B 段落导出**（mpv 不能 stream-copy 段落 → 需要 ffmpeg 决策，见录制方案）。
+
+---
+
 ## 当前状态（2026-07-21 · 全界面多语言收官 · 9 语言 · v0.4.0 发布）
 
 **阶段：把整个 UI 翻完并扩到 9 种语言，配套工具链齐活，发布 v0.4.0。类型/构建过，真机逐语言 eyeball（中日重点看，其余抽查）。**
