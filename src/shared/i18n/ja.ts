@@ -218,5 +218,11 @@ export const ja: Partial<Record<Key, string>> = {
   'appmenu.file': 'ファイル',
   'appmenu.open': '開く…',
   'appmenu.openFolder': 'フォルダーを開く…',
-  'appmenu.view': '表示'
+  'appmenu.view': '表示',
+
+  'common.restoreDefault': '既定に戻す',
+  'set.sec.appearance': '外観',
+  'set.frost.label': 'すりガラスの強さ',
+  'set.frost.desc':
+    'パネルや画面上のコントロールが、すりガラス越しにどれだけ映像を透かすか。高いほど透け、低いほど不透明になります。'
 }

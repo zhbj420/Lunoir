@@ -36,11 +36,13 @@ export const en = {
   'common.settings': 'Settings',
   'common.collapse': 'Collapse panel',
   'common.default': 'Default',
+  'common.restoreDefault': 'Restore default',
 
   // ---- settings panel ----
   // Register: plain, complete sentences. State what the setting does and what it
   // costs. No jokes, no winking asides, no "your call".
   'set.sec.interface': 'Interface',
+  'set.sec.appearance': 'Appearance',
   'set.sec.playlist': 'Playlist',
   'set.sec.audioSubs': 'Audio & subtitles',
   'set.sec.subAppearance': 'Subtitle appearance',
@@ -52,6 +54,10 @@ export const en = {
   'set.uiLang.label': 'Interface language',
   'set.uiLang.desc':
     "The language used for Lunoir's menus and settings. Separate from the preferred audio and subtitle languages below, which select tracks within the video.",
+
+  'set.frost.label': 'Frosted-glass strength',
+  'set.frost.desc':
+    'How much the panels and on-screen controls let the video show through their frosted glass. Higher is more see-through; lower is more solid.',
 
   // Multi-line descriptions carry their own \n breaks; the renderer splits on them
   // so each language wraps where it reads best, rather than at a fixed English break.

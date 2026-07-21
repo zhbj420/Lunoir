@@ -210,5 +210,11 @@ export const zhCN: Partial<Record<Key, string>> = {
   'appmenu.file': '文件',
   'appmenu.open': '打开…',
   'appmenu.openFolder': '打开文件夹…',
-  'appmenu.view': '视图'
+  'appmenu.view': '视图',
+
+  // ---- 外观(磨砂强弱)+ 恢复默认 ----
+  'common.restoreDefault': '恢复默认',
+  'set.sec.appearance': '外观',
+  'set.frost.label': '磨砂强弱',
+  'set.frost.desc': '面板与画面控件的磨砂玻璃透出多少视频。越高越通透,越低越实。'
 }

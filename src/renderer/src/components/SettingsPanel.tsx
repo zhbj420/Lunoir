@@ -2,6 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode 
 import { createPortal } from 'react-dom'
 import { LANG_OPTIONS, type LangSetting } from '@shared/i18n'
 import { useT, type T } from '../useT'
+import { FROST_DEFAULT } from '../frost'
 
 // Render a translated string that carries \n line breaks as separate lines. The
 // break points live in the copy (and differ between languages), not in the JSX.
@@ -35,6 +36,7 @@ interface Settings {
   audioPassthrough: boolean
   passthroughCodecs: string
   oscHideDelay: number
+  frostStrength: number
   subHdrPeak: number
   hwdec: 'auto' | 'auto-copy' | 'no'
   streamQuality: 'best' | '2160' | '1080' | '720' | '480'
@@ -376,6 +378,32 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               options={uiLangOpts(t)}
               onChange={v => set('uiLanguage', v as Settings['uiLanguage'])}
             />
+          </Row>
+
+          <div className="set-sec">{t('set.sec.appearance')}</div>
+          <Row label={t('set.frost.label')} desc={t('set.frost.desc')}>
+            <div className="set-slider">
+              <input
+                type="range"
+                className="set-range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.min(100, Math.max(0, s.frostStrength))}
+                onChange={e => set('frostStrength', Number(e.target.value))}
+              />
+              <button
+                className="set-reset"
+                title={t('common.restoreDefault')}
+                disabled={s.frostStrength === FROST_DEFAULT}
+                onClick={() => set('frostStrength', FROST_DEFAULT)}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+              </button>
+            </div>
           </Row>
 
           <div className="set-sec">{t('set.sec.playlist')}</div>

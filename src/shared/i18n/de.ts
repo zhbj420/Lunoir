@@ -216,5 +216,11 @@ export const de: Partial<Record<Key, string>> = {
   'appmenu.file': 'Datei',
   'appmenu.open': 'Öffnen…',
   'appmenu.openFolder': 'Ordner öffnen…',
-  'appmenu.view': 'Ansicht'
+  'appmenu.view': 'Ansicht',
+
+  'common.restoreDefault': 'Standard wiederherstellen',
+  'set.sec.appearance': 'Darstellung',
+  'set.frost.label': 'Milchglas-Stärke',
+  'set.frost.desc':
+    'Wie stark die Panels und Bildschirmelemente das Video durch ihr Milchglas zeigen. Höher = durchsichtiger, niedriger = deckender.'
 }

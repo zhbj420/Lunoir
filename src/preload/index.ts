@@ -26,6 +26,7 @@ export interface Settings {
   audioPassthrough: boolean // bitstream compressed audio to an external receiver (mpv audio-spdif)
   passthroughCodecs: string // which formats to passthrough (comma list: ac3,eac3,truehd,dts,dts-hd)
   oscHideDelay: number // seconds the OSC stays before auto-hiding
+  frostStrength: number // 0..100 → acrylic panel scrim alpha (lower = more see-through)
   subHdrPeak: number // peak nits for subtitles over HDR video (mpv sub-hdr-peak)
   hwdec: Hwdec
   streamQuality: StreamQuality // online (yt-dlp) max quality

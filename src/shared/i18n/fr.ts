@@ -216,5 +216,11 @@ export const fr: Partial<Record<Key, string>> = {
   'appmenu.file': 'Fichier',
   'appmenu.open': 'Ouvrir…',
   'appmenu.openFolder': 'Ouvrir un dossier…',
-  'appmenu.view': 'Affichage'
+  'appmenu.view': 'Affichage',
+
+  'common.restoreDefault': 'Restaurer les valeurs par défaut',
+  'set.sec.appearance': 'Apparence',
+  'set.frost.label': 'Intensité du verre dépoli',
+  'set.frost.desc':
+    'Dans quelle mesure les panneaux et les commandes laissent voir la vidéo à travers leur verre dépoli. Plus haut = plus transparent ; plus bas = plus opaque.'
 }

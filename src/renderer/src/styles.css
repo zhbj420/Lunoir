@@ -9,9 +9,12 @@
 }
 
 :root {
-  /* Panel = flat gray scrim over a Win11 acrylic window. Two knobs:
-     brightness = the gray RGB, transparency = the alpha (lower = more frost). */
+  /* Panel = flat gray scrim over a Win11 acrylic window. The alpha (lower = more
+     see-through) is driven live by frost.ts from the frostStrength setting; these
+     are the fallback defaults if that hasn't run yet. --panel-inactive is the
+     heavier scrim used while the app is unfocused (Win11 lightens the acrylic). */
   --panel: rgba(24, 24, 27, 0.40);
+  --panel-inactive: rgba(24, 24, 27, 0.50);
   /* right-panel width. Default = PANEL_MAX_W; main overrides it live via
      'ui:panel-width' (shrinks the panel on small windows so the OSC still fits). */
   --panel-w: 440px;
@@ -63,9 +66,10 @@
 }
 
 /* When the app is inactive, Win11 lightens the acrylic; thicken the scrims a bit
-   to soften (not fully cancel) the brightening. */
+   to soften (not fully cancel) the brightening. --panel-inactive tracks the frost
+   setting (frost.ts); --empty-scrim is the empty-state tint, left fixed. */
 body.app-inactive {
-  --panel: rgba(24, 24, 27, 0.50);
+  --panel: var(--panel-inactive);
   --empty-scrim: rgba(16, 16, 20, 0.32);
 }
 
@@ -1458,7 +1462,8 @@ body.panel-win.panel-shown .panel.left > * {
   color: var(--text);
 }
 
-.adjust-reset {
+.adjust-reset,
+.set-reset {
   flex: none;
   width: 24px;
   height: 24px;
@@ -1474,13 +1479,15 @@ body.panel-win.panel-shown .panel.left > * {
 }
 
 @media (hover: hover) {
-  .adjust-reset:hover:not(:disabled) {
+  .adjust-reset:hover:not(:disabled),
+  .set-reset:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text);
   }
 }
 
-.adjust-reset:disabled {
+.adjust-reset:disabled,
+.set-reset:disabled {
   opacity: 0.25;
   cursor: default;
 }
