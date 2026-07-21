@@ -32,6 +32,10 @@ export const de: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Noch nichts gespeichert. Während der Wiedergabe rechtsklicken, um es hier zu speichern.',
   'lib.addFav': 'Speichern',
   'lib.remove': 'Entfernen',
+  'lib.playlists': 'Wiedergabelisten',
+  'lib.live': 'Live',
+  'lib.emptyPlaylists': 'Noch keine Wiedergabelisten gespeichert. Speichere eine im Wiedergabelisten-Panel.',
+  'lib.emptyLive': 'Noch keine Live-Quellen gespeichert.',
   'common.collapse': 'Panel einklappen',
   'common.default': 'Standard',
 

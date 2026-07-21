@@ -146,6 +146,9 @@ let discDevice = '' // bluray-device / dvd-device path when the current item is 
 let curOpen: { target: string; kind: MediaKind } | null = null
 // the parsed channels of the currently-open list (to snapshot on 收藏); null otherwise
 let curOpenChannels: Channel[] | null = null
+// a URL open waiting on 'seekable' to decide recents: only a seekable VOD is added;
+// a live (non-seekable) stream never is. Files are added at once (never live).
+let curRecentPending = false
 let repeatMode: RepeatMode = 'off'
 // resume: the file + position we're currently tracking, and when we last wrote it
 let resumePath = ''
@@ -489,13 +492,21 @@ function recordOpen(target: string): void {
       : 'file'
   curOpen = { target, kind }
   curOpenChannels = null // set by loadChannelList if this open turns out to be a list
+  curRecentPending = false
   broadcast('library:current-fav', isFavourite(target)) // right-click 收藏 reflects it
-  // a whole channel list (IPTV m3u/txt, or a playlist URL) is a collection you save
-  // to 收藏 on purpose — it does NOT belong in auto "recently played". Only single
-  // files and single URLs (e.g. one live address via Open-URL) are recorded.
+  // What enters "recently played":
+  //  - a whole channel list (IPTV m3u/txt, or a playlist URL) never does — it's a
+  //    collection you save to 收藏 on purpose.
+  //  - a single file is added at once (a local file is never live).
+  //  - a single URL waits: it's added only once mpv proves it a seekable VOD; a live
+  //    (non-seekable) stream is never added (decided in the 'seekable' handler).
   if (kind === 'list') return
-  addRecent(target, kind === 'url' ? target : basename(target) || target, kind)
-  broadcast('recents:changed')
+  if (kind === 'file') {
+    addRecent(target, basename(target) || target, 'file')
+    broadcast('recents:changed')
+  } else {
+    curRecentPending = true // a URL — hold until 'seekable' decides
+  }
 }
 
 /** After any favourites mutation: refresh the overlay + the right-click toggle. */
@@ -1936,6 +1947,13 @@ function startMpv(): void {
     } else if (name === 'aid') {
       lastAid = typeof data === 'number' ? data : false
       broadcastActiveAudio()
+    } else if (name === 'seekable' && data === true && curRecentPending && curOpen?.kind === 'url') {
+      // the URL proved a seekable VOD → now it may enter recents (with the resolved
+      // title if we have it). A live stream reports false and is simply never added;
+      // we only act on true, so a transient false at load can't wrongly drop a VOD.
+      addRecent(curOpen.target, urlTitles[curOpen.target] || curOpen.target, 'url')
+      curRecentPending = false
+      broadcast('recents:changed')
     } else if (name === 'duration' && typeof data === 'number') {
       lastDuration = data
     } else if (name === 'volume' && typeof data === 'number') {

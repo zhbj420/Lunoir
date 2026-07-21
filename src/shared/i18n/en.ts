@@ -47,6 +47,10 @@ export const en = {
   'lib.emptyFav': 'Nothing saved yet. Right-click while playing to save it here.',
   'lib.addFav': 'Save',
   'lib.remove': 'Remove',
+  'lib.playlists': 'Playlists',
+  'lib.live': 'Live',
+  'lib.emptyPlaylists': 'No saved playlists yet. Save one from the playlist panel.',
+  'lib.emptyLive': 'No saved live sources yet.',
 
   // ---- settings panel ----
   // Register: plain, complete sentences. State what the setting does and what it

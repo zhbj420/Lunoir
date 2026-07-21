@@ -34,6 +34,10 @@ export const ko: Partial<Record<Key, string>> = {
   'lib.emptyFav': '저장된 항목이 없습니다. 재생 중 마우스 오른쪽 버튼으로 저장하세요.',
   'lib.addFav': '저장',
   'lib.remove': '제거',
+  'lib.playlists': '재생목록',
+  'lib.live': '라이브',
+  'lib.emptyPlaylists': '저장된 재생목록이 없습니다. 재생목록 패널에서 저장하세요.',
+  'lib.emptyLive': '저장된 라이브 소스가 없습니다.',
   'common.collapse': '패널 접기',
   'common.default': '기본값',
 

@@ -32,6 +32,10 @@ export const fr: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Rien d’enregistré. Faites un clic droit pendant la lecture pour l’enregistrer ici.',
   'lib.addFav': 'Enregistrer',
   'lib.remove': 'Retirer',
+  'lib.playlists': 'Listes',
+  'lib.live': 'En direct',
+  'lib.emptyPlaylists': 'Aucune liste enregistrée. Enregistrez-en une depuis le panneau de lecture.',
+  'lib.emptyLive': 'Aucune source en direct enregistrée.',
   'common.collapse': 'Réduire le panneau',
   'common.default': 'Par défaut',
 

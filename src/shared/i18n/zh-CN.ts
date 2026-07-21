@@ -35,6 +35,10 @@ export const zhCN: Partial<Record<Key, string>> = {
   'lib.emptyFav': '还没有收藏。播放时右键即可添加到这里。',
   'lib.addFav': '收藏',
   'lib.remove': '移除',
+  'lib.playlists': '播放列表',
+  'lib.live': '直播源',
+  'lib.emptyPlaylists': '还没有保存的播放列表。可在播放列表面板里保存。',
+  'lib.emptyLive': '还没有收藏的直播源。',
 
   // ---- 设置面板 ----
   'set.sec.interface': '界面',

@@ -33,6 +33,10 @@ export const ru: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Пока ничего не сохранено. Щёлкните правой кнопкой во время воспроизведения, чтобы сохранить.',
   'lib.addFav': 'Сохранить',
   'lib.remove': 'Удалить',
+  'lib.playlists': 'Плейлисты',
+  'lib.live': 'Эфир',
+  'lib.emptyPlaylists': 'Пока нет сохранённых плейлистов. Сохраните из панели плейлиста.',
+  'lib.emptyLive': 'Пока нет сохранённых источников эфира.',
   'common.collapse': 'Свернуть панель',
   'common.default': 'По умолчанию',
 

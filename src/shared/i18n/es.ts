@@ -32,6 +32,10 @@ export const es: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Nada guardado todavía. Haz clic derecho durante la reproducción para guardarlo aquí.',
   'lib.addFav': 'Guardar',
   'lib.remove': 'Quitar',
+  'lib.playlists': 'Listas',
+  'lib.live': 'En directo',
+  'lib.emptyPlaylists': 'Aún no hay listas guardadas. Guarda una desde el panel de lista.',
+  'lib.emptyLive': 'Aún no hay fuentes en directo guardadas.',
   'common.collapse': 'Contraer panel',
   'common.default': 'Predeterminado',
 

@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react'
 import { useT } from '../useT'
 
 // Mirrors the preload RecentEntry/FavEntry shape (renderer can't import from preload).
-type Kind = 'file' | 'url' | 'list'
+type Kind = 'file' | 'url' | 'list' | 'playlist'
 interface Entry {
   target: string
   name: string
   kind: Kind
   at: number
   channels?: { name: string; url: string; group: string }[]
+  items?: { path: string; name: string }[]
 }
-type Tab = 'favourites' | 'recent'
+type Tab = 'recent' | 'saved' | 'playlists' | 'live'
 
 export default function Library() {
   const t = useT()
@@ -32,18 +33,37 @@ export default function Library() {
   }, [])
 
   const play = (target: string): void => window.mmp.playTarget(target) // main closes the overlay
-  const list = tab === 'recent' ? recents : favs
+
+  // one flat store of favourites, split by kind across the tabs
+  const saved = favs.filter(e => e.kind === 'file' || e.kind === 'url')
+  const playlists = favs.filter(e => e.kind === 'playlist')
+  const live = favs.filter(e => e.kind === 'list')
+  const list = tab === 'recent' ? recents : tab === 'saved' ? saved : tab === 'playlists' ? playlists : live
+  const empty =
+    tab === 'recent'
+      ? t('lib.emptyRecent')
+      : tab === 'saved'
+        ? t('lib.emptyFav')
+        : tab === 'playlists'
+          ? t('lib.emptyPlaylists')
+          : t('lib.emptyLive')
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: 'recent', label: t('lib.recent') },
+    { id: 'saved', label: t('lib.favourites') },
+    { id: 'playlists', label: t('lib.playlists') },
+    { id: 'live', label: t('lib.live') }
+  ]
 
   return (
     <div className="library">
       <div className="lib-head">
         <div className="lib-tabs">
-          <button className={tab === 'favourites' ? 'on' : ''} onClick={() => setTab('favourites')}>
-            {t('lib.favourites')}
-          </button>
-          <button className={tab === 'recent' ? 'on' : ''} onClick={() => setTab('recent')}>
-            {t('lib.recent')}
-          </button>
+          {TABS.map(x => (
+            <button key={x.id} className={tab === x.id ? 'on' : ''} onClick={() => setTab(x.id)}>
+              {x.label}
+            </button>
+          ))}
         </div>
         <button className="lib-close" title={t('common.close')} onClick={() => window.mmp.closeLibrary()}>
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -54,46 +74,35 @@ export default function Library() {
 
       <div className="lib-body">
         {list.length === 0 ? (
-          <div className="lib-empty">{tab === 'recent' ? t('lib.emptyRecent') : t('lib.emptyFav')}</div>
+          <div className="lib-empty">{empty}</div>
         ) : (
           <ul className="lib-list">
-            {list.map(e => (
-              <li key={e.target} className="lib-row" onClick={() => play(e.target)} title={e.target}>
-                <KindIcon kind={e.kind} />
-                <span className="lib-name">{e.name}</span>
-                {e.kind === 'list' && e.channels && (
-                  <span className="lib-count">{e.channels.length}</span>
-                )}
-                <div className="lib-actions" onClick={ev => ev.stopPropagation()}>
-                  {tab === 'recent' ? (
-                    <>
-                      <button
-                        className="lib-act"
-                        title={t('lib.addFav')}
-                        onClick={() => window.mmp.addFavourite(e.target)}
-                      >
-                        <IcStarOutline />
+            {list.map(e => {
+              const count = e.channels?.length ?? e.items?.length
+              return (
+                <li key={e.target} className="lib-row" onClick={() => play(e.target)} title={e.target}>
+                  <KindIcon kind={e.kind} />
+                  <span className="lib-name">{e.name}</span>
+                  {count != null && <span className="lib-count">{count}</span>}
+                  <div className="lib-actions" onClick={ev => ev.stopPropagation()}>
+                    {tab === 'recent' ? (
+                      <>
+                        <button className="lib-act" title={t('lib.addFav')} onClick={() => window.mmp.addFavourite(e.target)}>
+                          <IcStarOutline />
+                        </button>
+                        <button className="lib-act" title={t('lib.remove')} onClick={() => window.mmp.removeRecent(e.target)}>
+                          <IcClose />
+                        </button>
+                      </>
+                    ) : (
+                      <button className="lib-act" title={t('lib.remove')} onClick={() => window.mmp.removeFavourite(e.target)}>
+                        <IcTrash />
                       </button>
-                      <button
-                        className="lib-act"
-                        title={t('lib.remove')}
-                        onClick={() => window.mmp.removeRecent(e.target)}
-                      >
-                        <IcClose />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="lib-act"
-                      title={t('lib.remove')}
-                      onClick={() => window.mmp.removeFavourite(e.target)}
-                    >
-                      <IcTrash />
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
+                    )}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
@@ -106,6 +115,12 @@ function KindIcon({ kind }: { kind: Kind }) {
     return (
       <svg className="lib-kind" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
         <path d="M9.5 14.5 L14.5 9.5 M8 11 L6 13 a3.5 3.5 0 0 0 5 5 l2-2 M16 13 l2-2 a3.5 3.5 0 0 0 -5 -5 l-2 2" />
+      </svg>
+    )
+  if (kind === 'playlist')
+    return (
+      <svg className="lib-kind" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 7 h11 M5 11 h11 M5 15 h6 M16 13 l5 3 -5 3 Z" />
       </svg>
     )
   if (kind === 'list')

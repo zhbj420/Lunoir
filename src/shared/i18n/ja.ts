@@ -34,6 +34,10 @@ export const ja: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'まだ保存がありません。再生中に右クリックで保存できます。',
   'lib.addFav': '保存',
   'lib.remove': '削除',
+  'lib.playlists': 'プレイリスト',
+  'lib.live': 'ライブ',
+  'lib.emptyPlaylists': '保存したプレイリストがありません。プレイリストパネルから保存できます。',
+  'lib.emptyLive': '保存したライブソースがありません。',
   'common.collapse': 'パネルを折りたたむ',
   'common.default': '既定',
 
