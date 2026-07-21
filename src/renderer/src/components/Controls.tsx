@@ -216,6 +216,13 @@ export default function Controls(props: Props) {
           )}
           <button
             className="ib s"
+            title={t('osc.library')}
+            onClick={() => window.mmp.toggleLibrary()}
+          >
+            <IcSaved />
+          </button>
+          <button
+            className="ib s"
             title={t('common.settings')}
             onClick={() => window.mmp.togglePanel('settings')}
           >
@@ -342,5 +349,10 @@ const IcGear = () => (
 const IcList = () => (
   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
     <path d="M8 7 H20 M8 12 H20 M8 17 H20 M4 7 h.01 M4 12 h.01 M4 17 h.01" />
+  </svg>
+)
+const IcSaved = () => (
+  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round">
+    <path d="M12 2.7 L14.2 9 L20.8 9.1 L15.5 13.1 L17.5 19.5 L12 15.7 L6.5 19.5 L8.5 13.1 L3.2 9.1 L9.8 9 Z" />
   </svg>
 )

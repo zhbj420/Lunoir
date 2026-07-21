@@ -3,9 +3,9 @@
 import { app } from 'electron'
 import { join } from 'node:path'
 import { readFileSync, writeFileSync } from 'node:fs'
-import type { Settings } from '../preload/index'
+import type { Settings, MediaKind, Channel, RecentEntry, FavEntry } from '../preload/index'
 
-export type { Settings }
+export type { Settings, MediaKind, Channel, RecentEntry, FavEntry }
 
 const DEFAULTS: Settings = {
   uiLanguage: 'system', // follow the OS locale until the user picks one
@@ -135,4 +135,110 @@ export function savePlaylistItem(key: string, item: string): void {
   } catch {
     /* ignore */
   }
+}
+
+// ---- recently played (auto) + favourites (manual) ----
+// Both back the 「收藏」overlay. A recent is written on every open; a favourite
+// is a deliberate keep. Entry types live in preload (the IPC contract).
+const RECENTS_CAP = 20
+let recCache: RecentEntry[] | null = null
+const recFile = (): string => join(app.getPath('userData'), 'recents.json')
+
+function recents(): RecentEntry[] {
+  if (recCache) return recCache
+  try {
+    const parsed = JSON.parse(readFileSync(recFile(), 'utf8'))
+    recCache = Array.isArray(parsed) ? parsed : []
+  } catch {
+    recCache = []
+  }
+  return recCache!
+}
+
+function writeRecents(): void {
+  try {
+    writeFileSync(recFile(), JSON.stringify(recents()))
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getRecents(): RecentEntry[] {
+  return recents()
+}
+
+/** Record (or bump to the top) a played item; caps the list, newest first. */
+export function addRecent(target: string, name: string, kind: MediaKind): void {
+  const list = recents().filter(e => e.target !== target)
+  list.unshift({ target, name, kind, at: Date.now() })
+  recCache = list.slice(0, RECENTS_CAP)
+  writeRecents()
+}
+
+/** Refine a recent's display name once the real title is known (URLs mostly). */
+export function updateRecentName(target: string, name: string): void {
+  const e = recents().find(x => x.target === target)
+  if (!e || !name || e.name === name) return
+  e.name = name
+  writeRecents()
+}
+
+export function removeRecent(target: string): void {
+  recCache = recents().filter(e => e.target !== target)
+  writeRecents()
+}
+
+export function clearRecents(): void {
+  recCache = []
+  writeRecents()
+}
+
+let favCache: FavEntry[] | null = null
+const favFile = (): string => join(app.getPath('userData'), 'favourites.json')
+
+function favourites(): FavEntry[] {
+  if (favCache) return favCache
+  try {
+    const parsed = JSON.parse(readFileSync(favFile(), 'utf8'))
+    favCache = Array.isArray(parsed) ? parsed : []
+  } catch {
+    favCache = []
+  }
+  return favCache!
+}
+
+function writeFavourites(): void {
+  try {
+    writeFileSync(favFile(), JSON.stringify(favourites(), null, 2))
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getFavourites(): FavEntry[] {
+  return favourites()
+}
+
+export function isFavourite(target: string): boolean {
+  return favourites().some(e => e.target === target)
+}
+
+/** Add a favourite (no-op if already saved), newest first. */
+export function addFavourite(entry: FavEntry): void {
+  if (isFavourite(entry.target)) return
+  favourites().unshift(entry)
+  writeFavourites()
+}
+
+export function removeFavourite(target: string): void {
+  favCache = favourites().filter(e => e.target !== target)
+  writeFavourites()
+}
+
+/** Drop one channel from a favourited list's snapshot (delete a dead source). */
+export function removeFavouriteChannel(listTarget: string, channelUrl: string): void {
+  const e = favourites().find(x => x.target === listTarget)
+  if (!e || !e.channels) return
+  e.channels = e.channels.filter(c => c.url !== channelUrl)
+  writeFavourites()
 }

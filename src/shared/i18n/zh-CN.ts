@@ -21,10 +21,20 @@ export const zhCN: Partial<Record<Key, string>> = {
   'osc.forward': '前进 {n} 秒',
   'osc.panel': '轨道与播放列表',
   'osc.timeFormat': '点击切换:时间 · 时间码 · 帧号',
+  'osc.library': '收藏与最近',
 
   'common.settings': '设置',
   'common.collapse': '收起面板',
+  'common.close': '关闭',
   'common.default': '默认',
+
+  // ---- 收藏浮层:保存的列表/文件/链接 + 最近播放 ----
+  'lib.favourites': '收藏',
+  'lib.recent': '最近',
+  'lib.emptyRecent': '还没有播放记录。',
+  'lib.emptyFav': '还没有收藏。播放时右键即可添加到这里。',
+  'lib.addFav': '收藏',
+  'lib.remove': '移除',
 
   // ---- 设置面板 ----
   'set.sec.interface': '界面',

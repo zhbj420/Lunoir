@@ -24,6 +24,14 @@ export const es: Partial<Record<Key, string>> = {
   'osc.timeFormat': 'Clic para alternar: tiempo · timecode · fotograma',
 
   'common.settings': 'Ajustes',
+  'common.close': 'Cerrar',
+  'osc.library': 'Guardados y recientes',
+  'lib.favourites': 'Guardados',
+  'lib.recent': 'Recientes',
+  'lib.emptyRecent': 'Aún no se ha reproducido nada.',
+  'lib.emptyFav': 'Nada guardado todavía. Haz clic derecho durante la reproducción para guardarlo aquí.',
+  'lib.addFav': 'Guardar',
+  'lib.remove': 'Quitar',
   'common.collapse': 'Contraer panel',
   'common.default': 'Predeterminado',
 

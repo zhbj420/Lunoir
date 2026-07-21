@@ -26,6 +26,14 @@ export const ko: Partial<Record<Key, string>> = {
   'osc.timeFormat': '클릭하여 전환: 시간 · 타임코드 · 프레임',
 
   'common.settings': '설정',
+  'common.close': '닫기',
+  'osc.library': '저장됨 및 최근',
+  'lib.favourites': '저장됨',
+  'lib.recent': '최근',
+  'lib.emptyRecent': '아직 재생한 항목이 없습니다.',
+  'lib.emptyFav': '저장된 항목이 없습니다. 재생 중 마우스 오른쪽 버튼으로 저장하세요.',
+  'lib.addFav': '저장',
+  'lib.remove': '제거',
   'common.collapse': '패널 접기',
   'common.default': '기본값',
 

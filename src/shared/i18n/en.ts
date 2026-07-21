@@ -31,12 +31,22 @@ export const en = {
   // Chapters) and lands on Audio & Sub — so "Playlist" alone undersells it
   'osc.panel': 'Tracks & playlist',
   'osc.timeFormat': 'Click to cycle: time · timecode · frame',
+  'osc.library': 'Saved & recent',
 
   // ---- shared across surfaces ----
   'common.settings': 'Settings',
   'common.collapse': 'Collapse panel',
+  'common.close': 'Close',
   'common.default': 'Default',
   'common.restoreDefault': 'Restore default',
+
+  // ---- 收藏 (library) overlay: saved lists/files/URLs + recently played ----
+  'lib.favourites': 'Saved',
+  'lib.recent': 'Recent',
+  'lib.emptyRecent': 'Nothing played yet.',
+  'lib.emptyFav': 'Nothing saved yet. Right-click while playing to save it here.',
+  'lib.addFav': 'Save',
+  'lib.remove': 'Remove',
 
   // ---- settings panel ----
   // Register: plain, complete sentences. State what the setting does and what it

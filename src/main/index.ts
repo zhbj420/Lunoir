@@ -14,7 +14,20 @@ import {
   clearPosition,
   getPlaylistItem,
   savePlaylistItem,
-  type Settings
+  addRecent,
+  updateRecentName,
+  getRecents,
+  removeRecent,
+  clearRecents,
+  getFavourites,
+  isFavourite,
+  addFavourite,
+  removeFavourite,
+  removeFavouriteChannel,
+  type Settings,
+  type MediaKind,
+  type Channel,
+  type FavEntry
 } from './settings'
 import { translate, effectiveLocale, type Key } from '@shared/i18n'
 
@@ -77,6 +90,11 @@ let leftPanelOpen = false // left (settings) panel open
 let rightPanelWin: BrowserWindow | null = null
 let leftPanelWin: BrowserWindow | null = null
 
+// 收藏 (library) overlay: a centred acrylic child window (recents + favourites)
+let libraryWin: BrowserWindow | null = null
+let libraryOpen = false
+let libraryAnim: NodeJS.Timeout | null = null
+
 // Context menu: its own acrylic window so it frosts the video like the OSC/panels
 // (a DOM menu can only paint a flat scrim — it can't reach mpv's surface). The
 // renderer measures its own content and reports the size, since the accordion
@@ -123,6 +141,11 @@ let plIndex = -1
 let urlTitles: Record<string, string> = {} // resolved titles for URL items (nice playlist names)
 let playlistKey = '' // stable id of the current URL playlist (for "resume at last item"); '' = none
 let discDevice = '' // bluray-device / dvd-device path when the current item is a disc
+// the top-level thing the user just opened (for recents name-refinement); channel
+// switches within a loaded list don't change this
+let curOpen: { target: string; kind: MediaKind } | null = null
+// the parsed channels of the currently-open list (to snapshot on 收藏); null otherwise
+let curOpenChannels: Channel[] | null = null
 let repeatMode: RepeatMode = 'off'
 // resume: the file + position we're currently tracking, and when we last wrote it
 let resumePath = ''
@@ -448,6 +471,7 @@ async function loadChannelList(source: string): Promise<void> {
   playlist = channels.map(c => c.url)
   urlTitles = {}
   for (const c of channels) urlTitles[c.url] = c.name
+  curOpenChannels = channels // remember for a possible 收藏 snapshot of this list
   playlistKey = ''
   discDevice = ''
   plIndex = 0
@@ -455,9 +479,47 @@ async function loadChannelList(source: string): Promise<void> {
   playCurrent() // the loading spinner clears on the first channel's first frame
 }
 
+/** Classify + record a freshly-opened target in the recents list. The name is
+ *  provisional (a URL's real title arrives later via media-title → refined then). */
+function recordOpen(target: string): void {
+  const kind: MediaKind = /\.(m3u|txt)$/i.test(target) || isPlaylistUrl(target)
+    ? 'list'
+    : isUrl(target)
+      ? 'url'
+      : 'file'
+  curOpen = { target, kind }
+  curOpenChannels = null // set by loadChannelList if this open turns out to be a list
+  // a whole channel list (IPTV m3u/txt, or a playlist URL) is a collection you save
+  // to 收藏 on purpose — it does NOT belong in auto "recently played". Only single
+  // files and single URLs (e.g. one live address via Open-URL) are recorded.
+  if (kind === 'list') return
+  addRecent(target, kind === 'url' ? target : basename(target) || target, kind)
+  broadcast('recents:changed')
+}
+
+/** Save a target to 收藏. Derives kind + a good name (prefers the resolved recents
+ *  name), and snapshots the channels when it's the currently-loaded list. */
+function favouriteTarget(target: string): void {
+  if (isFavourite(target)) return
+  let kind: MediaKind
+  let channels: Channel[] | undefined
+  if (curOpen && curOpen.target === target) {
+    kind = curOpen.kind
+    if (kind === 'list') channels = curOpenChannels ?? undefined
+  } else {
+    kind = /\.(m3u|txt)$/i.test(target) || isPlaylistUrl(target) ? 'list' : isUrl(target) ? 'url' : 'file'
+  }
+  const name = getRecents().find(r => r.target === target)?.name || (kind === 'url' ? target : basename(target) || target)
+  const entry: FavEntry = { target, name, kind, at: Date.now() }
+  if (channels) entry.channels = channels
+  addFavourite(entry)
+  broadcast('favourites:changed')
+}
+
 /** Open media the user picked — a file, a URL, a Blu-ray/DVD disc folder, or a
  *  plain folder (whose videos are queued). */
 function openMedia(target: string): void {
+  recordOpen(target)
   if (isPlaylistUrl(target)) {
     loadPlaylistUrl(target) // async: enumerate the entries, then queue + play them
     return
@@ -795,7 +857,7 @@ function loadRenderer(w: BrowserWindow, query = ''): void {
 }
 
 function broadcast(channel: string, ...args: unknown[]): void {
-  for (const w of [win, oscWin, rightPanelWin, leftPanelWin, menuWin]) {
+  for (const w of [win, oscWin, rightPanelWin, leftPanelWin, menuWin, libraryWin]) {
     if (w && !w.isDestroyed()) w.webContents.send(channel, ...args)
   }
 }
@@ -1074,8 +1136,133 @@ function toggleSettingsPanel(): void {
   slideOscToRest()
 }
 
+// ---------- 收藏 (library) overlay: a centred acrylic child window ----------
+
+/** Centred resting bounds: ~60% of the video area, clamped, below the title bar
+ *  (top = 0 in fullscreen). Re-derived on every open + parent move/resize. */
+function libraryBounds(): Electron.Rectangle {
+  const b = win!.getBounds()
+  const top = preFsBounds ? 0 : TITLEBAR_H
+  const availH = b.height - top
+  const w = Math.round(Math.min(880, Math.max(460, b.width * 0.62)))
+  const h = Math.round(Math.min(700, Math.max(380, availH * 0.76)))
+  return {
+    x: Math.round(b.x + (b.width - w) / 2),
+    y: Math.round(b.y + top + (availH - h) / 2),
+    width: w,
+    height: h
+  }
+}
+
+/** Fade the library window in/out in place (the content does its own scale-in via
+ *  the `library:reveal` class — a window can't be clipped to the parent). */
+function animateLibrary(reveal: boolean): void {
+  if (!win || !libraryWin || win.isDestroyed() || libraryWin.isDestroyed()) return
+  const lw = libraryWin
+  if (libraryAnim) clearInterval(libraryAnim)
+  const dur = reveal ? 200 : 130
+  if (reveal) {
+    lw.setBounds(libraryBounds())
+    lw.setIgnoreMouseEvents(false)
+    if (!lw.isVisible()) {
+      setWinOpacity(lw, 0)
+      lw.showInactive()
+    }
+    lw.focus() // so Esc + wheel land in the overlay right away
+  }
+  const fromOp = lw.getOpacity()
+  const toOp = reveal ? 1 : 0
+  const t0 = Date.now()
+  libraryAnim = setInterval(() => {
+    if (lw.isDestroyed()) {
+      if (libraryAnim) clearInterval(libraryAnim)
+      libraryAnim = null
+      return
+    }
+    const p = Math.min(1, (Date.now() - t0) / dur)
+    const e = 1 - Math.pow(1 - p, 3)
+    setWinOpacity(lw, fromOp + (toOp - fromOp) * e)
+    if (p >= 1) {
+      if (libraryAnim) clearInterval(libraryAnim)
+      libraryAnim = null
+      if (!reveal && !lw.isDestroyed()) lw.setIgnoreMouseEvents(true) // closed → let clicks reach the video
+    }
+  }, 16)
+}
+
+function closeLibrary(): void {
+  if (!libraryOpen) return
+  libraryOpen = false
+  animateLibrary(false)
+  libraryWin?.webContents.send('library:reveal', false)
+}
+
+function toggleLibrary(): void {
+  if (!libraryWin) return
+  if (libraryOpen) {
+    closeLibrary()
+    return
+  }
+  closeRightPanel() // don't stack the overlay over an open side panel
+  closeLeftPanel()
+  libraryOpen = true
+  // hide the OSC while the overlay is up (like the context menu does) — it would
+  // otherwise sit over the video behind the centred overlay
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+  broadcast('ui:hide')
+  animateOsc(false)
+  animateLibrary(true)
+  libraryWin.webContents.send('library:reveal', true)
+}
+
+/** Keep the open overlay centred on the window (skip mid-animation). */
+function layoutLibrary(): void {
+  if (!win || !libraryWin || win.isDestroyed() || libraryWin.isDestroyed()) return
+  if (libraryOpen && !libraryAnim) libraryWin.setBounds(libraryBounds())
+}
+
+/** An acrylic centred child window for the 收藏 overlay (`?win=library`). Rounded
+ *  (it floats free, unlike the edge-docked square panels). Pre-warmed like them. */
+function makeLibraryWindow(): BrowserWindow {
+  const lw = new BrowserWindow({
+    width: 700,
+    height: 520, // placeholders; real bounds set on open by libraryBounds()
+    frame: false,
+    transparent: false,
+    backgroundMaterial: 'acrylic',
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    skipTaskbar: true,
+    focusable: true, // clickable lists + (later) an add-URL input
+    hasShadow: false,
+    parent: win!,
+    show: false,
+    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+  })
+  loadRenderer(lw, 'win=library')
+  lw.webContents.once('did-finish-load', () => {
+    if (lw.isDestroyed()) return
+    removeBorderLine(lw)
+    if (win && !win.isDestroyed()) {
+      lw.setBounds(libraryBounds())
+      setWinOpacity(lw, 0)
+      lw.setIgnoreMouseEvents(true)
+      lw.showInactive() // pre-warm so the first real open is a clean fade, no zoom
+    }
+  })
+  lw.on('closed', () => {
+    libraryWin = null
+  })
+  return lw
+}
+
 function revealUi(): void {
-  if (menuOpen) return // don't pop the OSC over/under the open context menu
+  if (menuOpen || libraryOpen) return // don't pop the OSC under the menu / 收藏 overlay
   broadcast('ui:reveal')
   // only run the slide-up when the OSC is actually hidden — re-running it while
   // it's already at rest re-reads getBounds() and, with DPI rounding, animates a
@@ -1462,12 +1649,14 @@ function createWindows(): void {
   menuWin = makeMenuWindow()
   rightPanelWin = makePanelWindow('playlist')
   leftPanelWin = makePanelWindow('settings')
+  libraryWin = makeLibraryWindow()
 
-  // keep the OSC + panels glued to the main window
+  // keep the OSC + panels + overlay glued to the main window
   win.on('move', () => {
     layoutOsc()
     layoutPanel('right')
     layoutPanel('left')
+    layoutLibrary()
   })
   win.on('resize', () => {
     layoutOsc()
@@ -1475,6 +1664,7 @@ function createWindows(): void {
     pushPanelWidth() // panel width tracks the window width
     layoutPanel('right')
     layoutPanel('left')
+    layoutLibrary()
   })
 
   // broadcast app active/inactive so the renderer can compensate the acrylic
@@ -1487,7 +1677,7 @@ function createWindows(): void {
     )
     syncFsTopmost()
   }
-  for (const w of [win, oscWin, rightPanelWin, leftPanelWin, menuWin]) {
+  for (const w of [win, oscWin, rightPanelWin, leftPanelWin, menuWin, libraryWin]) {
     if (!w) continue
     w.on('focus', updateFocus)
     w.on('blur', () => setTimeout(updateFocus, 30))
@@ -1519,7 +1709,7 @@ function createWindows(): void {
     persistState()
   })
   win.on('closed', () => {
-    for (const w of [oscWin, rightPanelWin, leftPanelWin]) {
+    for (const w of [oscWin, rightPanelWin, leftPanelWin, libraryWin]) {
       if (w && !w.isDestroyed()) w.close()
     }
     mpv?.quit()
@@ -1728,6 +1918,9 @@ function startMpv(): void {
         urlTitles[playlist[plIndex]] = data
         broadcast('playlist:changed', playlistPayload())
       }
+      // a single opened URL's title also refines its recents entry (not a list —
+      // there the media-title is a channel, and the recent is the list source)
+      if (curOpen?.kind === 'url') updateRecentName(curOpen.target, data)
     }
     // keep the active-audio resolver's inputs current, re-push on any change
     if (name === 'track-list') {
@@ -1956,6 +2149,37 @@ function registerIpc(): void {
   ipcMain.on('ui:panel-toggle', (_e, name: string) => {
     if (name === 'playlist') togglePlaylistPanel()
     else if (name === 'settings') toggleSettingsPanel()
+  })
+
+  // 收藏 (library) overlay
+  ipcMain.on('library:toggle', () => toggleLibrary())
+  ipcMain.on('library:close', () => closeLibrary())
+  ipcMain.handle('library:recents', () => getRecents())
+  ipcMain.handle('library:favourites', () => getFavourites())
+  ipcMain.on('library:play', (_e, target: string) => {
+    if (typeof target === 'string' && target) {
+      closeLibrary()
+      openMedia(target)
+    }
+  })
+  ipcMain.on('library:recent-remove', (_e, target: string) => {
+    removeRecent(target)
+    broadcast('recents:changed')
+  })
+  ipcMain.on('library:recents-clear', () => {
+    clearRecents()
+    broadcast('recents:changed')
+  })
+  ipcMain.on('library:fav-add', (_e, target: string) => {
+    if (typeof target === 'string' && target) favouriteTarget(target)
+  })
+  ipcMain.on('library:fav-remove', (_e, target: string) => {
+    removeFavourite(target)
+    broadcast('favourites:changed')
+  })
+  ipcMain.on('library:fav-channel-remove', (_e, listTarget: string, channelUrl: string) => {
+    removeFavouriteChannel(listTarget, channelUrl)
+    broadcast('favourites:changed')
   })
 
   ipcMain.handle('app:open-dialog', async () => {

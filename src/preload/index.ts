@@ -44,6 +44,29 @@ export interface Settings {
   windowBounds: { x: number; y: number; width: number; height: number } | null
 }
 
+// --- 收藏 (library): recents (auto) + favourites (manual) ---
+// 'list' = an IPTV/playlist source you drill into; file/url play directly.
+export type MediaKind = 'file' | 'url' | 'list'
+/** One channel inside a favourited list (snapshotted so dead ones can be deleted). */
+export interface Channel {
+  name: string
+  url: string
+  group: string
+}
+export interface RecentEntry {
+  target: string // path / URL to reopen with
+  name: string
+  kind: MediaKind
+  at: number // last-played epoch ms
+}
+export interface FavEntry {
+  target: string
+  name: string
+  kind: MediaKind
+  at: number // added epoch ms
+  channels?: Channel[] // present for kind === 'list'
+}
+
 export interface MpvProperty {
   name: string
   data: unknown
@@ -198,6 +221,24 @@ const api = {
   onRecordingState: (cb: (s: { recording: boolean; since: number | null }) => void): Unsubscribe =>
     subscribe('recording:state', (s: { recording: boolean; since: number | null }) => cb(s)),
   pickRecordingFolder: (): Promise<string | null> => ipcRenderer.invoke('recording:pick-folder'),
+  // --- 收藏 (library overlay) ---
+  toggleLibrary: (): void => ipcRenderer.send('library:toggle'),
+  closeLibrary: (): void => ipcRenderer.send('library:close'),
+  onLibraryReveal: (cb: (open: boolean) => void): Unsubscribe =>
+    subscribe('library:reveal', (open: boolean) => cb(open)),
+  getRecents: (): Promise<RecentEntry[]> => ipcRenderer.invoke('library:recents'),
+  getFavourites: (): Promise<FavEntry[]> => ipcRenderer.invoke('library:favourites'),
+  // open a recent/favourite (or any target) — same path as drag / Open File
+  playTarget: (target: string): void => ipcRenderer.send('library:play', target),
+  removeRecent: (target: string): void => ipcRenderer.send('library:recent-remove', target),
+  clearRecents: (): void => ipcRenderer.send('library:recents-clear'),
+  addFavourite: (target: string): void => ipcRenderer.send('library:fav-add', target),
+  removeFavourite: (target: string): void => ipcRenderer.send('library:fav-remove', target),
+  removeFavouriteChannel: (listTarget: string, channelUrl: string): void =>
+    ipcRenderer.send('library:fav-channel-remove', listTarget, channelUrl),
+  onRecentsChanged: (cb: () => void): Unsubscribe => subscribe('recents:changed', () => cb()),
+  onFavouritesChanged: (cb: () => void): Unsubscribe => subscribe('favourites:changed', () => cb()),
+
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): void =>
     ipcRenderer.send('settings:set', key, value),

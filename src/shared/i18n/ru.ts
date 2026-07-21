@@ -25,6 +25,14 @@ export const ru: Partial<Record<Key, string>> = {
   'osc.timeFormat': 'Клик для переключения: время · таймкод · кадр',
 
   'common.settings': 'Настройки',
+  'common.close': 'Закрыть',
+  'osc.library': 'Сохранённое и недавнее',
+  'lib.favourites': 'Сохранённое',
+  'lib.recent': 'Недавнее',
+  'lib.emptyRecent': 'Пока ничего не воспроизводилось.',
+  'lib.emptyFav': 'Пока ничего не сохранено. Щёлкните правой кнопкой во время воспроизведения, чтобы сохранить.',
+  'lib.addFav': 'Сохранить',
+  'lib.remove': 'Удалить',
   'common.collapse': 'Свернуть панель',
   'common.default': 'По умолчанию',
 

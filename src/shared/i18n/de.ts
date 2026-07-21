@@ -24,6 +24,14 @@ export const de: Partial<Record<Key, string>> = {
   'osc.timeFormat': 'Klicken zum Wechseln: Zeit · Timecode · Bild',
 
   'common.settings': 'Einstellungen',
+  'common.close': 'Schließen',
+  'osc.library': 'Gespeichert & zuletzt',
+  'lib.favourites': 'Gespeichert',
+  'lib.recent': 'Zuletzt',
+  'lib.emptyRecent': 'Noch nichts abgespielt.',
+  'lib.emptyFav': 'Noch nichts gespeichert. Während der Wiedergabe rechtsklicken, um es hier zu speichern.',
+  'lib.addFav': 'Speichern',
+  'lib.remove': 'Entfernen',
   'common.collapse': 'Panel einklappen',
   'common.default': 'Standard',
 

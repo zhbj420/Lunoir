@@ -26,6 +26,14 @@ export const ja: Partial<Record<Key, string>> = {
   'osc.timeFormat': 'クリックで切替: 時間 · タイムコード · フレーム',
 
   'common.settings': '設定',
+  'common.close': '閉じる',
+  'osc.library': '保存済みと最近',
+  'lib.favourites': '保存済み',
+  'lib.recent': '最近',
+  'lib.emptyRecent': 'まだ再生していません。',
+  'lib.emptyFav': 'まだ保存がありません。再生中に右クリックで保存できます。',
+  'lib.addFav': '保存',
+  'lib.remove': '削除',
   'common.collapse': 'パネルを折りたたむ',
   'common.default': '既定',
 

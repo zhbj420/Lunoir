@@ -87,7 +87,16 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
         </div>
       )}
 
-      {/* settings reachable before any media plays (the OSC gear is hidden then) */}
+      {/* 收藏 + settings reachable before any media plays (the OSC is hidden then) */}
+      <button
+        className="settings-entry library-entry"
+        title={t('osc.library')}
+        onClick={() => window.mmp.toggleLibrary()}
+      >
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round">
+          <path d="M12 2.7 L14.2 9 L20.8 9.1 L15.5 13.1 L17.5 19.5 L12 15.7 L6.5 19.5 L8.5 13.1 L3.2 9.1 L9.8 9 Z" />
+        </svg>
+      </button>
       <button
         className="settings-entry"
         title={t('common.settings')}
