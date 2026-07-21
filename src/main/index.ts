@@ -26,6 +26,7 @@ import {
   renameFavourite,
   removeFavouriteChannel,
   removeFavouriteItem,
+  updateFavouriteChannels,
   type Settings,
   type MediaKind,
   type Channel,
@@ -457,26 +458,30 @@ function parseChannelList(text: string): { name: string; url: string; group: str
   return out
 }
 
-/** Load an IPTV channel list (.m3u/.txt, local or remote) into the playlist and
- *  play the first channel. Falls back to playing `source` directly if it doesn't
- *  parse as a list (≥2 http entries). */
-async function loadChannelList(source: string): Promise<void> {
-  broadcast('ui:loading', true)
-  broadcast('ui:toast', tr('main.loadingPlaylist'))
-  let text = ''
+/** Fetch (remote) or read (local) an IPTV list source and parse it to channels.
+ *  Returns [] on any failure (network down, file gone, unparseable). */
+async function fetchChannels(source: string): Promise<Channel[]> {
   try {
+    let text: string
     if (/^https?:\/\//i.test(source)) {
       const res = await fetch(source, { headers: { 'User-Agent': IPTV_UA } })
       text = await res.text()
     } else {
       text = readFileSync(source, 'utf8')
     }
+    return parseChannelList(text)
   } catch {
-    broadcast('ui:loading', false)
-    broadcast('ui:toast', tr('main.playlistFailed'))
-    return
+    return []
   }
-  const channels = parseChannelList(text)
+}
+
+/** Load an IPTV channel list (.m3u/.txt, local or remote) into the playlist and
+ *  play the first channel. Falls back to playing `source` directly if it doesn't
+ *  parse as a list (≥2 http entries). */
+async function loadChannelList(source: string): Promise<void> {
+  broadcast('ui:loading', true)
+  broadcast('ui:toast', tr('main.loadingPlaylist'))
+  const channels = await fetchChannels(source)
   if (channels.length < 2) {
     broadcast('ui:loading', false)
     mpv?.loadFile(source) // not a channel list — treat it as a single item
@@ -587,23 +592,13 @@ function saveCollection(): void {
   }
 }
 
-/** Load a saved collection (playlist queue or IPTV channel list) from its snapshot
- *  and play, starting at `startIndex`. Nothing is re-fetched — the snapshot plays
- *  even if the source is offline. */
-function loadFavCollection(fav: FavEntry, startIndex = 0): void {
-  if (fav.kind === 'list' && fav.channels?.length) {
-    playlist = fav.channels.map(c => c.url)
-    urlTitles = {}
-    for (const c of fav.channels) urlTitles[c.url] = c.name
-    curOpenChannels = fav.channels
-    sourceType = 'iptv'
-  } else if (fav.kind === 'playlist' && fav.items?.length) {
-    playlist = fav.items.map(i => i.path)
-    urlTitles = {}
-    for (const i of fav.items) urlTitles[i.path] = i.name
-    curOpenChannels = null
-    sourceType = 'queue'
-  } else return
+/** Put a fresh set of channels/items into the queue and play at startIndex. */
+function playFavCollection(fav: FavEntry, channels: Channel[], startIndex: number): void {
+  playlist = channels.map(c => c.url)
+  urlTitles = {}
+  for (const c of channels) urlTitles[c.url] = c.name
+  curOpenChannels = fav.kind === 'list' ? channels : null
+  sourceType = fav.kind === 'list' ? 'iptv' : 'queue'
   curOpen = { target: fav.target, kind: fav.kind } // so collection-saved reads true
   curRecentPending = false
   plIndex = Math.max(0, Math.min(startIndex, playlist.length - 1))
@@ -611,6 +606,30 @@ function loadFavCollection(fav: FavEntry, startIndex = 0): void {
   discDevice = ''
   resyncShuffle()
   playCurrent()
+}
+
+/** Load a saved collection and play. An IPTV list **re-fetches its source** for the
+ *  latest channels (a URL source updates; a local file picks up edits), falling back
+ *  to the stored snapshot if the source is offline/gone. A saved playlist just plays
+ *  its snapshot items (they're local/VOD files, not a live directory). */
+function loadFavCollection(fav: FavEntry, startIndex = 0): void {
+  if (fav.kind === 'playlist' && fav.items?.length) {
+    playFavCollection(fav, fav.items.map(i => ({ url: i.path, name: i.name, group: '' })), startIndex)
+    return
+  }
+  if (fav.kind !== 'list') return
+  broadcast('ui:loading', true)
+  broadcast('ui:toast', tr('main.loadingPlaylist'))
+  fetchChannels(fav.target).then(fresh => {
+    const channels = fresh.length ? fresh : (fav.channels ?? [])
+    if (!channels.length) {
+      broadcast('ui:loading', false)
+      broadcast('ui:toast', tr('main.playlistFailed')) // offline AND no snapshot
+      return
+    }
+    if (fresh.length) updateFavouriteChannels(fav.target, fresh) // keep the snapshot current
+    playFavCollection(fav, channels, startIndex)
+  })
 }
 
 /** Save a target to 收藏. Derives kind + a good name (prefers the resolved recents

@@ -244,6 +244,14 @@ export function renameFavourite(target: string, name: string): void {
   writeFavourites()
 }
 
+/** Refresh a favourited list's channel snapshot (re-fetched from its source on open). */
+export function updateFavouriteChannels(target: string, channels: Channel[]): void {
+  const e = favourites().find(x => x.target === target)
+  if (!e || e.kind !== 'list') return
+  e.channels = channels
+  writeFavourites()
+}
+
 /** Drop one channel from a favourited list's snapshot (delete a dead source). */
 export function removeFavouriteChannel(listTarget: string, channelUrl: string): void {
   const e = favourites().find(x => x.target === listTarget)
