@@ -958,6 +958,50 @@ body.library-win.library-shown .library {
   }
 }
 
+/* drill-in header: back arrow + the list name */
+.lib-back {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  padding: 6px 8px 6px 0;
+  margin-right: 4px;
+  display: flex;
+  transition: color 0.15s;
+}
+@media (hover: hover) {
+  .lib-back:hover {
+    color: var(--text);
+  }
+}
+.lib-drill-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 14px 0;
+}
+:root[data-cjk] .lib-drill-title {
+  font-size: 14px;
+}
+/* a channel's group tag, right-aligned before the row actions */
+.lib-group {
+  flex: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11.5px;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root[data-cjk] .lib-group {
+  font-size: 12.5px;
+}
+
 .lib-body {
   flex: 1;
   overflow-y: auto;

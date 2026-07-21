@@ -254,6 +254,10 @@ const api = {
     ipcRenderer.send('library:fav-rename', target, name),
   removeFavouriteChannel: (listTarget: string, channelUrl: string): void =>
     ipcRenderer.send('library:fav-channel-remove', listTarget, channelUrl),
+  removeFavouriteItem: (playlistTarget: string, path: string): void =>
+    ipcRenderer.send('library:fav-item-remove', playlistTarget, path),
+  // drill-in: play a specific channel/item of a saved collection, starting there
+  openAt: (target: string, index: number): void => ipcRenderer.send('library:open-at', target, index),
   onRecentsChanged: (cb: () => void): Unsubscribe => subscribe('recents:changed', () => cb()),
   onFavouritesChanged: (cb: () => void): Unsubscribe => subscribe('favourites:changed', () => cb()),
 

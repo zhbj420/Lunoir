@@ -36,6 +36,8 @@ export const zhCN: Partial<Record<Key, string>> = {
   'lib.addFav': '收藏',
   'lib.remove': '移除',
   'lib.rename': '重命名',
+  'lib.back': '返回',
+  'lib.emptyList': '此列表为空',
   'lib.playlists': '播放列表',
   'lib.live': '直播源',
   'lib.emptyPlaylists': '还没有保存的播放列表。可在播放列表面板里保存。',

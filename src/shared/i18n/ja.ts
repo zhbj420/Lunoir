@@ -35,6 +35,8 @@ export const ja: Partial<Record<Key, string>> = {
   'lib.addFav': '保存',
   'lib.remove': '削除',
   'lib.rename': '名前を変更',
+  'lib.back': '戻る',
+  'lib.emptyList': 'このリストは空です',
   'lib.playlists': 'プレイリスト',
   'lib.live': 'ライブ',
   'lib.emptyPlaylists': '保存したプレイリストがありません。プレイリストパネルから保存できます。',

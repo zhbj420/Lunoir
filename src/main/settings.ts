@@ -251,3 +251,11 @@ export function removeFavouriteChannel(listTarget: string, channelUrl: string): 
   e.channels = e.channels.filter(c => c.url !== channelUrl)
   writeFavourites()
 }
+
+/** Drop one item from a saved playlist's snapshot. */
+export function removeFavouriteItem(playlistTarget: string, path: string): void {
+  const e = favourites().find(x => x.target === playlistTarget)
+  if (!e || !e.items) return
+  e.items = e.items.filter(i => i.path !== path)
+  writeFavourites()
+}

@@ -33,6 +33,8 @@ export const es: Partial<Record<Key, string>> = {
   'lib.addFav': 'Guardar',
   'lib.remove': 'Quitar',
   'lib.rename': 'Renombrar',
+  'lib.back': 'Atrás',
+  'lib.emptyList': 'Esta lista está vacía',
   'lib.playlists': 'Listas',
   'lib.live': 'En directo',
   'lib.emptyPlaylists': 'Aún no hay listas guardadas. Guarda una desde el panel de lista.',

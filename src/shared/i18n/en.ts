@@ -48,6 +48,8 @@ export const en = {
   'lib.addFav': 'Save',
   'lib.remove': 'Remove',
   'lib.rename': 'Rename',
+  'lib.back': 'Back',
+  'lib.emptyList': 'This list is empty',
   'lib.playlists': 'Playlists',
   'lib.live': 'Live',
   'lib.emptyPlaylists': 'No saved playlists yet. Save one from the playlist panel.',

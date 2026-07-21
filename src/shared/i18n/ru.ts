@@ -34,6 +34,8 @@ export const ru: Partial<Record<Key, string>> = {
   'lib.addFav': 'Сохранить',
   'lib.remove': 'Удалить',
   'lib.rename': 'Переименовать',
+  'lib.back': 'Назад',
+  'lib.emptyList': 'Этот список пуст',
   'lib.playlists': 'Плейлисты',
   'lib.live': 'Эфир',
   'lib.emptyPlaylists': 'Пока нет сохранённых плейлистов. Сохраните из панели плейлиста.',

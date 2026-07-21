@@ -25,6 +25,7 @@ import {
   removeFavourite,
   renameFavourite,
   removeFavouriteChannel,
+  removeFavouriteItem,
   type Settings,
   type MediaKind,
   type Channel,
@@ -583,17 +584,26 @@ function saveCollection(): void {
   }
 }
 
-/** Reopen a saved playlist: load its snapshot items into the queue and play. */
-function loadSavedPlaylist(fav: FavEntry): void {
-  const items = fav.items ?? []
-  playlist = items.map(i => i.path)
-  urlTitles = {}
-  for (const i of items) urlTitles[i.path] = i.name
-  sourceType = 'queue'
-  curOpen = { target: fav.target, kind: 'playlist' } // so collection-saved reads true
-  curOpenChannels = null
+/** Load a saved collection (playlist queue or IPTV channel list) from its snapshot
+ *  and play, starting at `startIndex`. Nothing is re-fetched — the snapshot plays
+ *  even if the source is offline. */
+function loadFavCollection(fav: FavEntry, startIndex = 0): void {
+  if (fav.kind === 'list' && fav.channels?.length) {
+    playlist = fav.channels.map(c => c.url)
+    urlTitles = {}
+    for (const c of fav.channels) urlTitles[c.url] = c.name
+    curOpenChannels = fav.channels
+    sourceType = 'iptv'
+  } else if (fav.kind === 'playlist' && fav.items?.length) {
+    playlist = fav.items.map(i => i.path)
+    urlTitles = {}
+    for (const i of fav.items) urlTitles[i.path] = i.name
+    curOpenChannels = null
+    sourceType = 'queue'
+  } else return
+  curOpen = { target: fav.target, kind: fav.kind } // so collection-saved reads true
   curRecentPending = false
-  plIndex = 0
+  plIndex = Math.max(0, Math.min(startIndex, playlist.length - 1))
   playlistKey = ''
   discDevice = ''
   resyncShuffle()
@@ -2297,10 +2307,21 @@ function registerIpc(): void {
   ipcMain.on('library:play', (_e, target: string) => {
     if (typeof target !== 'string' || !target) return
     closeLibrary()
-    // a saved playlist reopens its snapshot queue; everything else is a plain open
+    // a saved list/playlist loads its snapshot collection; everything else opens plain
     const fav = getFavourites().find(f => f.target === target)
-    if (fav && fav.kind === 'playlist' && fav.items?.length) loadSavedPlaylist(fav)
+    if (fav && (fav.kind === 'playlist' || fav.kind === 'list')) loadFavCollection(fav)
     else openMedia(target)
+  })
+  // drill-in: play a specific channel/item of a saved collection, starting there
+  ipcMain.on('library:open-at', (_e, target: string, index: number) => {
+    const fav = getFavourites().find(f => f.target === target)
+    if (!fav) return
+    closeLibrary()
+    loadFavCollection(fav, typeof index === 'number' ? index : 0)
+  })
+  ipcMain.on('library:fav-item-remove', (_e, target: string, path: string) => {
+    removeFavouriteItem(target, path)
+    afterFavChange()
   })
   ipcMain.on('library:save-collection', () => saveCollection())
   ipcMain.on('library:recent-remove', (_e, target: string) => {

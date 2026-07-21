@@ -33,6 +33,8 @@ export const de: Partial<Record<Key, string>> = {
   'lib.addFav': 'Speichern',
   'lib.remove': 'Entfernen',
   'lib.rename': 'Umbenennen',
+  'lib.back': 'Zurück',
+  'lib.emptyList': 'Diese Liste ist leer',
   'lib.playlists': 'Wiedergabelisten',
   'lib.live': 'Live',
   'lib.emptyPlaylists': 'Noch keine Wiedergabelisten gespeichert. Speichere eine im Wiedergabelisten-Panel.',

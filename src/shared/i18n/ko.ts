@@ -35,6 +35,8 @@ export const ko: Partial<Record<Key, string>> = {
   'lib.addFav': '저장',
   'lib.remove': '제거',
   'lib.rename': '이름 변경',
+  'lib.back': '뒤로',
+  'lib.emptyList': '이 목록은 비어 있습니다',
   'lib.playlists': '재생목록',
   'lib.live': '라이브',
   'lib.emptyPlaylists': '저장된 재생목록이 없습니다. 재생목록 패널에서 저장하세요.',
