@@ -1286,6 +1286,15 @@ body.panel-win.panel-shown .panel.left > * {
   padding-top: 8px;
 }
 
+/* Chinese: section headings (音轨 / 字幕 / 调整) need real size + contrast, since
+   the uppercase + tracking that carries the 10.5px English does nothing for hanzi.
+   Matches the settings panel's zh .set-sec treatment. English stays locked. */
+:root[lang^='zh'] .track-sec,
+:root[lang^='zh'] .sub-adjust-head {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.52);
+}
+
 .track-empty {
   color: rgba(255, 255, 255, 0.34);
   font-size: 12px;
@@ -1329,7 +1338,15 @@ body.panel-win.panel-shown .panel.left > * {
 .adjust-label {
   flex: 1;
   font-size: 12.5px;
-  color: var(--text-dim);
+  /* brighter than the section heading above (0.52) so the two layers read apart —
+     heading is the quiet divider, this is the content. Applies to both languages;
+     only the Chinese font-size is overridden below. */
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* the adjust-row labels (延迟 / 位置 / 大小 / 亮度) read a touch large in Chinese */
+:root[lang^='zh'] .adjust-label {
+  font-size: 12px;
 }
 
 .adjust-row.disabled .adjust-label {
