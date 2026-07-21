@@ -220,7 +220,7 @@ export const es: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': 'Restaurar valores predeterminados',
   'set.sec.appearance': 'Apariencia',
-  'set.frost.label': 'Intensidad del vidrio esmerilado',
+  'set.frost.label': 'Transparencia del vidrio esmerilado',
   'set.frost.desc':
     'Cuánto dejan ver el vídeo los paneles y controles a través de su vidrio esmerilado. Más alto es más transparente; más bajo, más sólido.'
 }

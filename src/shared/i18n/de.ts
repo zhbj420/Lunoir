@@ -220,7 +220,7 @@ export const de: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': 'Standard wiederherstellen',
   'set.sec.appearance': 'Darstellung',
-  'set.frost.label': 'Milchglas-Stärke',
+  'set.frost.label': 'Milchglas-Transparenz',
   'set.frost.desc':
     'Wie stark die Panels und Bildschirmelemente das Video durch ihr Milchglas zeigen. Höher = durchsichtiger, niedriger = deckender.'
 }

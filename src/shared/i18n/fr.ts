@@ -220,7 +220,7 @@ export const fr: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': 'Restaurer les valeurs par défaut',
   'set.sec.appearance': 'Apparence',
-  'set.frost.label': 'Intensité du verre dépoli',
+  'set.frost.label': 'Transparence du verre dépoli',
   'set.frost.desc':
     'Dans quelle mesure les panneaux et les commandes laissent voir la vidéo à travers leur verre dépoli. Plus haut = plus transparent ; plus bas = plus opaque.'
 }

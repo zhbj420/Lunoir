@@ -220,7 +220,7 @@ export const pt: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': 'Repor predefinições',
   'set.sec.appearance': 'Aparência',
-  'set.frost.label': 'Intensidade do vidro fosco',
+  'set.frost.label': 'Transparência do vidro fosco',
   'set.frost.desc':
     'Quanto os painéis e controlos deixam ver o vídeo através do vidro fosco. Mais alto é mais transparente; mais baixo, mais sólido.'
 }

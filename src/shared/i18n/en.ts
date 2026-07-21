@@ -55,9 +55,9 @@ export const en = {
   'set.uiLang.desc':
     "The language used for Lunoir's menus and settings. Separate from the preferred audio and subtitle languages below, which select tracks within the video.",
 
-  'set.frost.label': 'Frosted-glass strength',
+  'set.frost.label': 'Frosted-glass transparency',
   'set.frost.desc':
-    'How much the panels and on-screen controls let the video show through their frosted glass. Higher is more see-through; lower is more solid.',
+    'Adjusts how transparent the frosted glass of the panels and controls is. Higher is more see-through; lower is more solid.',
 
   // Multi-line descriptions carry their own \n breaks; the renderer splits on them
   // so each language wraps where it reads best, rather than at a fixed English break.

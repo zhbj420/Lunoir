@@ -215,6 +215,6 @@ export const zhCN: Partial<Record<Key, string>> = {
   // ---- 外观(磨砂强弱)+ 恢复默认 ----
   'common.restoreDefault': '恢复默认',
   'set.sec.appearance': '外观',
-  'set.frost.label': '磨砂强弱',
-  'set.frost.desc': '面板与画面控件的磨砂玻璃透出多少视频。越高越通透,越低越实。'
+  'set.frost.label': '磨砂透明强度',
+  'set.frost.desc': '面板与控制器的磨砂玻璃透明效果调整。越高越通透,越低则越实。'
 }

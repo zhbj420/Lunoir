@@ -221,7 +221,7 @@ export const ru: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': 'Сбросить по умолчанию',
   'set.sec.appearance': 'Оформление',
-  'set.frost.label': 'Сила матового стекла',
+  'set.frost.label': 'Прозрачность матового стекла',
   'set.frost.desc':
     'Насколько панели и экранные элементы пропускают видео сквозь матовое стекло. Выше — прозрачнее, ниже — плотнее.'
 }

@@ -222,7 +222,7 @@ export const ja: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': '既定に戻す',
   'set.sec.appearance': '外観',
-  'set.frost.label': 'すりガラスの強さ',
+  'set.frost.label': 'すりガラスの透明度',
   'set.frost.desc':
     'パネルや画面上のコントロールが、すりガラス越しにどれだけ映像を透かすか。高いほど透け、低いほど不透明になります。'
 }

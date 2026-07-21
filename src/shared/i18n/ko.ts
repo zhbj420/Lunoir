@@ -222,7 +222,7 @@ export const ko: Partial<Record<Key, string>> = {
 
   'common.restoreDefault': '기본값으로 복원',
   'set.sec.appearance': '모양',
-  'set.frost.label': '젖빛 유리 강도',
+  'set.frost.label': '젖빛 유리 투명도',
   'set.frost.desc':
     '패널과 화면 컨트롤이 젖빛 유리 너머로 영상을 얼마나 비치게 할지. 높을수록 투명하고 낮을수록 불투명합니다.'
 }
