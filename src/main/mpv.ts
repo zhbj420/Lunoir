@@ -21,6 +21,7 @@ const OBSERVED = [
   'eof-reached',
   'ab-loop-a', // A-B loop points (seconds, or 'no' when unset) → OSC seek markers
   'ab-loop-b',
+  'seekable', // false for live streams → OSC shows ● LIVE instead of a seek bar
   'path',
   'chapter',
   'chapter-list',

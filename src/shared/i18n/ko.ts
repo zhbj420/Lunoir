@@ -224,5 +224,12 @@ export const ko: Partial<Record<Key, string>> = {
   'set.sec.appearance': '모양',
   'set.frost.label': '젖빛 유리 투명도',
   'set.frost.desc':
-    '패널과 화면 컨트롤이 젖빛 유리 너머로 영상을 얼마나 비치게 할지. 높을수록 투명하고 낮을수록 불투명합니다.'
+    '패널과 화면 컨트롤이 젖빛 유리 너머로 영상을 얼마나 비치게 할지. 높을수록 투명하고 낮을수록 불투명합니다.',
+
+  'menu.record': '녹화 시작',
+  'menu.stopRecord': '녹화 중지',
+  'toast.recordingSaved': '녹화 저장됨: {name}',
+  'dlg.chooseRecDir': '녹화 폴더 선택',
+  'set.recDir.label': '녹화 폴더',
+  'set.recDir.desc': '라이브 녹화가 저장되는 위치. 경로를 입력하거나 찾아보세요.'
 }

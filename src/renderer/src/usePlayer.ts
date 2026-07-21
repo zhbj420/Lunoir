@@ -53,6 +53,7 @@ export interface PlayerState {
   hdrFormat: string // MediaInfo HDR flavour: 'Dolby Vision'/'HDR10+'/'HDR10'/'' → refines the badge
   videoHeight: number // decoded height → resolution badge
   isStream: boolean // playing a network URL (show the resolution badge only then)
+  isLive: boolean // mpv 'seekable' is false → a live stream; OSC shows ● LIVE, no seek bar
   isDisc: boolean // playing a Blu-ray/DVD disc (bd:// / dvd://) → title from the folder name
   audioCodec: string // audio-codec-name → format badge
   audioChannels: number // audio-params/channel-count → layout suffix
@@ -80,6 +81,7 @@ const initial: PlayerState = {
   hdrFormat: '',
   videoHeight: 0,
   isStream: false,
+  isLive: false,
   isDisc: false,
   audioCodec: '',
   audioChannels: 0,
@@ -166,16 +168,25 @@ export function usePlayer() {
             if (!data) return s
             // new file → reset the title parts; isStream/isDisc pick the title source
             const p = String(data)
+            const stream = /^https?:\/\//i.test(p)
             return {
               ...s,
               hasMedia: true,
-              isStream: /^https?:\/\//i.test(p),
+              isStream: stream,
+              // assume a network stream is live until 'seekable' proves it's a
+              // seekable VOD — so a live reload never flashes the seek bar before
+              // seekable arrives (local files/discs default to not-live → bar shows)
+              isLive: stream,
               isDisc: /^(bd|dvd|bluray|dvdnav):\/\//i.test(p),
               fileName: '',
               mediaTitle: '',
               author: ''
             }
           }
+          case 'seekable':
+            // a non-seekable network stream is live (local files & VOD are seekable);
+            // gate on isStream so a local file's transient false at load isn't "live"
+            return { ...s, isLive: s.isStream && data === false }
           case 'video-params/gamma':
             return { ...s, gamma: typeof data === 'string' ? data : '' }
           case 'video-params/h':

@@ -47,6 +47,7 @@ interface Settings {
   screenshotSubs: boolean
   screenshotFormat: 'png' | 'jpg'
   screenshotDir: string
+  recordingDir: string
   rememberWindow: boolean
   rememberVolume: boolean
   volume: number
@@ -327,6 +328,7 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
   const t = useT()
   const [s, setS] = useState<Settings | null>(null)
   const [pathEdit, setPathEdit] = useState<string | null>(null) // non-null while typing the folder
+  const [recPathEdit, setRecPathEdit] = useState<string | null>(null) // same, for the recording folder
 
   useEffect(() => {
     window.mmp.getSettings().then(setS)
@@ -342,6 +344,10 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
   const browseFolder = async (): Promise<void> => {
     const dir = await window.mmp.pickFolder()
     if (dir) set('screenshotDir', dir)
+  }
+  const browseRecFolder = async (): Promise<void> => {
+    const dir = await window.mmp.pickRecordingFolder()
+    if (dir) set('recordingDir', dir)
   }
 
   // passthrough codec set (persisted as a comma list, kept in a canonical order)
@@ -573,6 +579,38 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
                 }}
               />
               <button className="set-path-btn" title={t('set.shotDir.browse')} onClick={browseFolder}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="set-row col">
+            <div className="set-text">
+              <div className="set-label">{t('set.recDir.label')}</div>
+              <div className="set-desc">{t('set.recDir.desc')}</div>
+            </div>
+            <div className="set-path">
+              <input
+                className="set-path-input"
+                spellCheck={false}
+                value={recPathEdit !== null ? recPathEdit : s.recordingDir}
+                onChange={e => setRecPathEdit(e.target.value)}
+                onFocus={() => setRecPathEdit(s.recordingDir)}
+                onBlur={() => {
+                  if (recPathEdit !== null && recPathEdit.trim()) set('recordingDir', recPathEdit.trim())
+                  setRecPathEdit(null)
+                }}
+                onKeyDown={e => {
+                  e.stopPropagation()
+                  if (e.key === 'Enter') e.currentTarget.blur()
+                  else if (e.key === 'Escape') {
+                    setRecPathEdit(null)
+                    e.currentTarget.blur()
+                  }
+                }}
+              />
+              <button className="set-path-btn" title={t('set.shotDir.browse')} onClick={browseRecFolder}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 </svg>

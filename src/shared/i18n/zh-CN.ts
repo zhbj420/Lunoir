@@ -216,5 +216,13 @@ export const zhCN: Partial<Record<Key, string>> = {
   'common.restoreDefault': '恢复默认',
   'set.sec.appearance': '外观',
   'set.frost.label': '磨砂透明强度',
-  'set.frost.desc': '面板与控制器的磨砂玻璃透明效果调整。越高越通透,越低则越实。'
+  'set.frost.desc': '面板与控制器的磨砂玻璃透明效果调整。越高越通透,越低则越实。',
+
+  // ---- 录制 ----
+  'menu.record': '开始录制',
+  'menu.stopRecord': '停止录制',
+  'toast.recordingSaved': '录制已保存:{name}',
+  'dlg.chooseRecDir': '选择录制文件夹',
+  'set.recDir.label': '录制文件夹',
+  'set.recDir.desc': '直播录制的保存位置。可直接输入路径,或点击浏览选择。'
 }

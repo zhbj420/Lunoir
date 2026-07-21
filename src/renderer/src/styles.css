@@ -663,6 +663,34 @@ body.fullscreen .titlebar {
   text-align: left;
 }
 
+/* LIVE badge — replaces the duration readout on a live stream, and a button:
+   click to jump back to the live edge after pausing/scrubbing behind. Neutral,
+   like the rest of the OSC text; brightens on hover. Inherits .t colour. */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55); /* match the format badges */
+  cursor: pointer;
+  transition: color 0.14s;
+}
+@media (hover: hover) {
+  .live-badge:hover {
+    color: var(--text);
+  }
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 /* playback-speed indicator on the seek row (only shown when speed != 1×). Plain
    muted text, like the time — reads as info, not a control. */
 .osc-speed {
@@ -694,6 +722,44 @@ body.fullscreen .titlebar {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   color: rgba(255, 255, 255, 0.55);
+}
+
+/* Recording indicator in the OSC — a pulsing red dot + elapsed timer, click to stop */
+.rec-pill {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  margin-right: 10px;
+  padding: 0 9px 0 7px;
+  border: none;
+  border-radius: 11px;
+  background: rgba(230, 40, 40, 0.16);
+  color: rgba(255, 180, 180, 0.95);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+@media (hover: hover) {
+  .rec-pill:hover {
+    background: rgba(230, 40, 40, 0.28);
+  }
+}
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3b3b;
+  box-shadow: 0 0 6px rgba(255, 59, 59, 0.7);
+  animation: rec-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
 /* ---------- Side panel (playlist) ---------- */

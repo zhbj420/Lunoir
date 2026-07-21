@@ -222,5 +222,13 @@ export const pt: Partial<Record<Key, string>> = {
   'set.sec.appearance': 'Aparência',
   'set.frost.label': 'Transparência do vidro fosco',
   'set.frost.desc':
-    'Quanto os painéis e controlos deixam ver o vídeo através do vidro fosco. Mais alto é mais transparente; mais baixo, mais sólido.'
+    'Quanto os painéis e controlos deixam ver o vídeo através do vidro fosco. Mais alto é mais transparente; mais baixo, mais sólido.',
+
+  'menu.record': 'Iniciar gravação',
+  'menu.stopRecord': 'Parar gravação',
+  'toast.recordingSaved': 'Gravação guardada: {name}',
+  'dlg.chooseRecDir': 'Escolher pasta de gravação',
+  'set.recDir.label': 'Pasta de gravação',
+  'set.recDir.desc':
+    'Onde as gravações em direto são guardadas. Escreva um caminho ou procure.'
 }

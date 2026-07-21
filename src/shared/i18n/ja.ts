@@ -224,5 +224,12 @@ export const ja: Partial<Record<Key, string>> = {
   'set.sec.appearance': '外観',
   'set.frost.label': 'すりガラスの透明度',
   'set.frost.desc':
-    'パネルや画面上のコントロールが、すりガラス越しにどれだけ映像を透かすか。高いほど透け、低いほど不透明になります。'
+    'パネルや画面上のコントロールが、すりガラス越しにどれだけ映像を透かすか。高いほど透け、低いほど不透明になります。',
+
+  'menu.record': '録画を開始',
+  'menu.stopRecord': '録画を停止',
+  'toast.recordingSaved': '録画を保存しました: {name}',
+  'dlg.chooseRecDir': '録画フォルダーを選択',
+  'set.recDir.label': '録画フォルダー',
+  'set.recDir.desc': 'ライブ録画の保存先。パスを入力するか参照してください。'
 }

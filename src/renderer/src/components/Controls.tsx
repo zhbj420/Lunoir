@@ -117,6 +117,22 @@ export default function Controls(props: Props) {
   const [panelOpen, setPanelOpen] = useState(false)
   useEffect(() => window.mmp.onPanelState(setPanelOpen), [])
 
+  // recording indicator: a red dot + running timer, shown only while recording,
+  // click to stop. `since` is the main-process start timestamp; tick every second.
+  const [rec, setRec] = useState<{ recording: boolean; since: number | null }>({ recording: false, since: null })
+  const [recElapsed, setRecElapsed] = useState(0)
+  useEffect(() => {
+    window.mmp.getRecording().then(setRec)
+    return window.mmp.onRecordingState(setRec)
+  }, [])
+  useEffect(() => {
+    if (!rec.recording || !rec.since) return
+    const tick = (): void => setRecElapsed(Math.max(0, Math.floor((Date.now() - rec.since!) / 1000)))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [rec.recording, rec.since])
+
   // show the volume number transiently — while grabbing the thumb and on any
   // volume change (drag / wheel / keyboard). Not persistent.
   const [volShow, setVolShow] = useState(false)
@@ -182,6 +198,16 @@ export default function Controls(props: Props) {
         </div>
 
         <div className="grp right">
+          {rec.recording && (
+            <button
+              className="rec-pill"
+              title={t('menu.stopRecord')}
+              onClick={() => window.mmp.toggleRecording()}
+            >
+              <span className="rec-dot" />
+              {fmt(recElapsed)}
+            </button>
+          )}
           {(topBadge || audio) && (
             <div className="osc-fmt">
               {topBadge && <span className="fmt-badge">{topBadge}</span>}
@@ -205,53 +231,71 @@ export default function Controls(props: Props) {
         </div>
       </div>
 
-      {/* Row 2: seek */}
+      {/* Row 2: seek — or, on a live stream, elapsed time + a LIVE badge (no bar).
+          Live has no real duration; drawing position/duration made the fill snap
+          backwards as mpv's estimated duration crept up with the arriving buffer. */}
       <div className="osc-row osc-seek">
-        <span
-          className="t cur clickable"
-          onClick={props.onCycleTimeFormat}
-          title={t('osc.timeFormat')}
-        >
-          {props.timeFormat === 'timecode'
-            ? tcFromFrame(frameOf(state), state.fps)
-            : props.timeFormat === 'frame'
-              ? String(frameOf(state))
-              : fmt(state.timePos)}
-        </span>
-        <div className="seek-wrap">
-          <input
-            className="rng seek"
-            type="range"
-            min={0}
-            max={state.duration || 0}
-            step={0.1}
-            value={Math.min(state.timePos, state.duration || 0)}
-            style={{ ['--fill' as any]: `${pct}%` }}
-            onChange={e => props.onSeek(Number(e.target.value))}
-          />
-          {state.abLoopA != null && state.abLoopB != null && (
+        {state.isLive ? (
+          <>
+            <span className="t cur">{fmt(state.timePos)}</span>
+            <div className="seek-wrap" />
+            {Math.abs(state.speed - 1) > 0.01 && (
+              <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+            )}
+            <button className="t dur live-badge" title="Go to live" onClick={() => window.mmp.goLive()}>
+              <span className="live-dot" />
+              LIVE
+            </button>
+          </>
+        ) : (
+          <>
             <span
-              className="ab-region"
-              style={{ left: `${abPct(state.abLoopA)}%`, width: `${abPct(state.abLoopB) - abPct(state.abLoopA)}%` }}
-            />
-          )}
-          {state.abLoopA != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopA)}%` }} />}
-          {state.abLoopB != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopB)}%` }} />}
-        </div>
-        {Math.abs(state.speed - 1) > 0.01 && (
-          <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+              className="t cur clickable"
+              onClick={props.onCycleTimeFormat}
+              title={t('osc.timeFormat')}
+            >
+              {props.timeFormat === 'timecode'
+                ? tcFromFrame(frameOf(state), state.fps)
+                : props.timeFormat === 'frame'
+                  ? String(frameOf(state))
+                  : fmt(state.timePos)}
+            </span>
+            <div className="seek-wrap">
+              <input
+                className="rng seek"
+                type="range"
+                min={0}
+                max={state.duration || 0}
+                step={0.1}
+                value={Math.min(state.timePos, state.duration || 0)}
+                style={{ ['--fill' as any]: `${pct}%` }}
+                onChange={e => props.onSeek(Number(e.target.value))}
+              />
+              {state.abLoopA != null && state.abLoopB != null && (
+                <span
+                  className="ab-region"
+                  style={{ left: `${abPct(state.abLoopA)}%`, width: `${abPct(state.abLoopB) - abPct(state.abLoopA)}%` }}
+                />
+              )}
+              {state.abLoopA != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopA)}%` }} />}
+              {state.abLoopB != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopB)}%` }} />}
+            </div>
+            {Math.abs(state.speed - 1) > 0.01 && (
+              <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+            )}
+            <span
+              className="t dur clickable"
+              onClick={props.onCycleTimeFormat}
+              title={t('osc.timeFormat')}
+            >
+              {props.timeFormat === 'timecode'
+                ? tcFromFrame(state.frameCount || Math.floor(state.duration * state.fps), state.fps)
+                : props.timeFormat === 'frame'
+                  ? String(state.frameCount || Math.floor(state.duration * state.fps) || 0)
+                  : fmt(state.duration)}
+            </span>
+          </>
         )}
-        <span
-          className="t dur clickable"
-          onClick={props.onCycleTimeFormat}
-          title={t('osc.timeFormat')}
-        >
-          {props.timeFormat === 'timecode'
-            ? tcFromFrame(state.frameCount || Math.floor(state.duration * state.fps), state.fps)
-            : props.timeFormat === 'frame'
-              ? String(state.frameCount || Math.floor(state.duration * state.fps) || 0)
-              : fmt(state.duration)}
-        </span>
       </div>
     </div>
   )

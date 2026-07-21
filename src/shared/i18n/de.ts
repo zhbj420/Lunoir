@@ -222,5 +222,13 @@ export const de: Partial<Record<Key, string>> = {
   'set.sec.appearance': 'Darstellung',
   'set.frost.label': 'Milchglas-Transparenz',
   'set.frost.desc':
-    'Wie stark die Panels und Bildschirmelemente das Video durch ihr Milchglas zeigen. Höher = durchsichtiger, niedriger = deckender.'
+    'Wie stark die Panels und Bildschirmelemente das Video durch ihr Milchglas zeigen. Höher = durchsichtiger, niedriger = deckender.',
+
+  'menu.record': 'Aufnahme starten',
+  'menu.stopRecord': 'Aufnahme stoppen',
+  'toast.recordingSaved': 'Aufnahme gespeichert: {name}',
+  'dlg.chooseRecDir': 'Aufnahmeordner wählen',
+  'set.recDir.label': 'Aufnahmeordner',
+  'set.recDir.desc':
+    'Wo Live-Aufnahmen gespeichert werden. Pfad eingeben oder durchsuchen.'
 }

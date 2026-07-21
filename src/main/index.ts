@@ -1427,7 +1427,10 @@ function createWindows(): void {
     fakeMaximize()
   })
 
-  win.on('close', () => persistState())
+  win.on('close', () => {
+    stopRecording(true) // finalize the recording file before we tear mpv down
+    persistState()
+  })
   win.on('closed', () => {
     for (const w of [oscWin, rightPanelWin, leftPanelWin]) {
       if (w && !w.isDestroyed()) w.close()
@@ -1519,6 +1522,62 @@ function applyScreenshotDir(): void {
   mpv.setProperty('screenshot-directory', dir)
 }
 
+// ---- stream recording (mpv stream-record: tee the played stream to a file) ----
+// Setting the `stream-record` property to a path starts it (stream-copy, no
+// re-encode); setting it to '' stops. State lives here and is broadcast so the OSC
+// can show its red dot; the recording auto-stops when the file changes or on exit.
+let recordingPath: string | null = null
+let recStartedAt = 0
+
+/** Effective recording folder ('' setting → the Videos/Lunoir default). */
+function recordingDir(): string {
+  return getSettings().recordingDir || join(app.getPath('videos'), 'Lunoir')
+}
+
+/** Turn an arbitrary title/path into a safe file-name stem. */
+function safeStem(s: string): string {
+  return (s || 'recording')
+    .replace(/\.[^.]+$/, '') // drop any extension
+    .replace(/[\\/:*?"<>|]/g, ' ') // illegal filename chars
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'recording'
+}
+
+function recordingState(): { recording: boolean; since: number | null } {
+  return { recording: recordingPath != null, since: recordingPath ? recStartedAt : null }
+}
+
+async function startRecording(): Promise<void> {
+  if (!mpv || !hasMedia || recordingPath) return
+  // a nice stem: mpv's media-title if it's meaningful, else the current file's base
+  let stem = ''
+  try {
+    const title = await mpv.command(['get_property', 'media-title'])
+    if (typeof title === 'string') stem = title
+  } catch { /* fall through */ }
+  if (!stem && plIndex >= 0 && playlist[plIndex]) stem = basename(playlist[plIndex])
+  const dir = recordingDir()
+  try { mkdirSync(dir, { recursive: true }) } catch { /* ignore */ }
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  const d = new Date()
+  const ts = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+  const out = join(dir, `${safeStem(stem)}_${ts}.mkv`)
+  mpv.setProperty('stream-record', out)
+  recordingPath = out
+  recStartedAt = Date.now()
+  broadcast('recording:state', recordingState())
+}
+
+function stopRecording(silent = false): void {
+  if (!recordingPath) return
+  const saved = recordingPath
+  recordingPath = null
+  mpv?.setProperty('stream-record', '')
+  broadcast('recording:state', recordingState())
+  if (!silent) broadcast('ui:toast', tr('toast.recordingSaved', { name: basename(saved) }))
+}
+
 /** Save volume / window bounds / playback position on exit (per the toggles). */
 function persistState(): void {
   const s = getSettings()
@@ -1568,6 +1627,7 @@ function startMpv(): void {
       resumePath = data // track this file's position for resume
       resumePos = 0
       lastDuration = 0
+      stopRecording(true) // a new file means the old recording is done — end it quietly
       runProbe(data)
     }
     // give URL playlist items a real name once mpv resolves the media title
@@ -1818,6 +1878,37 @@ function registerIpc(): void {
     return res.canceled || res.filePaths.length === 0 ? null : res.filePaths[0]
   })
 
+  // "go live": catch a live stream back up to its edge. Seeking forward within the
+  // cache does NOT work on these HLS streams (mpv reports success but the playhead
+  // doesn't move — probed), so the only reliable way is to RELOAD the URL: mpv
+  // re-reads the live playlist and starts at the live edge, discarding the buffered
+  // catch-up. Costs a brief rebuffer, same as any player's "go live".
+  ipcMain.on('mpv:go-live', async () => {
+    if (!mpv) return
+    try {
+      const p = await mpv.command(['get_property', 'path'])
+      if (typeof p === 'string' && /^https?:\/\//i.test(p)) {
+        mpv.loadFile(p)
+        mpv.setProperty('pause', false) // going live means playing — never land paused
+      }
+    } catch { /* ignore */ }
+  })
+
+  // recording (stream-record)
+  ipcMain.handle('recording:get', () => recordingState())
+  ipcMain.on('recording:toggle', () => {
+    if (recordingPath) stopRecording()
+    else startRecording()
+  })
+  ipcMain.handle('recording:pick-folder', async () => {
+    const res = await dialog.showOpenDialog(win!, {
+      title: tr('dlg.chooseRecDir'),
+      defaultPath: recordingDir(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return res.canceled || !res.filePaths[0] ? null : res.filePaths[0]
+  })
+
   // settings
   ipcMain.handle('app:pick-folder', async () => {
     const res = await dialog.showOpenDialog(win!, {
@@ -1955,9 +2046,12 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 app.whenReady().then(() => {
-  // materialise the default screenshot folder so the settings UI shows a real path
+  // materialise the default screenshot / recording folders so the settings UI shows real paths
   if (!getSettings().screenshotDir) {
     setSetting('screenshotDir', join(app.getPath('pictures'), 'Lunoir'))
+  }
+  if (!getSettings().recordingDir) {
+    setSetting('recordingDir', join(app.getPath('videos'), 'Lunoir'))
   }
   registerIpc()
   buildMenu()

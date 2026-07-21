@@ -61,6 +61,7 @@ export default function OverlayView() {
   const [urlText, setUrlText] = useState('')
   const [screenshotSubs, setScreenshotSubs] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [recording, setRecording] = useState(false)
   const [volToast, setVolToast] = useState<number | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const volToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -116,10 +117,13 @@ export default function OverlayView() {
     })
     const offT = window.mmp.onToast(showToast)
     const offL = window.mmp.onLoading(setLoading)
+    window.mmp.getRecording().then(r => setRecording(r.recording))
+    const offR = window.mmp.onRecordingState(r => setRecording(r.recording))
     return () => {
       offS()
       offT()
       offL()
+      offR()
     }
   }, [])
 
@@ -287,6 +291,7 @@ export default function OverlayView() {
     { label: abLabel, checked: p.state.abLoopA != null && p.state.abLoopB != null, onClick: () => window.mmp.command(['ab-loop']) },
     { sep: true },
     { label: t('menu.screenshot'), onClick: () => screenshot(!screenshotSubs) },
+    { label: recording ? t('menu.stopRecord') : t('menu.record'), checked: recording, onClick: () => window.mmp.toggleRecording() },
     {
       label: t('menu.tcOverlay'),
       checked: tcOverlay,

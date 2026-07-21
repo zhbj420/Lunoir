@@ -222,5 +222,13 @@ export const fr: Partial<Record<Key, string>> = {
   'set.sec.appearance': 'Apparence',
   'set.frost.label': 'Transparence du verre dépoli',
   'set.frost.desc':
-    'Dans quelle mesure les panneaux et les commandes laissent voir la vidéo à travers leur verre dépoli. Plus haut = plus transparent ; plus bas = plus opaque.'
+    'Dans quelle mesure les panneaux et les commandes laissent voir la vidéo à travers leur verre dépoli. Plus haut = plus transparent ; plus bas = plus opaque.',
+
+  'menu.record': 'Démarrer l’enregistrement',
+  'menu.stopRecord': 'Arrêter l’enregistrement',
+  'toast.recordingSaved': 'Enregistrement enregistré : {name}',
+  'dlg.chooseRecDir': 'Choisir le dossier d’enregistrement',
+  'set.recDir.label': 'Dossier d’enregistrement',
+  'set.recDir.desc':
+    'Où les enregistrements en direct sont enregistrés. Saisissez un chemin ou parcourez.'
 }

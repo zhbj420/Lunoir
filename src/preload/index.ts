@@ -37,6 +37,7 @@ export interface Settings {
   screenshotSubs: boolean
   screenshotFormat: ScreenshotFormat // PNG (lossless) or JPG (high-quality, smaller)
   screenshotDir: string // where screenshots are saved ('' = Pictures/Lunoir default)
+  recordingDir: string // where stream recordings are saved ('' = Videos/Lunoir default)
   rememberWindow: boolean
   rememberVolume: boolean
   volume: number
@@ -188,6 +189,15 @@ const api = {
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),
   openDiscDialog: (): void => ipcRenderer.send('ui:open-disc'), // Blu-ray/DVD folder picker
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke('app:pick-folder'),
+
+  // --- recording (stream-record) ---
+  goLive: (): void => ipcRenderer.send('mpv:go-live'), // jump to a live stream's edge
+  toggleRecording: (): void => ipcRenderer.send('recording:toggle'),
+  getRecording: (): Promise<{ recording: boolean; since: number | null }> =>
+    ipcRenderer.invoke('recording:get'),
+  onRecordingState: (cb: (s: { recording: boolean; since: number | null }) => void): Unsubscribe =>
+    subscribe('recording:state', (s: { recording: boolean; since: number | null }) => cb(s)),
+  pickRecordingFolder: (): Promise<string | null> => ipcRenderer.invoke('recording:pick-folder'),
   getSettings: (): Promise<Settings> => ipcRenderer.invoke('settings:get'),
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]): void =>
     ipcRenderer.send('settings:set', key, value),

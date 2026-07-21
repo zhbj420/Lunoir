@@ -37,6 +37,7 @@ const DEFAULTS: Settings = {
   screenshotSubs: true,
   screenshotFormat: 'png',
   screenshotDir: '',
+  recordingDir: '', // where stream recordings go ('' = Videos/Lunoir default)
   rememberWindow: true,
   rememberVolume: true,
   volume: 100,

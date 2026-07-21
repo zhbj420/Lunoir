@@ -125,6 +125,8 @@ export const en = {
   'set.shotDir.label': 'Save folder',
   'set.shotDir.desc': 'Where screenshots are saved. Enter a path or browse for one.',
   'set.shotDir.browse': 'Browse…',
+  'set.recDir.label': 'Recording folder',
+  'set.recDir.desc': 'Where live recordings are saved. Enter a path or browse for one.',
 
   'set.oscDelay.label': 'Auto-hide delay',
   'set.oscDelay.desc1':
@@ -212,6 +214,8 @@ export const en = {
   'menu.abEnd': 'A-B loop: set end (B)',
   'menu.abClear': 'A-B loop: clear',
   'menu.screenshot': 'Screenshot',
+  'menu.record': 'Start recording',
+  'menu.stopRecord': 'Stop recording',
   'menu.tcOverlay': 'Timecode overlay',
   'menu.openFile': 'Open file…',
   'menu.openUrl': 'Open URL…',
@@ -221,6 +225,7 @@ export const en = {
   'toast.speedNormal': 'Normal speed',
   'toast.speed': 'Speed {v}×',
   'toast.screenshotSaved': 'Screenshot saved to Pictures › Lunoir',
+  'toast.recordingSaved': 'Recording saved: {name}',
   'toast.loading': 'Loading…',
 
   // ---- toasts / dialogs (main process) ----
@@ -236,6 +241,7 @@ export const en = {
   'dlg.addToPlaylist': 'Add to Playlist',
   'dlg.openMedia': 'Open Media',
   'dlg.chooseShotDir': 'Choose screenshot folder',
+  'dlg.chooseRecDir': 'Choose recording folder',
   'dlg.filter.subtitles': 'Subtitles',
   'dlg.filter.media': 'Media',
   'dlg.filter.allFiles': 'All Files',
