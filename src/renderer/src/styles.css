@@ -46,6 +46,22 @@
   --ui-tracking: 0.02em;
 }
 
+/* Japanese / Korean use the system UI CJK faces (both ship with every Windows) —
+   NOT the bundled Lunoir Sans SC, which is Simplified-Chinese and would show
+   Chinese glyph shapes for kanji. Segoe UI leads for Latin/digits. No bundling. */
+:root[lang^='ja'] {
+  /* Plain 'Meiryo', not the 'Meiryo UI' cut — the UI variants of the Japanese
+     faces are deliberately narrowed/tightened for dense UI, which read as thin and
+     condensed; plain Meiryo has the fuller, wider proportions the user wanted.
+     Yu Gothic behind it as a fallback (both ship with Windows). */
+  --ui-font: 'Segoe UI', 'Meiryo', 'Yu Gothic', sans-serif;
+  --ui-tracking: 0.02em;
+}
+:root[lang^='ko'] {
+  --ui-font: 'Segoe UI', 'Malgun Gothic', sans-serif;
+  --ui-tracking: 0.02em;
+}
+
 /* When the app is inactive, Win11 lightens the acrylic; thicken the scrims a bit
    to soften (not fully cancel) the brightening. */
 body.app-inactive {
@@ -867,7 +883,7 @@ body.panel-win.panel-shown .panel.left > * {
 /* Chinese descriptions read as a tidy block only when both edges line up. Latin
    isn't justified (it opens ugly word gaps); hanzi are fixed-width, so justify
    squares off the ragged right edge cleanly — the standard way body Chinese is set. */
-:root[lang^='zh'] .set-desc {
+:root[data-cjk] .set-desc {
   text-align: justify;
   text-justify: inter-character;
 }
@@ -876,7 +892,7 @@ body.panel-win.panel-shown .panel.left > * {
    apart, so a leading that reads comfortably in Latin looks cramped in Chinese —
    and the Chinese value looks too airy in Latin. One of the few places the two
    languages genuinely want different values. Sizes stay shared. */
-:root[lang^='zh'] .set-desc {
+:root[data-cjk] .set-desc {
   line-height: 1.5;
 }
 
@@ -970,11 +986,15 @@ body.panel-win.panel-shown .panel.left > * {
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
   max-height: 264px;
   overflow-y: auto;
+  /* grow to the widest option, not just the (narrow) trigger — otherwise long
+     labels in other languages ("Auto (cópia de volta)") get clipped. The inline
+     min-width still floors it at the trigger width; max-width stops a runaway. */
+  width: max-content;
+  max-width: 300px;
 }
 
 .set-dropdown-item {
   display: block;
-  width: 100%;
   text-align: left;
   height: 28px;
   padding: 0 10px;
@@ -1128,7 +1148,7 @@ body.panel-win.panel-shown .panel.left > * {
 /* Chinese only: bigger and more spread than the Latin above. Uppercase does
    nothing to hanzi, so a two-character heading like 设置 needs size and tracking
    to read as a heading rather than as body text. English stays at its tuned size. */
-:root[lang^='zh'] .panel-tab {
+:root[data-cjk] .panel-tab {
   font-size: 13px;
   letter-spacing: 0.2em;
 }
@@ -1176,11 +1196,13 @@ body.panel-win.panel-shown .panel.left > * {
   padding: 2px 0;
 }
 
-.panel-body::-webkit-scrollbar {
+.panel-body::-webkit-scrollbar,
+.set-dropdown-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.panel-body::-webkit-scrollbar-thumb {
+.panel-body::-webkit-scrollbar-thumb,
+.set-dropdown-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.14);
   border-radius: 4px;
   border: 2px solid transparent;
@@ -1289,8 +1311,8 @@ body.panel-win.panel-shown .panel.left > * {
 /* Chinese: section headings (音轨 / 字幕 / 调整) need real size + contrast, since
    the uppercase + tracking that carries the 10.5px English does nothing for hanzi.
    Matches the settings panel's zh .set-sec treatment. English stays locked. */
-:root[lang^='zh'] .track-sec,
-:root[lang^='zh'] .sub-adjust-head {
+:root[data-cjk] .track-sec,
+:root[data-cjk] .sub-adjust-head {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.52);
 }
@@ -1345,7 +1367,7 @@ body.panel-win.panel-shown .panel.left > * {
 }
 
 /* the adjust-row labels (延迟 / 位置 / 大小 / 亮度) read a touch large in Chinese */
-:root[lang^='zh'] .adjust-label {
+:root[data-cjk] .adjust-label {
   font-size: 12px;
 }
 

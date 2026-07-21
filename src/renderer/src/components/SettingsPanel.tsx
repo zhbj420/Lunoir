@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { LANG_OPTIONS, type LangSetting } from '@shared/i18n'
 import { useT, type T } from '../useT'
@@ -133,7 +133,9 @@ const uiLangOpts = (t: T): Opt[] =>
 function Select({ value, options, onChange }: { value: string; options: Opt[]; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
-  const [box, setBox] = useState<{ top: number; left: number; width: number } | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ top: number; left: number; right: number; width: number } | null>(null)
+  const [menu, setMenu] = useState<{ w: number; left: number }>()
   const label = options.find(o => o.value === value)?.label ?? value
 
   const openMenu = (): void => {
@@ -142,19 +144,52 @@ function Select({ value, options, onChange }: { value: string; options: Opt[]; o
     const r = el.getBoundingClientRect()
     const listH = options.length * 32 + 8 // item height (28) + gap, keep in sync with .set-dropdown-item
     const up = r.bottom + listH > window.innerHeight - 8
-    setBox({ top: up ? r.top - listH - 4 : r.bottom + 4, left: r.left, width: r.width })
+    setMenu(undefined) // measured after mount, below
+    setBox({ top: up ? r.top - listH - 4 : r.bottom + 4, left: r.left, right: r.right, width: r.width })
     setOpen(true)
   }
+
+  // Measure the widest option, pin the list width, and place it so it fits inside
+  // this window. Two problems solved here:
+  //  1. Width: CSS width:max-content can't grow the list, because overflow-y:auto
+  //     also makes it an x-scroll container and those don't expand to content in the
+  //     scroll axis. The list's own scrollWidth is no help either — the block items
+  //     fill it exactly, so the overflow lives one level deeper in the item text. So
+  //     measure each item's own scrollWidth and take the max.
+  //  2. Placement: the settings panel is its OWN narrow acrylic window, and a fixed
+  //     popup can't be drawn past that window's edge. So if opening at the trigger's
+  //     left would overflow the right edge, shift the list left (align its right edge
+  //     to the trigger, then clamp into the viewport) rather than let the OS clip it.
+  useLayoutEffect(() => {
+    const el = listRef.current
+    if (!open || !el || !box) return
+    let widest = 0
+    for (const item of Array.from(el.children)) widest = Math.max(widest, (item as HTMLElement).scrollWidth)
+    const scrollbar = el.offsetWidth - el.clientWidth
+    const w = Math.min(window.innerWidth - 16, Math.ceil(widest + 8 + scrollbar + 1)) // +8 list padding
+    // prefer opening at the trigger's left; if that overflows, align to its right
+    // edge; finally clamp so it never leaves the window on either side
+    let left = box.left
+    if (left + w > window.innerWidth - 8) left = box.right - w
+    left = Math.max(8, Math.min(left, window.innerWidth - w - 8))
+    setMenu({ w, left })
+  }, [open, box])
 
   useEffect(() => {
     if (!open) return
     const close = (): void => setOpen(false)
+    // A wheel over the page scrolls the panel away from the (fixed) list, so close
+    // it — but a wheel INSIDE the list should scroll the list, not close it.
+    const onWheel = (e: WheelEvent): void => {
+      if (listRef.current?.contains(e.target as Node)) return
+      setOpen(false)
+    }
     window.addEventListener('mousedown', close)
-    window.addEventListener('wheel', close, true)
+    window.addEventListener('wheel', onWheel, true)
     window.addEventListener('resize', close)
     return () => {
       window.removeEventListener('mousedown', close)
-      window.removeEventListener('wheel', close, true)
+      window.removeEventListener('wheel', onWheel, true)
       window.removeEventListener('resize', close)
     }
   }, [open])
@@ -176,8 +211,9 @@ function Select({ value, options, onChange }: { value: string; options: Opt[]; o
         box &&
         createPortal(
           <div
+            ref={listRef}
             className="set-dropdown-list"
-            style={{ top: box.top, left: box.left, minWidth: box.width }}
+            style={{ top: box.top, left: menu?.left ?? box.left, minWidth: box.width, width: menu?.w }}
             onMouseDown={e => e.stopPropagation()}
           >
             {options.map(o => (
