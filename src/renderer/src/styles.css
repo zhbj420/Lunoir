@@ -261,10 +261,10 @@ body.fullscreen .titlebar {
 
 .brand-tagline {
   margin-top: 20px;
-  /* 14px, not 12 — hanzi need >=21 device px per em to render evenly (see
-     --ui-font). Whole device px only: at 150% DPI, 13px = 19.5 device px lands
-     on a half pixel and every glyph rasterizes at a different phase. */
-  font-size: 14px;
+  /* 12px is the base — small and crisp for Latin/Cyrillic, which is the intended
+     look. CJK bumps to 14px below (hanzi need >=21 device px per em to render
+     evenly; 12px = 18 device px at 150% aliases). */
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.62);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
@@ -290,15 +290,19 @@ body.fullscreen .titlebar {
 }
 
 .cta-hint {
-  /* 14px for the same reason as .brand-tagline — 12px hanzi fall apart. */
-  font-size: 14px;
-  /* 0.58, not the 0.4 this used to be — at 40% the thin strokes of small hanzi
-     antialias down to a very faint grey and the line stops holding together. */
+  font-size: 12px; /* base; CJK bumps to 14px below (see .brand-tagline) */
   color: rgba(255, 255, 255, 0.58);
   /* No letter-spacing. At this size 0.02em was 0.24px — invisible as tracking,
      but it accumulates, so every character landed on a different subpixel phase
      and got rasterized differently. Same font, same size, yet the glyphs looked
      like they were bobbing. Hanzi are evenly spaced by design and want none. */
+}
+
+/* CJK home copy needs the bigger size to render evenly (see .brand-tagline);
+   Latin/Cyrillic keep the crisp 12px base above. */
+:root[data-cjk] .brand-tagline,
+:root[data-cjk] .cta-hint {
+  font-size: 14px;
 }
 
 .url-box {
