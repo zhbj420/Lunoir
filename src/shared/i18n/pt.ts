@@ -32,6 +32,7 @@ export const pt: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Ainda nada guardado. Clique com o botão direito durante a reprodução para guardar aqui.',
   'lib.addFav': 'Guardar',
   'lib.remove': 'Remover',
+  'lib.rename': 'Renomear',
   'lib.playlists': 'Listas',
   'lib.live': 'Ao vivo',
   'lib.emptyPlaylists': 'Ainda não há listas guardadas. Guarde uma no painel de lista.',
@@ -217,6 +218,9 @@ export const pt: Partial<Record<Key, string>> = {
   'main.loadingPlaylist': 'A carregar a lista de reprodução…',
   'main.playlistFailed': 'Não foi possível carregar a lista',
   'main.noMedia': 'Sem media reproduzível nesta pasta',
+  'main.skippedMissing': 'Ficheiro em falta ignorado',
+  'main.noPlayable': 'Ficheiro não encontrado — verifique o ficheiro',
+  'main.loadFailed': 'Não é possível reproduzir — a fonte pode estar offline',
   'main.folderTruncated':
     'A pasta tem {count} vídeos — a carregar os primeiros {max}',
   'main.resumed': 'Retomado a partir de {time}',

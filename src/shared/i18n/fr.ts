@@ -32,6 +32,7 @@ export const fr: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Rien d’enregistré. Faites un clic droit pendant la lecture pour l’enregistrer ici.',
   'lib.addFav': 'Enregistrer',
   'lib.remove': 'Retirer',
+  'lib.rename': 'Renommer',
   'lib.playlists': 'Listes',
   'lib.live': 'En direct',
   'lib.emptyPlaylists': 'Aucune liste enregistrée. Enregistrez-en une depuis le panneau de lecture.',
@@ -217,6 +218,9 @@ export const fr: Partial<Record<Key, string>> = {
   'main.loadingPlaylist': 'Chargement de la liste de lecture…',
   'main.playlistFailed': 'Échec du chargement de la liste',
   'main.noMedia': 'Aucun média lisible dans ce dossier',
+  'main.skippedMissing': 'Fichier manquant ignoré',
+  'main.noPlayable': 'Fichier introuvable — vérifiez le fichier',
+  'main.loadFailed': 'Lecture impossible — la source est peut-être hors ligne',
   'main.folderTruncated':
     'Le dossier contient {count} vidéos — chargement des {max} premières',
   'main.resumed': 'Repris à {time}',

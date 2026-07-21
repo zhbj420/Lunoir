@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useT } from '../useT'
 
 // Mirrors the preload RecentEntry/FavEntry shape (renderer can't import from preload).
@@ -18,6 +18,21 @@ export default function Library() {
   const [tab, setTab] = useState<Tab>('recent') // 最近 has content on first open
   const [recents, setRecents] = useState<Entry[]>([])
   const [favs, setFavs] = useState<Entry[]>([])
+  const [editing, setEditing] = useState<string | null>(null) // target being renamed
+  const [draft, setDraft] = useState('')
+  const revert = useRef(false)
+
+  const startRename = (e: Entry): void => {
+    revert.current = false
+    setDraft(e.name)
+    setEditing(e.target)
+  }
+  const commitRename = (): void => {
+    const tgt = editing
+    if (tgt && !revert.current && draft.trim()) window.mmp.renameFavourite(tgt, draft)
+    revert.current = false
+    setEditing(null)
+  }
 
   useEffect(() => {
     const loadR = (): void => void window.mmp.getRecents().then(setRecents)
@@ -80,9 +95,34 @@ export default function Library() {
             {list.map(e => {
               const count = e.channels?.length ?? e.items?.length
               return (
-                <li key={e.target} className="lib-row" onClick={() => play(e.target)} title={e.target}>
+                <li
+                  key={e.target}
+                  className="lib-row"
+                  onClick={() => editing !== e.target && play(e.target)}
+                  title={e.target}
+                >
                   <KindIcon kind={e.kind} />
-                  <span className="lib-name">{e.name}</span>
+                  {editing === e.target ? (
+                    <input
+                      className="lib-name-edit"
+                      autoFocus
+                      spellCheck={false}
+                      value={draft}
+                      onClick={ev => ev.stopPropagation()}
+                      onChange={ev => setDraft(ev.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={ev => {
+                        ev.stopPropagation()
+                        if (ev.key === 'Enter') ev.currentTarget.blur()
+                        else if (ev.key === 'Escape') {
+                          revert.current = true
+                          ev.currentTarget.blur()
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="lib-name">{e.name}</span>
+                  )}
                   {count != null && <span className="lib-count">{count}</span>}
                   <div className="lib-actions" onClick={ev => ev.stopPropagation()}>
                     {tab === 'recent' ? (
@@ -95,9 +135,14 @@ export default function Library() {
                         </button>
                       </>
                     ) : (
-                      <button className="lib-act" title={t('lib.remove')} onClick={() => window.mmp.removeFavourite(e.target)}>
-                        <IcTrash />
-                      </button>
+                      <>
+                        <button className="lib-act" title={t('lib.rename')} onClick={() => startRename(e)}>
+                          <IcPencil />
+                        </button>
+                        <button className="lib-act" title={t('lib.remove')} onClick={() => window.mmp.removeFavourite(e.target)}>
+                          <IcTrash />
+                        </button>
+                      </>
                     )}
                   </div>
                 </li>
@@ -150,5 +195,10 @@ const IcTrash = () => (
 const IcClose = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
     <path d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5" />
+  </svg>
+)
+const IcPencil = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 20 h4 L18.5 9.5 a1.5 1.5 0 0 0 -4 -4 L4 16 Z M13.5 6.5 l4 4" />
   </svg>
 )

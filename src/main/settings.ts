@@ -235,6 +235,15 @@ export function removeFavourite(target: string): void {
   writeFavourites()
 }
 
+/** Give a saved item a custom display name (the auto-derived one is often ugly). */
+export function renameFavourite(target: string, name: string): void {
+  const e = favourites().find(x => x.target === target)
+  const n = name.trim()
+  if (!e || !n || e.name === n) return
+  e.name = n
+  writeFavourites()
+}
+
 /** Drop one channel from a favourited list's snapshot (delete a dead source). */
 export function removeFavouriteChannel(listTarget: string, channelUrl: string): void {
   const e = favourites().find(x => x.target === listTarget)

@@ -34,6 +34,7 @@ export const ko: Partial<Record<Key, string>> = {
   'lib.emptyFav': '저장된 항목이 없습니다. 재생 중 마우스 오른쪽 버튼으로 저장하세요.',
   'lib.addFav': '저장',
   'lib.remove': '제거',
+  'lib.rename': '이름 변경',
   'lib.playlists': '재생목록',
   'lib.live': '라이브',
   'lib.emptyPlaylists': '저장된 재생목록이 없습니다. 재생목록 패널에서 저장하세요.',
@@ -219,6 +220,9 @@ export const ko: Partial<Record<Key, string>> = {
   'main.loadingPlaylist': '재생목록 로딩 중…',
   'main.playlistFailed': '재생목록을 로드하지 못했습니다',
   'main.noMedia': '이 폴더에 재생 가능한 미디어가 없습니다',
+  'main.skippedMissing': '없는 파일을 건너뛰었습니다',
+  'main.noPlayable': '파일을 찾을 수 없습니다 — 파일을 확인하세요',
+  'main.loadFailed': '재생할 수 없습니다 — 소스가 오프라인일 수 있습니다',
   'main.folderTruncated':
     '폴더에 동영상 {count}개 — 처음 {max}개를 로드합니다',
   'main.resumed': '{time}부터 이어서 재생',

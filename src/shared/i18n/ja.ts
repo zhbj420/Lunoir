@@ -34,6 +34,7 @@ export const ja: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'まだ保存がありません。再生中に右クリックで保存できます。',
   'lib.addFav': '保存',
   'lib.remove': '削除',
+  'lib.rename': '名前を変更',
   'lib.playlists': 'プレイリスト',
   'lib.live': 'ライブ',
   'lib.emptyPlaylists': '保存したプレイリストがありません。プレイリストパネルから保存できます。',
@@ -219,6 +220,9 @@ export const ja: Partial<Record<Key, string>> = {
   'main.loadingPlaylist': 'プレイリストを読み込み中…',
   'main.playlistFailed': 'プレイリストを読み込めませんでした',
   'main.noMedia': 'このフォルダーに再生可能なメディアがありません',
+  'main.skippedMissing': '見つからないファイルをスキップしました',
+  'main.noPlayable': 'ファイルが見つかりません。ファイルを確認してください',
+  'main.loadFailed': '再生できません。ソースがオフラインの可能性があります',
   'main.folderTruncated':
     'フォルダーに {count} 本の動画 — 先頭 {max} 本を読み込みます',
   'main.resumed': '{time} から再開しました',

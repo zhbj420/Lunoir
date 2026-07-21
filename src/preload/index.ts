@@ -250,6 +250,8 @@ const api = {
   onCollectionSaved: (cb: (saved: boolean) => void): Unsubscribe =>
     subscribe('library:collection-saved', (saved: boolean) => cb(saved)),
   removeFavourite: (target: string): void => ipcRenderer.send('library:fav-remove', target),
+  renameFavourite: (target: string, name: string): void =>
+    ipcRenderer.send('library:fav-rename', target, name),
   removeFavouriteChannel: (listTarget: string, channelUrl: string): void =>
     ipcRenderer.send('library:fav-channel-remove', listTarget, channelUrl),
   onRecentsChanged: (cb: () => void): Unsubscribe => subscribe('recents:changed', () => cb()),

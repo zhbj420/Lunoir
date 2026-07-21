@@ -1012,6 +1012,22 @@ body.library-win.library-shown .library {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* inline rename field — sits where the name was, same size, subtle edit affordance */
+.lib-name-edit {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: -3px 0;
+  outline: none;
+}
+.lib-name-edit:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
 .lib-count {
   flex: none;
   color: rgba(255, 255, 255, 0.5);

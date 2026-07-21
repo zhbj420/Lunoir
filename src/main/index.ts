@@ -23,6 +23,7 @@ import {
   isFavourite,
   addFavourite,
   removeFavourite,
+  renameFavourite,
   removeFavouriteChannel,
   type Settings,
   type MediaKind,
@@ -532,7 +533,7 @@ function hashStr(s: string): string {
   for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0
   return (h >>> 0).toString(36)
 }
-const queueKey = (): string => 'pl:' + hashStr(playlist.join(' '))
+const queueKey = (): string => 'pl:' + hashStr(playlist.join('|'))
 function queueName(): string {
   const first = playlist[0]
   if (!first) return 'Playlist'
@@ -682,6 +683,22 @@ function openMedia(target: string): void {
 
 function playCurrent(): void {
   if (plIndex < 0 || plIndex >= playlist.length) return
+  // Skip past local files that have gone missing — a saved playlist / recent may
+  // point at a file since moved or deleted. Advance to the next playable item, or
+  // stop if none remain. (URLs/discs can't be checked cheaply — mpv reports those.)
+  let skipped = 0
+  while (plIndex < playlist.length) {
+    const t = playlist[plIndex]
+    if (isUrl(t) || isDiscUri(t) || existsSync(t)) break
+    skipped++
+    plIndex++
+  }
+  if (plIndex >= playlist.length) {
+    broadcast('playlist:changed', playlistPayload())
+    broadcast('ui:toast', tr('main.noPlayable'))
+    return
+  }
+  if (skipped > 0) broadcast('ui:toast', tr('main.skippedMissing'))
   const target = playlist[plIndex]
   // remember which item of this URL playlist we're on, so reopening resumes here
   if (playlistKey && getSettings().resumePlaylistItem) savePlaylistItem(playlistKey, target)
@@ -2061,9 +2078,14 @@ function startMpv(): void {
     // fit the window to the video's aspect ratio (no letterbox in windowed mode)
     if (name === 'video-params/aspect' && typeof data === 'number') fitWindowToVideo(data)
   })
-  mpv.on('mpv-event', (event: string) => {
+  mpv.on('mpv-event', (event: string, msg?: { reason?: string }) => {
     broadcast('mpv:event', event)
-    if (event === 'end-file') broadcast('ui:loading', false)
+    if (event === 'end-file') {
+      broadcast('ui:loading', false)
+      // mpv gave up loading this item (dead stream / unreadable file) — the missing
+      // LOCAL file case is already caught in playCurrent, so this covers URLs/streams
+      if (msg?.reason === 'error') broadcast('ui:toast', tr('main.loadFailed'))
+    }
     if (event === 'playback-restart') {
       broadcast('ui:loading', false) // first frame is up (after any buffering)
       if (pendingResumeToast) {
@@ -2307,6 +2329,12 @@ function registerIpc(): void {
   ipcMain.on('library:fav-remove', (_e, target: string) => {
     removeFavourite(target)
     afterFavChange()
+  })
+  ipcMain.on('library:fav-rename', (_e, target: string, name: string) => {
+    if (typeof target === 'string' && typeof name === 'string') {
+      renameFavourite(target, name)
+      afterFavChange()
+    }
   })
   ipcMain.on('library:fav-channel-remove', (_e, listTarget: string, channelUrl: string) => {
     removeFavouriteChannel(listTarget, channelUrl)

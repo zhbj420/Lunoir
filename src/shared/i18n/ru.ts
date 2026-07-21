@@ -33,6 +33,7 @@ export const ru: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Пока ничего не сохранено. Щёлкните правой кнопкой во время воспроизведения, чтобы сохранить.',
   'lib.addFav': 'Сохранить',
   'lib.remove': 'Удалить',
+  'lib.rename': 'Переименовать',
   'lib.playlists': 'Плейлисты',
   'lib.live': 'Эфир',
   'lib.emptyPlaylists': 'Пока нет сохранённых плейлистов. Сохраните из панели плейлиста.',
@@ -218,6 +219,9 @@ export const ru: Partial<Record<Key, string>> = {
   'main.loadingPlaylist': 'Загрузка плейлиста…',
   'main.playlistFailed': 'Не удалось загрузить плейлист',
   'main.noMedia': 'В этой папке нет воспроизводимых медиа',
+  'main.skippedMissing': 'Пропущен отсутствующий файл',
+  'main.noPlayable': 'Файл не найден — проверьте файл',
+  'main.loadFailed': 'Не удаётся воспроизвести — источник может быть недоступен',
   'main.folderTruncated':
     'В папке {count} видео — загружаются первые {max}',
   'main.resumed': 'Продолжено с {time}',

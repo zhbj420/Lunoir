@@ -32,6 +32,7 @@ export const de: Partial<Record<Key, string>> = {
   'lib.emptyFav': 'Noch nichts gespeichert. Während der Wiedergabe rechtsklicken, um es hier zu speichern.',
   'lib.addFav': 'Speichern',
   'lib.remove': 'Entfernen',
+  'lib.rename': 'Umbenennen',
   'lib.playlists': 'Wiedergabelisten',
   'lib.live': 'Live',
   'lib.emptyPlaylists': 'Noch keine Wiedergabelisten gespeichert. Speichere eine im Wiedergabelisten-Panel.',
@@ -217,6 +218,9 @@ export const de: Partial<Record<Key, string>> = {
   'main.loadingPlaylist': 'Wiedergabeliste wird geladen…',
   'main.playlistFailed': 'Wiedergabeliste konnte nicht geladen werden',
   'main.noMedia': 'Keine abspielbaren Medien in diesem Ordner',
+  'main.skippedMissing': 'Fehlende Datei übersprungen',
+  'main.noPlayable': 'Datei nicht gefunden — bitte Datei prüfen',
+  'main.loadFailed': 'Wiedergabe nicht möglich — Quelle evtl. offline',
   'main.folderTruncated':
     'Der Ordner enthält {count} Videos — die ersten {max} werden geladen',
   'main.resumed': 'Fortgesetzt ab {time}',
