@@ -736,21 +736,21 @@ function playCurrent(): void {
   if (playlistKey && getSettings().resumePlaylistItem) savePlaylistItem(playlistKey, target)
   broadcast('playlist:changed', playlistPayload())
   broadcast('library:collection-saved', collectionSaved()) // panel save-button state
-  if (mpv) {
-    // a disc: point mpv at the device + give it a friendly title; else clear any
-    // stale override (force-media-title is persistent across loads)
-    if (isDiscUri(target)) {
-      mpv.setProperty(target === 'bd://' ? 'bluray-device' : 'dvd-device', discDevice)
-      mpv.setProperty('force-media-title', urlTitles[target] || 'Blu-ray')
-    } else if (isUrl(target) && urlTitles[target] && (sourceType === 'iptv' || !needsYtdl(target))) {
-      // a direct-stream channel (IPTV): the HLS/http feed carries no useful title,
-      // so surface the channel name from the list instead of its ugly URL. IPTV URLs
-      // often don't end in a media extension (.php, query params) — force it anyway.
-      mpv.setProperty('force-media-title', urlTitles[target])
-    } else {
-      mpv.setProperty('force-media-title', '')
-    }
+  // a disc needs its device pointed at BEFORE loading
+  if (mpv && isDiscUri(target)) {
+    mpv.setProperty(target === 'bd://' ? 'bluray-device' : 'dvd-device', discDevice)
   }
+  // The title to force once loaded: a disc's folder name, or an IPTV channel's name
+  // (its HLS/http feed carries no useful title, and IPTV URLs often lack a media
+  // extension so force it regardless). Everything else clears the override so mpv
+  // uses the file's own title. Applied AFTER loadFile — mpv's own path/filename
+  // events reset the renderer's title on load, so forcing it before load gets wiped
+  // and the title falls back to the ugly URL basename.
+  const forcedTitle = isDiscUri(target)
+    ? urlTitles[target] || 'Blu-ray'
+    : isUrl(target) && urlTitles[target] && (sourceType === 'iptv' || !needsYtdl(target))
+      ? urlTitles[target]
+      : ''
   if (isUrl(target) || isDiscUri(target)) broadcast('ui:loading', true) // grey until the first frame (disc scan takes a moment)
   // IPTV channels are direct streams — never yt-dlp them (their URLs just don't end
   // in a media extension, which is the only thing needsYtdl keys off).
@@ -760,11 +760,13 @@ function playCurrent(): void {
       if (!mpv) return
       if (path) mpv.setProperty('script-opts', `ytdl_hook-ytdl_path=${path.replace(/\\/g, '/')}`)
       mpv.loadFile(target)
+      mpv.setProperty('force-media-title', forcedTitle)
       mpv.setProperty('pause', false)
     })
     return
   }
   mpv?.loadFile(target)
+  mpv?.setProperty('force-media-title', forcedTitle) // after load — see above
   mpv?.setProperty('pause', false) // always start playing on load
 }
 
