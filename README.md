@@ -13,6 +13,7 @@ clean Win11 acrylic UI.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Languages](https://img.shields.io/badge/languages-9-blueviolet)
 ![Status](https://img.shields.io/badge/status-early-orange)
 
 > ⚠️ Early / personal project. Windows-only for now. Expect rough edges.
@@ -42,14 +43,23 @@ clean Win11 acrylic UI.
 **Interface**
 - Floating IINA-style OSC that frosts the video (real Win11 acrylic window)
 - Acrylic side panels — playlist / chapters / audio & subtitle tracks, and settings
-- Frameless, drag-and-drop, remembers window size & volume
-- Right-click context menu
+- **9 interface languages** — English, 简体中文, Français, Deutsch, Español,
+  Português, Русский, 日本語, 한국어 (auto-detects your Windows language)
+- Frameless, drag-and-drop, opens files straight from Explorer (file associations)
+- Right-click context menu, remembers window size & volume
 
-**Niceties**
+**For frame-accurate work**
+- Time / **timecode** (SMPTE `HH:MM:SS:FF`) / **frame-number** readout — click to cycle
+- True single-frame stepping, and an optional always-on corner **burn-in** that
+  screenshots capture
 - Rich track info via MediaInfo — commercial audio names (Dolby TrueHD / Atmos,
   DTS-HD) and an HDR-flavour badge (DV / HDR10 / HDR10+)
-- Screenshots (PNG / JPG, with or without subtitles, custom folder)
-- A-B loop, playback speed (keeps pitch), auto-load external subtitles
+
+**Niceties**
+- Screenshots (PNG / JPG, with or without subtitles, custom folder, named by title + position)
+- **Subtitle styling** — font, size, spacing, outline, position — plus per-video
+  delay / position / size / brightness tweaks
+- A-B loop, playback speed (keeps pitch), shuffle / repeat, auto-load external subtitles
 - Audio passthrough (bitstream to a receiver), adjustable OSC auto-hide delay
 - Resume playback — per file *and* per playlist
 
