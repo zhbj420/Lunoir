@@ -3,15 +3,29 @@
 // backends, and the install size is something we watch. It's ~40 lines.
 import { en, type Key } from './en'
 import { zhCN } from './zh-CN'
+import { fr } from './fr'
+import { de } from './de'
+import { es } from './es'
+import { pt } from './pt'
+import { ru } from './ru'
 
 export type { Key }
 
-/** Locales with an actual translation. */
-export type Locale = 'en' | 'zh-CN'
+/** Locales with an actual translation. Latin/Cyrillic ones (fr/de/es/pt/ru) all
+ *  render with the same Segoe UI stack as English — no font work, unlike zh. */
+export type Locale = 'en' | 'zh-CN' | 'fr' | 'de' | 'es' | 'pt' | 'ru'
 /** What the setting stores — 'system' follows the OS. */
 export type LangSetting = 'system' | Locale
 
-const DICTS: Record<Locale, Partial<Record<Key, string>>> = { en, 'zh-CN': zhCN }
+const DICTS: Record<Locale, Partial<Record<Key, string>>> = {
+  en,
+  'zh-CN': zhCN,
+  fr,
+  de,
+  es,
+  pt,
+  ru
+}
 
 /** Options for the interface-language dropdown. Each label is in its own
  *  language — someone who lands on the wrong one still has to find their way
@@ -19,14 +33,25 @@ const DICTS: Record<Locale, Partial<Record<Key, string>>> = { en, 'zh-CN': zhCN 
 export const LANG_OPTIONS: { value: LangSetting; label: string }[] = [
   { value: 'system', label: 'System' },
   { value: 'en', label: 'English' },
-  { value: 'zh-CN', label: '简体中文' }
+  { value: 'zh-CN', label: '简体中文' },
+  { value: 'fr', label: 'Français' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'es', label: 'Español' },
+  { value: 'pt', label: 'Português' },
+  { value: 'ru', label: 'Русский' }
 ]
 
-/** Map an OS locale tag ('zh-Hans-CN', 'zh-TW', 'en-GB'…) to what we ship.
- *  Traditional Chinese deliberately falls through to English rather than being
- *  served Simplified — wrong-script is worse than untranslated. */
+/** Map an OS locale tag ('zh-Hans-CN', 'de-AT', 'pt-BR'…) to what we ship. Matches
+ *  on the primary subtag; regional variants collapse to the base language. Anything
+ *  unmatched (incl. Traditional Chinese — wrong-script is worse than untranslated)
+ *  falls through to English. */
 export function resolveSystemLocale(tag: string): Locale {
-  return /^zh(-|_)?(hans|cn|sg)?$/i.test(tag) || /^zh-hans/i.test(tag) ? 'zh-CN' : 'en'
+  if (/^zh(-|_)?(hans|cn|sg)?$/i.test(tag) || /^zh-hans/i.test(tag)) return 'zh-CN'
+  const base = tag.slice(0, 2).toLowerCase()
+  if (base === 'fr' || base === 'de' || base === 'es' || base === 'pt' || base === 'ru') {
+    return base
+  }
+  return 'en'
 }
 
 /** The locale actually in effect, given the setting and the OS. */

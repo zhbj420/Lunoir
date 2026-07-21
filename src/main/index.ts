@@ -21,10 +21,16 @@ import { translate, effectiveLocale, type Key } from '@shared/i18n'
 const isDev = !app.isPackaged
 
 // Main-process translator. Resolves the locale fresh on every call from the saved
-// setting + OS locale, so toasts and dialogs follow a language change with no
+// setting + OS language, so toasts and dialogs follow a language change with no
 // wiring. (The renderer has useT; the main process just needs this thin helper.)
+// getPreferredSystemLanguages() reads the OS language list directly — unlike
+// getLocale() it isn't clamped to the bundled locale paks, so it matches what the
+// renderer sees via navigator.language and 'system' resolves the same on both sides.
+function osLocale(): string {
+  return app.getPreferredSystemLanguages?.()[0] || app.getLocale()
+}
 function tr(key: Key, vars?: Record<string, string | number>): string {
-  return translate(effectiveLocale(getSettings().uiLanguage, app.getLocale()), key, vars)
+  return translate(effectiveLocale(getSettings().uiLanguage, osLocale()), key, vars)
 }
 
 // electron-vite dev restarts Electron constantly; its on-disk HTTP cache can

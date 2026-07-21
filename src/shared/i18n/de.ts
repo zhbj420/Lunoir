@@ -1,0 +1,220 @@
+// Deutsch. Partial on purpose — any missing key falls back to English.
+// Not translated: brand name (Lunoir), format/codec names, channel layouts,
+// font family names.
+import type { Key } from './en'
+
+export const de: Partial<Record<Key, string>> = {
+  'win.minimize': 'Minimieren',
+  'win.maximize': 'Maximieren',
+  'win.close': 'Schließen',
+
+  'empty.tagline': 'Video hierher ziehen zum Abspielen',
+  'empty.urlPlaceholder': 'Video- oder Stream-URL einfügen…',
+  'empty.urlPlay': 'Abspielen',
+  'empty.openFile': 'Datei öffnen',
+  'empty.hint': 'Doppelklick für Ordner · Rechtsklick für URL',
+
+  'osc.mute': 'Stumm',
+  'osc.unmute': 'Ton ein',
+  'osc.play': 'Abspielen',
+  'osc.pause': 'Pause',
+  'osc.back': '{n}s zurück',
+  'osc.forward': '{n}s vor',
+  'osc.panel': 'Spuren & Wiedergabeliste',
+  'osc.timeFormat': 'Klicken zum Wechseln: Zeit · Timecode · Bild',
+
+  'common.settings': 'Einstellungen',
+  'common.collapse': 'Panel einklappen',
+  'common.default': 'Standard',
+
+  'set.sec.interface': 'Oberfläche',
+  'set.sec.playlist': 'Wiedergabeliste',
+  'set.sec.audioSubs': 'Audio & Untertitel',
+  'set.sec.subAppearance': 'Untertitel-Darstellung',
+  'set.sec.video': 'Video',
+  'set.sec.screenshots': 'Screenshots',
+  'set.sec.controls': 'Steuerung',
+  'set.sec.window': 'Fenster',
+
+  'set.uiLang.label': 'Sprache der Oberfläche',
+  'set.uiLang.desc':
+    'Die Sprache der Menüs und Einstellungen von Lunoir. Unabhängig von den bevorzugten Audio- und Untertitelsprachen unten, die Spuren innerhalb des Videos auswählen.',
+
+  'set.scanFolder.label': 'Ordner in Wiedergabeliste einlesen',
+  'set.scanFolder.desc':
+    'Beim Öffnen einer Datei auch die anderen Videos ihres Ordners in die Liste aufnehmen.',
+  'set.resume.label': 'Wiedergabe fortsetzen',
+  'set.resume.desc':
+    'Position in jeder Datei merken und beim erneuten Öffnen dorthin zurückkehren.',
+  'set.resumePlaylist.label': 'Wiedergabelisten fortsetzen',
+  'set.resumePlaylist.desc':
+    'Beim erneuten Öffnen eines Wiedergabelisten-Links zum zuletzt gesehenen Video zurückkehren.',
+
+  'set.keepPitch.label': 'Tonhöhe beim Tempowechsel halten',
+  'set.keepPitch.desc':
+    'Audio zeitlich dehnen, damit Stimmen bei höherem Tempo ihre natürliche Tonhöhe behalten.',
+  'set.passthrough.label': 'Audio-Passthrough',
+  'set.passthrough.desc':
+    'Komprimiertes Audio als Bitstream an einen externen Receiver oder DAC senden, der es anstelle von Lunoir dekodiert.\nErfordert Hardware, die das Format unterstützt. Nicht unterstützte Formate bleiben stumm.',
+  'set.audioLang.label': 'Bevorzugte Audiosprache',
+  'set.subLang.label': 'Bevorzugte Untertitelsprache',
+  'set.audioLang.desc':
+    'Diese Sprache beim Öffnen einer Datei automatisch wählen.\nStandard folgt der Spurreihenfolge der Datei.',
+  'set.subLang.desc':
+    'Diese Sprache beim Öffnen einer Datei automatisch wählen.\nStandard folgt der Spurreihenfolge der Datei.',
+  'set.subsDefault.label': 'Untertitel standardmäßig an',
+  'set.autoLoadSubs.label': 'Externe Untertitel automatisch laden',
+  'set.autoLoadSubs.desc':
+    'Passende .srt- und .ass-Dateien neben dem Video laden.',
+  'set.hdrSubPeak.label': 'HDR-Untertitelhelligkeit',
+  'set.hdrSubPeak.desc':
+    'Spitzenhelligkeit in Nits für Textuntertitel (SRT/ASS) über HDR-Video. Niedrigere Werte sind dunkler.\nBilduntertitel (PGS, wie auf Blu-ray) werden von mpv nicht unterstützt. Die SDR-Wiedergabe bleibt unberührt.',
+
+  'set.subFont.label': 'Schriftart',
+  'set.subFont.desc':
+    'Gilt für Textuntertitel (SRT/ASS ohne eigene Formatierung). Wählen Sie eine Schrift, die Ihre Untertitelsprache vollständig abdeckt; fehlende Zeichen wechseln mitten im Satz zu einer anderen Schrift.',
+  'set.subSize.label': 'Schriftgröße',
+  'set.subSpacing.label': 'Zeichenabstand',
+  'set.subSpacing.desc': 'Zusätzlicher Abstand zwischen Zeichen.',
+  'set.subOutline.label': 'Kontur',
+  'set.subOutline.desc':
+    'Dicke des dunklen Rands, der Untertitel über hellen Szenen lesbar hält.',
+  'set.subBold.label': 'Fett',
+  'set.subMargin.label': 'Abstand vom unteren Rand',
+  'set.subMargin.desc':
+    'Standard-Ruheposition. „Anpassen ▸ Untertitelposition“ im rechten Panel verschiebt das aktuelle Video, ohne diesen Wert zu ändern.',
+
+  'set.hwdec.label': 'Hardware-Dekodierung',
+  'set.hwdec.auto': 'GPU-Dekodierung. Am effizientesten, da Bilder im Videospeicher bleiben.',
+  'set.hwdec.autoCopy':
+    'GPU-Dekodierung mit Rückkopie in den Systemspeicher. Nötig für CPU-Filter wie SVP.',
+  'set.hwdec.off': 'Software-Dekodierung auf der CPU. Am kompatibelsten, aber aufwendiger.',
+  'set.quality.label': 'Online-Videoqualität',
+  'set.quality.desc':
+    'Eine Obergrenze. Die tatsächliche Qualität hängt von der Quelle ab: Ein auf 1080p begrenztes Video läuft unabhängig von dieser Einstellung in 1080p. „Beste“ wählt die höchste von der Quelle angebotene Qualität. Gilt für den nächsten Stream.',
+  'set.cookies.label': 'Browser-Cookies verwenden',
+  'set.cookies.desc':
+    'Liest Cookies aus Ihrem angemeldeten Browser, damit Mitglieder-, altersbeschränkte und Premium-Videos abgespielt werden. Standardmäßig deaktiviert.',
+  'set.cookiesFrom.label': 'Cookies aus',
+
+  'set.shotSubs.label': 'Untertitel einschließen',
+  'set.shotSubs.desc': 'Die eingeblendeten Untertitel im gespeicherten Bild einschließen.',
+  'set.shotFormat.label': 'Format',
+  'set.shotFormat.desc':
+    'PNG ist verlustfrei. JPG erzeugt bei Qualität 95 deutlich kleinere Dateien, wobei der Verlust nahezu unsichtbar ist.',
+  'set.shotDir.label': 'Speicherordner',
+  'set.shotDir.desc':
+    'Wo Screenshots gespeichert werden. Pfad eingeben oder durchsuchen.',
+  'set.shotDir.browse': 'Durchsuchen…',
+
+  'set.oscDelay.label': 'Verzögerung fürs Ausblenden',
+  'set.oscDelay.desc1':
+    'Wie lange die Bildschirmsteuerung sichtbar bleibt, nachdem der Zeiger stoppt.',
+  'set.oscDelay.desc2': 'Standard: 5 Sekunden.',
+
+  'set.rememberWindow.label': 'Größe & Position merken',
+  'set.rememberVolume.label': 'Lautstärke merken',
+
+  'opt.hwdec.auto': 'Auto',
+  'opt.hwdec.autoCopy': 'Auto (Rückkopie)',
+  'opt.hwdec.off': 'Aus (Software)',
+  'opt.quality.best': 'Beste',
+  'opt.shot.png': 'PNG (verlustfrei)',
+  'opt.shot.jpg': 'JPG (hohe Qualität)',
+  'opt.subFont.system': 'Systemstandard (sans-serif)',
+  'opt.lang.english': 'Englisch',
+  'opt.lang.chinese': 'Chinesisch',
+  'opt.lang.japanese': 'Japanisch',
+  'opt.lang.korean': 'Koreanisch',
+  'opt.lang.french': 'Französisch',
+  'opt.lang.german': 'Deutsch',
+  'opt.lang.spanish': 'Spanisch',
+  'opt.lang.italian': 'Italienisch',
+  'opt.lang.russian': 'Russisch',
+  'opt.lang.portuguese': 'Portugiesisch',
+  'opt.uiLang.system': 'System',
+
+  'panel.tab.audioSub': 'Audio & UT',
+  'panel.tab.playlist': 'Liste',
+  'panel.tab.chapters': 'Kapitel',
+
+  'panel.empty.queue': 'Nichts in der Warteschlange',
+  'panel.repeat.off': 'Wiederholen: aus',
+  'panel.repeat.all': 'Wiederholen: alle',
+  'panel.repeat.one': 'Wiederholen: eins',
+  'panel.shuffle.on': 'Zufall: an',
+  'panel.shuffle.off': 'Zufall: aus',
+  'panel.addFiles': 'Dateien hinzufügen',
+  'panel.removeCurrent': 'Aktuelles entfernen',
+
+  'panel.empty.chapters': 'Keine Kapitel',
+  'panel.chapterN': 'Kapitel {n}',
+
+  'panel.sec.audio': 'Audio',
+  'panel.sec.subtitles': 'Untertitel',
+  'panel.empty.audio': 'Keine Audiospuren',
+  'panel.subNone': 'Keine',
+  'panel.addSub': 'Untertitel hinzufügen…',
+  'panel.trackN': 'Spur {n}',
+
+  'adjust.label': 'Anpassen',
+  'adjust.active': 'Anpassungen aktiv',
+  'adjust.reset': 'Zurücksetzen',
+  'adjust.delay': 'Verzögerung',
+  'adjust.position': 'Position',
+  'adjust.size': 'Größe',
+  'adjust.brightness': 'Helligkeit',
+  'adjust.earlier': 'Früher (−0,1 s)',
+  'adjust.later': 'Später (+0,1 s)',
+  'adjust.moveUp': 'Nach oben',
+  'adjust.moveDown': 'Nach unten',
+  'adjust.smaller': 'Kleiner',
+  'adjust.larger': 'Größer',
+  'adjust.dimmer': 'Dunkler',
+  'adjust.brighter': 'Heller',
+  'adjust.imageSubHint': 'Bilduntertitel — nur Position und Verzögerung',
+
+  'menu.previous': 'Zurück',
+  'menu.next': 'Weiter',
+  'menu.prevChapter': 'Vorheriges Kapitel',
+  'menu.nextChapter': 'Nächstes Kapitel',
+  'menu.speed': 'Geschwindigkeit',
+  'menu.speedNormal': 'Normal',
+  'menu.aspect': 'Seitenverhältnis',
+  'menu.aspectStretch': 'Streckung auf Vollbild',
+  'menu.abStart': 'A-B-Schleife: Start (A)',
+  'menu.abEnd': 'A-B-Schleife: Ende (B)',
+  'menu.abClear': 'A-B-Schleife: löschen',
+  'menu.screenshot': 'Screenshot',
+  'menu.tcOverlay': 'Timecode-Einblendung',
+  'menu.openFile': 'Datei öffnen…',
+  'menu.openUrl': 'URL öffnen…',
+  'menu.fullscreen': 'Vollbild',
+
+  'toast.speedNormal': 'Normale Geschwindigkeit',
+  'toast.speed': 'Geschwindigkeit {v}×',
+  'toast.screenshotSaved': 'Screenshot gespeichert in Bilder › Lunoir',
+  'toast.loading': 'Lädt…',
+
+  'main.fetchingYtdl': 'yt-dlp wird geholt…',
+  'main.ytdlFailed': 'yt-dlp konnte nicht geholt werden',
+  'main.loadingPlaylist': 'Wiedergabeliste wird geladen…',
+  'main.playlistFailed': 'Wiedergabeliste konnte nicht geladen werden',
+  'main.noMedia': 'Keine abspielbaren Medien in diesem Ordner',
+  'main.folderTruncated':
+    'Der Ordner enthält {count} Videos — die ersten {max} werden geladen',
+  'main.resumed': 'Fortgesetzt ab {time}',
+  'dlg.selectFolder': 'Ordner wählen (Video-Ordner oder Blu-ray/DVD-Disc)',
+  'dlg.addSubtitle': 'Untertitel hinzufügen',
+  'dlg.addToPlaylist': 'Zur Wiedergabeliste hinzufügen',
+  'dlg.openMedia': 'Medium öffnen',
+  'dlg.chooseShotDir': 'Screenshot-Ordner wählen',
+  'dlg.filter.subtitles': 'Untertitel',
+  'dlg.filter.media': 'Medien',
+  'dlg.filter.allFiles': 'Alle Dateien',
+
+  'appmenu.file': 'Datei',
+  'appmenu.open': 'Öffnen…',
+  'appmenu.openFolder': 'Ordner öffnen…',
+  'appmenu.view': 'Ansicht'
+}
