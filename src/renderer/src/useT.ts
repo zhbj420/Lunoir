@@ -12,16 +12,24 @@ import { effectiveLocale, translate, type Key, type LangSetting, type Locale } f
 let locale: Locale = effectiveLocale('system', navigator.language)
 const listeners = new Set<() => void>()
 
-// styles.css keys the UI font stack off :root[lang^='zh'] — a Chinese line needs
-// a Chinese face leading the stack so the punctuation and digits come from the
-// same font as the hanzi, instead of Segoe UI grabbing them and throwing the
-// baseline off. Nothing else reads this, but it has to be set for that to work.
-document.documentElement.lang = locale
+// styles.css keys off two things on <html>:
+//  - lang: picks the per-language font stack (zh → bundled SC; ja/ko → system CJK).
+//  - data-cjk: set for every CJK locale (zh/ja/ko), drives the shared size/spacing
+//    bumps those scripts need at small sizes, so we don't repeat the selectors per
+//    language. Latin/Cyrillic locales leave it off and keep the tuned English sizes.
+const CJK = new Set(['zh-CN', 'ja', 'ko'])
+function markHtml(loc: Locale): void {
+  const el = document.documentElement
+  el.lang = loc
+  if (CJK.has(loc)) el.setAttribute('data-cjk', '')
+  else el.removeAttribute('data-cjk')
+}
+markHtml(locale)
 
 function apply(next: Locale): void {
   if (next === locale) return
   locale = next
-  document.documentElement.lang = next
+  markHtml(next)
   listeners.forEach(l => l())
 }
 

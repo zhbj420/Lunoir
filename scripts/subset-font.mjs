@@ -34,12 +34,16 @@ if (!source || !existsSync(source)) {
 
 // Every non-ASCII char in src/**/*.ts|tsx. Sweeping comments too is deliberate:
 // a few stray glyphs cost ~1 KB each, while missing one shows up as a mixed-font
-// line in the UI.
+// line in the UI. But SKIP the non-Chinese locale dictionaries — this font is the
+// Simplified-Chinese UI face only; scanning fr/de/ru would pull in accents and
+// Cyrillic (they use Segoe UI), and ja/ko would pull in kana/hangul (they use the
+// system CJK fonts). Only zh-CN.ts among the i18n files feeds this subset.
+const SKIP = /[\\/]i18n[\\/](?!zh-CN\.ts$)[a-z-]+\.ts$/i
 async function collectChars(dir, set) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
     const p = join(dir, e.name)
     if (e.isDirectory()) await collectChars(p, set)
-    else if (/\.(ts|tsx)$/.test(e.name)) {
+    else if (/\.(ts|tsx)$/.test(e.name) && !SKIP.test(p)) {
       for (const ch of readFileSync(p, 'utf8')) if (ch.codePointAt(0) > 0x7f) set.add(ch)
     }
   }

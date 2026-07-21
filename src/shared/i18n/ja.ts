@@ -1,0 +1,222 @@
+// 日本語. Partial on purpose — any missing key falls back to English.
+// Rendered with the system Yu Gothic UI (ships with Windows), NOT the bundled
+// SC subset — that would show Chinese glyph forms for shared kanji.
+// Not translated: brand name (Lunoir), format/codec names, channel layouts,
+// font family names.
+import type { Key } from './en'
+
+export const ja: Partial<Record<Key, string>> = {
+  'win.minimize': '最小化',
+  'win.maximize': '最大化',
+  'win.close': '閉じる',
+
+  'empty.tagline': '動画をドロップして再生',
+  'empty.urlPlaceholder': '動画やストリームの URL を貼り付け…',
+  'empty.urlPlay': '再生',
+  'empty.openFile': 'ファイルを開く',
+  'empty.hint': 'ダブルクリックでフォルダー · 右クリックで URL',
+
+  'osc.mute': 'ミュート',
+  'osc.unmute': 'ミュート解除',
+  'osc.play': '再生',
+  'osc.pause': '一時停止',
+  'osc.back': '{n} 秒戻る',
+  'osc.forward': '{n} 秒進む',
+  'osc.panel': 'トラックとプレイリスト',
+  'osc.timeFormat': 'クリックで切替: 時間 · タイムコード · フレーム',
+
+  'common.settings': '設定',
+  'common.collapse': 'パネルを折りたたむ',
+  'common.default': '既定',
+
+  'set.sec.interface': 'インターフェース',
+  'set.sec.playlist': 'プレイリスト',
+  'set.sec.audioSubs': '音声と字幕',
+  'set.sec.subAppearance': '字幕の外観',
+  'set.sec.video': '映像',
+  'set.sec.screenshots': 'スクリーンショット',
+  'set.sec.controls': 'コントロール',
+  'set.sec.window': 'ウィンドウ',
+
+  'set.uiLang.label': '表示言語',
+  'set.uiLang.desc':
+    'Lunoir のメニューと設定に使う言語です。下の優先音声・字幕言語とは別で、あちらは動画内のトラックを選びます。',
+
+  'set.scanFolder.label': 'フォルダーをプレイリストに取り込む',
+  'set.scanFolder.desc':
+    'ファイルを開いたとき、同じフォルダー内の他の動画もキューに追加します。',
+  'set.resume.label': '再生位置を記憶',
+  'set.resume.desc':
+    '各ファイルの再生位置を覚え、再び開いたときにそこへ戻ります。',
+  'set.resumePlaylist.label': 'プレイリストの位置を記憶',
+  'set.resumePlaylist.desc':
+    'プレイリストのリンクを開き直すと、最後に見た動画へ戻ります。',
+
+  'set.keepPitch.label': '速度変更時にピッチを保つ',
+  'set.keepPitch.desc':
+    '音声をタイムストレッチし、高速再生でも声の高さを自然に保ちます。',
+  'set.passthrough.label': '音声パススルー',
+  'set.passthrough.desc':
+    '圧縮音声をビットストリームで外部レシーバーや DAC に送り、Lunoir の代わりにそちらでデコードします。\nその形式に対応したハードウェアが必要です。非対応の形式は無音になります。',
+  'set.audioLang.label': '優先音声言語',
+  'set.subLang.label': '優先字幕言語',
+  'set.audioLang.desc':
+    'ファイルを開いたとき、この言語の音声を自動選択します。\n既定はファイル本来のトラック順です。',
+  'set.subLang.desc':
+    'ファイルを開いたとき、この言語の字幕を自動選択します。\n既定はファイル本来のトラック順です。',
+  'set.subsDefault.label': '既定で字幕を表示',
+  'set.autoLoadSubs.label': '外部字幕を自動読み込み',
+  'set.autoLoadSubs.desc':
+    '動画のそばにある同名の .srt / .ass ファイルを読み込みます。',
+  'set.hdrSubPeak.label': 'HDR 字幕の明るさ',
+  'set.hdrSubPeak.desc':
+    'HDR 映像上のテキスト字幕（SRT/ASS）のピーク輝度（ニト）。低いほど暗くなります。\n画像字幕（Blu-ray などの PGS）は mpv では非対応です。SDR 再生には影響しません。',
+
+  'set.subFont.label': 'フォント',
+  'set.subFont.desc':
+    'テキスト字幕（独自スタイルのない SRT/ASS）に適用されます。字幕言語を完全にカバーするフォントを選んでください。欠けた字形は文中で別のフォントに切り替わります。',
+  'set.subSize.label': 'フォントサイズ',
+  'set.subSpacing.label': '文字間隔',
+  'set.subSpacing.desc': '文字と文字の間の追加スペース。',
+  'set.subOutline.label': '縁取り',
+  'set.subOutline.desc':
+    '明るい場面でも字幕を読みやすく保つ、暗い縁取りの太さ。',
+  'set.subBold.label': '太字',
+  'set.subMargin.label': '下からの距離',
+  'set.subMargin.desc':
+    '既定の位置です。右パネルの「調整 ▸ 字幕位置」は現在の動画だけをずらし、この値は変えません。',
+
+  'set.hwdec.label': 'ハードウェアデコード',
+  'set.hwdec.auto': 'GPU デコード。フレームがビデオメモリーに留まり、最も効率的です。',
+  'set.hwdec.autoCopy':
+    'GPU デコードしてフレームをシステムメモリーに戻します。SVP など CPU フィルターに必要です。',
+  'set.hwdec.off': 'CPU によるソフトウェアデコード。最も互換性が高いが負荷も大きい。',
+  'set.quality.label': 'オンライン動画の画質',
+  'set.quality.desc':
+    '上限です。実際の画質はソース次第で、1080p 上限の動画はこの設定に関係なく 1080p で再生されます。「最高」はソースが提供する最高画質を選びます。次のストリームから有効です。',
+  'set.cookies.label': 'ブラウザーの Cookie を使う',
+  'set.cookies.desc':
+    'ログイン済みブラウザーの Cookie を読み取り、会員・年齢制限・Premium 動画を再生できるようにします。既定では無効です。',
+  'set.cookiesFrom.label': 'Cookie の取得元',
+
+  'set.shotSubs.label': '字幕を含める',
+  'set.shotSubs.desc': '画面上の字幕を保存画像に含めます。',
+  'set.shotFormat.label': '形式',
+  'set.shotFormat.desc':
+    'PNG は無劣化です。JPG は品質 95 でファイルがずっと小さくなり、劣化はほぼ分かりません。',
+  'set.shotDir.label': '保存フォルダー',
+  'set.shotDir.desc':
+    'スクリーンショットの保存先。パスを入力するか参照してください。',
+  'set.shotDir.browse': '参照…',
+
+  'set.oscDelay.label': '自動的に隠すまでの時間',
+  'set.oscDelay.desc1':
+    'ポインターが止まってから、画面上のコントロールが表示され続ける時間。',
+  'set.oscDelay.desc2': '既定は 5 秒です。',
+
+  'set.rememberWindow.label': 'サイズと位置を記憶',
+  'set.rememberVolume.label': '音量を記憶',
+
+  'opt.hwdec.auto': '自動',
+  'opt.hwdec.autoCopy': '自動（メモリーに戻す）',
+  'opt.hwdec.off': 'オフ（ソフトウェア）',
+  'opt.quality.best': '最高',
+  'opt.shot.png': 'PNG（無劣化）',
+  'opt.shot.jpg': 'JPG（高品質）',
+  'opt.subFont.system': 'システム既定（sans-serif）',
+  'opt.lang.english': '英語',
+  'opt.lang.chinese': '中国語',
+  'opt.lang.japanese': '日本語',
+  'opt.lang.korean': '韓国語',
+  'opt.lang.french': 'フランス語',
+  'opt.lang.german': 'ドイツ語',
+  'opt.lang.spanish': 'スペイン語',
+  'opt.lang.italian': 'イタリア語',
+  'opt.lang.russian': 'ロシア語',
+  'opt.lang.portuguese': 'ポルトガル語',
+  'opt.uiLang.system': 'システム',
+
+  'panel.tab.audioSub': '音声と字幕',
+  'panel.tab.playlist': 'プレイリスト',
+  'panel.tab.chapters': 'チャプター',
+
+  'panel.empty.queue': 'キューは空です',
+  'panel.repeat.off': 'リピート: オフ',
+  'panel.repeat.all': 'リピート: 全体',
+  'panel.repeat.one': 'リピート: 1つ',
+  'panel.shuffle.on': 'シャッフル: オン',
+  'panel.shuffle.off': 'シャッフル: オフ',
+  'panel.addFiles': 'ファイルを追加',
+  'panel.removeCurrent': '現在の項目を削除',
+
+  'panel.empty.chapters': 'チャプターなし',
+  'panel.chapterN': 'チャプター {n}',
+
+  'panel.sec.audio': '音声',
+  'panel.sec.subtitles': '字幕',
+  'panel.empty.audio': '音声トラックなし',
+  'panel.subNone': 'なし',
+  'panel.addSub': '字幕を追加…',
+  'panel.trackN': 'トラック {n}',
+
+  'adjust.label': '調整',
+  'adjust.active': '調整あり',
+  'adjust.reset': 'リセット',
+  'adjust.delay': '遅延',
+  'adjust.position': '位置',
+  'adjust.size': 'サイズ',
+  'adjust.brightness': '明るさ',
+  'adjust.earlier': '早める（−0.1 秒）',
+  'adjust.later': '遅らせる（+0.1 秒）',
+  'adjust.moveUp': '上へ',
+  'adjust.moveDown': '下へ',
+  'adjust.smaller': '小さく',
+  'adjust.larger': '大きく',
+  'adjust.dimmer': '暗く',
+  'adjust.brighter': '明るく',
+  'adjust.imageSubHint': '画像字幕 — 位置と遅延のみ',
+
+  'menu.previous': '前へ',
+  'menu.next': '次へ',
+  'menu.prevChapter': '前のチャプター',
+  'menu.nextChapter': '次のチャプター',
+  'menu.speed': '速度',
+  'menu.speedNormal': '標準',
+  'menu.aspect': 'アスペクト比',
+  'menu.aspectStretch': '引き伸ばして全画面',
+  'menu.abStart': 'A-B ループ: 始点 (A)',
+  'menu.abEnd': 'A-B ループ: 終点 (B)',
+  'menu.abClear': 'A-B ループ: 解除',
+  'menu.screenshot': 'スクリーンショット',
+  'menu.tcOverlay': 'タイムコード表示',
+  'menu.openFile': 'ファイルを開く…',
+  'menu.openUrl': 'URL を開く…',
+  'menu.fullscreen': '全画面',
+
+  'toast.speedNormal': '標準速度',
+  'toast.speed': '速度 {v}×',
+  'toast.screenshotSaved': 'スクリーンショットを ピクチャ › Lunoir に保存しました',
+  'toast.loading': '読み込み中…',
+
+  'main.fetchingYtdl': 'yt-dlp を取得中…',
+  'main.ytdlFailed': 'yt-dlp を取得できませんでした',
+  'main.loadingPlaylist': 'プレイリストを読み込み中…',
+  'main.playlistFailed': 'プレイリストを読み込めませんでした',
+  'main.noMedia': 'このフォルダーに再生可能なメディアがありません',
+  'main.folderTruncated':
+    'フォルダーに {count} 本の動画 — 先頭 {max} 本を読み込みます',
+  'main.resumed': '{time} から再開しました',
+  'dlg.selectFolder': 'フォルダーを選択（動画フォルダー、または Blu-ray/DVD ディスク）',
+  'dlg.addSubtitle': '字幕を追加',
+  'dlg.addToPlaylist': 'プレイリストに追加',
+  'dlg.openMedia': 'メディアを開く',
+  'dlg.chooseShotDir': 'スクリーンショットのフォルダーを選択',
+  'dlg.filter.subtitles': '字幕',
+  'dlg.filter.media': 'メディア',
+  'dlg.filter.allFiles': 'すべてのファイル',
+
+  'appmenu.file': 'ファイル',
+  'appmenu.open': '開く…',
+  'appmenu.openFolder': 'フォルダーを開く…',
+  'appmenu.view': '表示'
+}
