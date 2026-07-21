@@ -195,6 +195,7 @@ export const pt: Partial<Record<Key, string>> = {
   'menu.abClear': 'Ciclo A-B: limpar',
   'menu.screenshot': 'Captura de ecrã',
   'menu.tcOverlay': 'Timecode sobreposto',
+  'menu.favourite': 'Adicionar à biblioteca',
   'menu.openFile': 'Abrir ficheiro…',
   'menu.openUrl': 'Abrir URL…',
   'menu.fullscreen': 'Ecrã inteiro',
@@ -235,6 +236,8 @@ export const pt: Partial<Record<Key, string>> = {
   'menu.record': 'Iniciar gravação',
   'menu.stopRecord': 'Parar gravação',
   'toast.recordingSaved': 'Gravação guardada: {name}',
+  'toast.favourited': 'Adicionado à biblioteca',
+  'toast.unfavourited': 'Removido da biblioteca',
   'dlg.chooseRecDir': 'Escolher pasta de gravação',
   'set.recDir.label': 'Pasta de gravação',
   'set.recDir.desc':

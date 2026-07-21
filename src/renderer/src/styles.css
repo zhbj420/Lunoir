@@ -100,12 +100,16 @@ body,
 /* The context-menu window hides the OSC, which drops us into .ui-hidden — but the
    pointer must stay visible while a menu is up. (The old in-DOM menu got this from
    its full-screen .ctx-backdrop; a separate window has no such backdrop here.) */
-.app.ui-hidden.menu-open {
-  cursor: default;
-}
-
-.app.ui-hidden {
+/* Cursor auto-hides ONLY in fullscreen (windowed always shows it, like VLC/MPC).
+   Even fullscreen brings it back on any movement (cursor-active) and keeps it up
+   over the context menu / the 收藏 overlay. */
+body.fullscreen .app.ui-hidden {
   cursor: none;
+}
+body.fullscreen .app.ui-hidden.menu-open,
+body.fullscreen .app.ui-hidden.library-open,
+body.fullscreen.cursor-active .app.ui-hidden {
+  cursor: default;
 }
 
 /* transparent region where the mpv video shows through */

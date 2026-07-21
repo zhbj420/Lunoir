@@ -233,6 +233,9 @@ const api = {
   removeRecent: (target: string): void => ipcRenderer.send('library:recent-remove', target),
   clearRecents: (): void => ipcRenderer.send('library:recents-clear'),
   addFavourite: (target: string): void => ipcRenderer.send('library:fav-add', target),
+  favouriteCurrent: (): void => ipcRenderer.send('library:fav-current'), // right-click 收藏当前
+  onCurrentFav: (cb: (fav: boolean) => void): Unsubscribe =>
+    subscribe('library:current-fav', (fav: boolean) => cb(fav)),
   removeFavourite: (target: string): void => ipcRenderer.send('library:fav-remove', target),
   removeFavouriteChannel: (listTarget: string, channelUrl: string): void =>
     ipcRenderer.send('library:fav-channel-remove', listTarget, channelUrl),

@@ -197,6 +197,7 @@ export const ko: Partial<Record<Key, string>> = {
   'menu.abClear': 'A-B 반복: 지우기',
   'menu.screenshot': '스크린샷',
   'menu.tcOverlay': '타임코드 오버레이',
+  'menu.favourite': '보관함에 추가',
   'menu.openFile': '파일 열기…',
   'menu.openUrl': 'URL 열기…',
   'menu.fullscreen': '전체 화면',
@@ -237,6 +238,8 @@ export const ko: Partial<Record<Key, string>> = {
   'menu.record': '녹화 시작',
   'menu.stopRecord': '녹화 중지',
   'toast.recordingSaved': '녹화 저장됨: {name}',
+  'toast.favourited': '보관함에 추가함',
+  'toast.unfavourited': '보관함에서 제거함',
   'dlg.chooseRecDir': '녹화 폴더 선택',
   'set.recDir.label': '녹화 폴더',
   'set.recDir.desc': '라이브 녹화가 저장되는 위치. 경로를 입력하거나 찾아보세요.'

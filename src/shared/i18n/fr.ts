@@ -195,6 +195,7 @@ export const fr: Partial<Record<Key, string>> = {
   'menu.abClear': 'Boucle A-B : effacer',
   'menu.screenshot': 'Capture d’écran',
   'menu.tcOverlay': 'Timecode en incrustation',
+  'menu.favourite': 'Ajouter à la bibliothèque',
   'menu.openFile': 'Ouvrir un fichier…',
   'menu.openUrl': 'Ouvrir une URL…',
   'menu.fullscreen': 'Plein écran',
@@ -235,6 +236,8 @@ export const fr: Partial<Record<Key, string>> = {
   'menu.record': 'Démarrer l’enregistrement',
   'menu.stopRecord': 'Arrêter l’enregistrement',
   'toast.recordingSaved': 'Enregistrement enregistré : {name}',
+  'toast.favourited': 'Ajouté à la bibliothèque',
+  'toast.unfavourited': 'Retiré de la bibliothèque',
   'dlg.chooseRecDir': 'Choisir le dossier d’enregistrement',
   'set.recDir.label': 'Dossier d’enregistrement',
   'set.recDir.desc':

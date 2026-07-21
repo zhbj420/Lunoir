@@ -227,6 +227,7 @@ export const en = {
   'menu.record': 'Start recording',
   'menu.stopRecord': 'Stop recording',
   'menu.tcOverlay': 'Timecode overlay',
+  'menu.favourite': 'Save to library',
   'menu.openFile': 'Open file…',
   'menu.openUrl': 'Open URL…',
   'menu.fullscreen': 'Fullscreen',
@@ -236,6 +237,8 @@ export const en = {
   'toast.speed': 'Speed {v}×',
   'toast.screenshotSaved': 'Screenshot saved to Pictures › Lunoir',
   'toast.recordingSaved': 'Recording saved: {name}',
+  'toast.favourited': 'Saved to library',
+  'toast.unfavourited': 'Removed from library',
   'toast.loading': 'Loading…',
 
   // ---- toasts / dialogs (main process) ----

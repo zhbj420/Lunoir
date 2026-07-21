@@ -197,6 +197,7 @@ export const ja: Partial<Record<Key, string>> = {
   'menu.abClear': 'A-B ループ: 解除',
   'menu.screenshot': 'スクリーンショット',
   'menu.tcOverlay': 'タイムコード表示',
+  'menu.favourite': 'ライブラリに追加',
   'menu.openFile': 'ファイルを開く…',
   'menu.openUrl': 'URL を開く…',
   'menu.fullscreen': '全画面',
@@ -237,6 +238,8 @@ export const ja: Partial<Record<Key, string>> = {
   'menu.record': '録画を開始',
   'menu.stopRecord': '録画を停止',
   'toast.recordingSaved': '録画を保存しました: {name}',
+  'toast.favourited': 'ライブラリに追加しました',
+  'toast.unfavourited': 'ライブラリから削除しました',
   'dlg.chooseRecDir': '録画フォルダーを選択',
   'set.recDir.label': '録画フォルダー',
   'set.recDir.desc': 'ライブ録画の保存先。パスを入力するか参照してください。'

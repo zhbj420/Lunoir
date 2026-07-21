@@ -489,12 +489,19 @@ function recordOpen(target: string): void {
       : 'file'
   curOpen = { target, kind }
   curOpenChannels = null // set by loadChannelList if this open turns out to be a list
+  broadcast('library:current-fav', isFavourite(target)) // right-click 收藏 reflects it
   // a whole channel list (IPTV m3u/txt, or a playlist URL) is a collection you save
   // to 收藏 on purpose — it does NOT belong in auto "recently played". Only single
   // files and single URLs (e.g. one live address via Open-URL) are recorded.
   if (kind === 'list') return
   addRecent(target, kind === 'url' ? target : basename(target) || target, kind)
   broadcast('recents:changed')
+}
+
+/** After any favourites mutation: refresh the overlay + the right-click toggle. */
+function afterFavChange(): void {
+  broadcast('favourites:changed')
+  broadcast('library:current-fav', curOpen ? isFavourite(curOpen.target) : false)
 }
 
 /** Save a target to 收藏. Derives kind + a good name (prefers the resolved recents
@@ -513,7 +520,7 @@ function favouriteTarget(target: string): void {
   const entry: FavEntry = { target, name, kind, at: Date.now() }
   if (channels) entry.channels = channels
   addFavourite(entry)
-  broadcast('favourites:changed')
+  afterFavChange()
 }
 
 /** Open media the user picked — a file, a URL, a Blu-ray/DVD disc folder, or a
@@ -2070,6 +2077,10 @@ function registerIpc(): void {
   // a leaf item was clicked: dismiss, then let the main window run its handler
   ipcMain.on('menu:invoke', (_e, id: string) => {
     hideMenu()
+    // the pointer sits where the menu was; after it closes that spot can land in the
+    // OSC reveal band and pop the OSC — which would cover a toast the action fires
+    // (e.g. 收藏当前). Stay quiet briefly so the confirmation is actually visible.
+    suppressRevealUntil = Date.now() + 1200
     if (win && !win.isDestroyed()) win.webContents.send('menu:invoke', id)
   })
   ipcMain.on('menu:size', (_e, w: number, h: number) => {
@@ -2173,13 +2184,25 @@ function registerIpc(): void {
   ipcMain.on('library:fav-add', (_e, target: string) => {
     if (typeof target === 'string' && target) favouriteTarget(target)
   })
+  // right-click "收藏当前": toggle the currently-playing thing in/out of 收藏
+  ipcMain.on('library:fav-current', () => {
+    if (!curOpen) return
+    if (isFavourite(curOpen.target)) {
+      removeFavourite(curOpen.target)
+      afterFavChange()
+      broadcast('ui:toast', tr('toast.unfavourited'))
+    } else {
+      favouriteTarget(curOpen.target) // broadcasts afterFavChange
+      broadcast('ui:toast', tr('toast.favourited'))
+    }
+  })
   ipcMain.on('library:fav-remove', (_e, target: string) => {
     removeFavourite(target)
-    broadcast('favourites:changed')
+    afterFavChange()
   })
   ipcMain.on('library:fav-channel-remove', (_e, listTarget: string, channelUrl: string) => {
     removeFavouriteChannel(listTarget, channelUrl)
-    broadcast('favourites:changed')
+    afterFavChange()
   })
 
   ipcMain.handle('app:open-dialog', async () => {

@@ -196,6 +196,7 @@ export const ru: Partial<Record<Key, string>> = {
   'menu.abClear': 'Цикл A-B: сбросить',
   'menu.screenshot': 'Скриншот',
   'menu.tcOverlay': 'Таймкод поверх видео',
+  'menu.favourite': 'Добавить в библиотеку',
   'menu.openFile': 'Открыть файл…',
   'menu.openUrl': 'Открыть URL…',
   'menu.fullscreen': 'Во весь экран',
@@ -236,6 +237,8 @@ export const ru: Partial<Record<Key, string>> = {
   'menu.record': 'Начать запись',
   'menu.stopRecord': 'Остановить запись',
   'toast.recordingSaved': 'Запись сохранена: {name}',
+  'toast.favourited': 'Добавлено в библиотеку',
+  'toast.unfavourited': 'Удалено из библиотеки',
   'dlg.chooseRecDir': 'Выбрать папку для записей',
   'set.recDir.label': 'Папка для записей',
   'set.recDir.desc':

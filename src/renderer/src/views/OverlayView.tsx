@@ -62,9 +62,11 @@ export default function OverlayView() {
   const [screenshotSubs, setScreenshotSubs] = useState(true)
   const [loading, setLoading] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [currentFav, setCurrentFav] = useState(false) // is what's playing in 收藏?
   const [volToast, setVolToast] = useState<number | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const volToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cursorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
   const lastY = useRef(-1)
   const downAccum = useRef(0)
@@ -119,17 +121,25 @@ export default function OverlayView() {
     const offL = window.mmp.onLoading(setLoading)
     window.mmp.getRecording().then(r => setRecording(r.recording))
     const offR = window.mmp.onRecordingState(r => setRecording(r.recording))
+    const offF = window.mmp.onCurrentFav(setCurrentFav)
     return () => {
       offS()
       offT()
       offL()
       offR()
+      offF()
     }
   }, [])
 
   // Reveal the UI only when the pointer heads toward the controls — moving down
   // a bit, or near the top (title) / bottom (OSC) edges — not on every twitch.
   const onMove = (e: React.MouseEvent) => {
+    // Any pointer movement brings the cursor back immediately (decoupled from the
+    // OSC, which still reveals only on an intent gesture below). Without this the
+    // cursor stayed hidden — cursor:none only lifted when the OSC itself revealed.
+    document.body.classList.add('cursor-active')
+    if (cursorTimer.current) clearTimeout(cursorTimer.current)
+    cursorTimer.current = setTimeout(() => document.body.classList.remove('cursor-active'), 2200)
     const x = e.clientX
     const y = e.clientY
     const h = window.innerHeight
@@ -200,7 +210,24 @@ export default function OverlayView() {
   // the menu window hides the OSC, which would drop us into .ui-hidden (cursor:none)
   const [menuOpen, setMenuOpen] = useState(false)
   const [tcOverlay, setTcOverlay] = useState(false)
-  useEffect(() => window.mmp.onMenuState(setMenuOpen), [])
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  useEffect(
+    () =>
+      window.mmp.onMenuState(open => {
+        setMenuOpen(open)
+        // When the menu closes, the pointer sits where the menu was and the closing
+        // window emits a synthetic mousemove on us — NOT intent to see the OSC. Treat
+        // it as a re-entry: the OSC stays down until the pointer genuinely moves
+        // toward the controls (>50px), so a menu click never pops it.
+        if (!open) {
+          entering.current = true
+          enterY.current = -1
+        }
+      }),
+    []
+  )
+  // the 收藏 overlay hides the OSC (→ .ui-hidden); keep the pointer visible while it's up
+  useEffect(() => window.mmp.onLibraryReveal(setLibraryOpen), [])
 
   // a click in the menu window comes back here as an id → run that item's handler
   useEffect(() => window.mmp.onMenuInvoke(id => menuActions.current.get(id)?.()), [])
@@ -303,6 +330,9 @@ export default function OverlayView() {
       checked: tcOverlay,
       onClick: () => window.mmp.setSetting('timecodeOverlay', !tcOverlay)
     },
+    // save what's playing (file / URL / whole channel list) to 收藏; the check
+    // reflects its current state — clicking again removes it
+    { label: t('menu.favourite'), checked: currentFav, onClick: () => window.mmp.favouriteCurrent() },
     { sep: true },
     { label: t('menu.openFile'), onClick: p.openFile },
     { label: t('menu.openUrl'), onClick: () => { setUrlText(''); setUrlOpen(true) } },
@@ -335,7 +365,7 @@ export default function OverlayView() {
 
   return (
     <div
-      className={`app ${p.showUi ? 'ui-visible' : 'ui-hidden'} ${dragging ? 'dragging' : ''} ${menuOpen ? 'menu-open' : ''}`}
+      className={`app ${p.showUi ? 'ui-visible' : 'ui-hidden'} ${dragging ? 'dragging' : ''} ${menuOpen ? 'menu-open' : ''} ${libraryOpen ? 'library-open' : ''}`}
       onMouseEnter={() => {
         entering.current = true
         enterY.current = -1

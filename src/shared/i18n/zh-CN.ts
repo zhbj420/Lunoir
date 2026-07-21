@@ -189,6 +189,7 @@ export const zhCN: Partial<Record<Key, string>> = {
   'menu.abClear': 'A-B 循环：清除',
   'menu.screenshot': '截图',
   'menu.tcOverlay': '时间码角标',
+  'menu.favourite': '收藏当前',
   'menu.openFile': '打开文件…',
   'menu.openUrl': '打开 URL…',
   'menu.fullscreen': '全屏',
@@ -232,6 +233,8 @@ export const zhCN: Partial<Record<Key, string>> = {
   'menu.record': '开始录制',
   'menu.stopRecord': '停止录制',
   'toast.recordingSaved': '录制已保存:{name}',
+  'toast.favourited': '已收藏',
+  'toast.unfavourited': '已取消收藏',
   'dlg.chooseRecDir': '选择录制文件夹',
   'set.recDir.label': '录制文件夹',
   'set.recDir.desc': '直播录制的保存位置。可直接输入路径,或点击浏览选择。'
