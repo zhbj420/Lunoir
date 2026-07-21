@@ -1550,6 +1550,11 @@ function recordingState(): { recording: boolean; since: number | null } {
 
 async function startRecording(): Promise<void> {
   if (!mpv || !hasMedia || recordingPath) return
+  // only record LIVE streams — on a file/VOD, stream-record dumps the read-ahead
+  // cache (wrong spot, mid-GOP macroblocking); precise file clips are A-B export's job
+  try {
+    if ((await mpv.command(['get_property', 'seekable'])) !== false) return
+  } catch { return }
   // a nice stem: mpv's media-title if it's meaningful, else the current file's base
   let stem = ''
   try {

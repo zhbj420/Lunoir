@@ -291,7 +291,13 @@ export default function OverlayView() {
     { label: abLabel, checked: p.state.abLoopA != null && p.state.abLoopB != null, onClick: () => window.mmp.command(['ab-loop']) },
     { sep: true },
     { label: t('menu.screenshot'), onClick: () => screenshot(!screenshotSubs) },
-    { label: recording ? t('menu.stopRecord') : t('menu.record'), checked: recording, onClick: () => window.mmp.toggleRecording() },
+    // Recording only for LIVE streams. On a file (or a seekable VOD) mpv's
+    // stream-record dumps the demuxer read-ahead cache, which runs far ahead of the
+    // playhead and starts mid-GOP → it records the wrong spot, with macroblocking.
+    // Precise clipping of a file is what the (planned) A-B export is for.
+    ...(p.state.isLive
+      ? [{ label: recording ? t('menu.stopRecord') : t('menu.record'), checked: recording, onClick: () => window.mmp.toggleRecording() }]
+      : []),
     {
       label: t('menu.tcOverlay'),
       checked: tcOverlay,
