@@ -115,7 +115,9 @@ export default function Controls(props: Props) {
 
   // reflect whether the right panel is open, so the list button reads "pressed"
   const [panelOpen, setPanelOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   useEffect(() => window.mmp.onPanelState(setPanelOpen), [])
+  useEffect(() => window.mmp.onSettingsPanelState(setSettingsOpen), [])
 
   // recording indicator: a red dot + running timer, shown only while recording,
   // click to stop. `since` is the main-process start timestamp; tick every second.
@@ -222,7 +224,7 @@ export default function Controls(props: Props) {
             <IcSaved />
           </button>
           <button
-            className="ib s"
+            className={`ib s ${settingsOpen ? 'on' : ''}`}
             title={t('common.settings')}
             onClick={() => window.mmp.togglePanel('settings')}
           >

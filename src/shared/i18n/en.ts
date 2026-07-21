@@ -173,6 +173,7 @@ export const en = {
   // ---- right panel: tabs ----
   'panel.tab.audioSub': 'Audio & Sub',
   'panel.tab.playlist': 'Playlist',
+  'panel.tab.channels': 'Channels',
   'panel.tab.chapters': 'Chapters',
 
   // ---- right panel: playlist ----

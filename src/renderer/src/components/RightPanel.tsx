@@ -3,11 +3,13 @@ import { useT, type T } from '../useT'
 
 type Tab = 'playlist' | 'chapters' | 'tracks'
 type RepeatMode = 'off' | 'all' | 'one'
+type SourceType = 'queue' | 'iptv' | 'playlist-url'
 interface Playlist {
   items: { path: string; name: string }[]
   index: number
   repeat: RepeatMode
   shuffle: boolean
+  sourceType: SourceType
 }
 interface Chapter {
   title?: string
@@ -361,7 +363,7 @@ const Chevron = () => (
 export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useT()
   const [tab, setTab] = useState<Tab>('tracks') // Audio & Sub is the default tab
-  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false })
+  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false, sourceType: 'queue' })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [curChapter, setCurChapter] = useState(-1)
   const [tracks, setTracks] = useState<Track[]>([])
@@ -526,7 +528,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
           {t('panel.tab.audioSub')}
         </button>
         <button className={`panel-tab ${tab === 'playlist' ? 'active' : ''}`} onClick={() => setTab('playlist')}>
-          {t('panel.tab.playlist')}
+          {pl.sourceType === 'iptv' ? t('panel.tab.channels') : t('panel.tab.playlist')}
         </button>
         <button className={`panel-tab ${tab === 'chapters' ? 'active' : ''}`} onClick={() => setTab('chapters')}>
           {t('panel.tab.chapters')}

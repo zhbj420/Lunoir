@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import logoUrl from '../assets/logo.png'
 import wordmarkUrl from '../assets/Lunoir.png'
 import { useT } from '../useT'
@@ -8,6 +8,11 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
   const [urlInput, setUrlInput] = useState(false)
   const [url, setUrl] = useState('')
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // reflect the open state of the surfaces these two entries toggle (like the OSC)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  useEffect(() => window.mmp.onSettingsPanelState(setSettingsOpen), [])
+  useEffect(() => window.mmp.onLibraryReveal(setLibraryOpen), [])
 
   const submitUrl = () => {
     const u = url.trim()
@@ -89,7 +94,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
 
       {/* 收藏 + settings reachable before any media plays (the OSC is hidden then) */}
       <button
-        className="settings-entry library-entry"
+        className={`settings-entry library-entry ${libraryOpen ? 'on' : ''}`}
         title={t('osc.library')}
         onClick={() => window.mmp.toggleLibrary()}
       >
@@ -98,7 +103,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
         </svg>
       </button>
       <button
-        className="settings-entry"
+        className={`settings-entry ${settingsOpen ? 'on' : ''}`}
         title={t('common.settings')}
         onClick={() => window.mmp.togglePanel('settings')}
       >

@@ -85,11 +85,15 @@ export interface SerializedMenuNode {
 }
 
 export type RepeatMode = 'off' | 'all' | 'one'
+// what the loaded list IS — a play-through queue, an IPTV channel directory, or a
+// URL playlist (YouTube). Drives the right panel's label (播放列表 vs 频道) + save.
+export type SourceType = 'queue' | 'iptv' | 'playlist-url'
 export interface Playlist {
   items: { path: string; name: string }[]
   index: number
   repeat: RepeatMode
   shuffle: boolean
+  sourceType: SourceType
 }
 
 // Per-track audio metadata from MediaInfo, keyed by stream index (mpv ff-index).
@@ -203,6 +207,8 @@ const api = {
     subscribe('ui:panel-toggle', (name: string) => cb(name)),
   onPanelState: (cb: (open: boolean) => void): Unsubscribe =>
     subscribe('ui:panel-open', (open: boolean) => cb(open)),
+  onSettingsPanelState: (cb: (open: boolean) => void): Unsubscribe =>
+    subscribe('ui:settings-open', (open: boolean) => cb(open)),
   onPanelWidth: (cb: (w: number) => void): Unsubscribe =>
     subscribe('ui:panel-width', (w: number) => cb(w)),
   onPanelReveal: (cb: (open: boolean) => void): Unsubscribe =>

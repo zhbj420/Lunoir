@@ -501,10 +501,12 @@ body.fullscreen .titlebar {
     color: var(--glyph-strong);
   }
 
-  /* volume + the centre transport buttons: no highlight box on hover — just a
-     slight grow + brighten. Settings/list (grp.right) keep the boxed highlight. */
+  /* every OSC button (volume, centre transport, and the right-side 收藏/settings/
+     list) highlights the same way: no box — just a slight grow + brighten, like the
+     play button. The boxed highlight looked bad once the right icons were narrowed. */
   .grp.left .ib:hover,
-  .grp.center .ib:hover {
+  .grp.center .ib:hover,
+  .grp.right .ib:hover {
     background: transparent;
     color: rgb(205, 205, 211);
     transform: scale(1.1);
@@ -546,16 +548,11 @@ body.fullscreen .titlebar {
   padding: 7px 3px;
 }
 
-/* toggled-on state (e.g. list button while the right panel is open) */
+/* toggled-on state (e.g. list button while the right panel is open): just the
+   bright glyph, no box (matches the box-free hover; the narrow icon made the box
+   an ugly tall rectangle). Hover still grows+brightens via the .grp.right rule. */
 .ib.on {
-  background: rgba(255, 255, 255, 0.18);
   color: var(--glyph-strong);
-}
-
-@media (hover: hover) {
-  .ib.on:hover {
-    background: rgba(255, 255, 255, 0.22);
-  }
 }
 
 .ib.dim {
@@ -1935,6 +1932,12 @@ body.library-win.library-shown .library {
 /* the 收藏 entry sits just left of the gear (same corner cluster) */
 .library-entry {
   right: 58px;
+}
+
+/* open-state: brighten the glyph (no box, like the OSC on-state) while the surface
+   this entry toggles — settings panel / 收藏 overlay — is open */
+.settings-entry.on {
+  color: var(--text);
 }
 
 @media (hover: hover) {

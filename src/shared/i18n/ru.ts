@@ -149,6 +149,7 @@ export const ru: Partial<Record<Key, string>> = {
 
   'panel.tab.audioSub': 'Аудио и суб.',
   'panel.tab.playlist': 'Плейлист',
+  'panel.tab.channels': 'Каналы',
   'panel.tab.chapters': 'Главы',
 
   'panel.empty.queue': 'Очередь пуста',

@@ -148,6 +148,7 @@ export const pt: Partial<Record<Key, string>> = {
 
   'panel.tab.audioSub': 'Áudio e leg.',
   'panel.tab.playlist': 'Lista',
+  'panel.tab.channels': 'Canais',
   'panel.tab.chapters': 'Capítulos',
 
   'panel.empty.queue': 'Fila vazia',

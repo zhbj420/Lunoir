@@ -150,6 +150,7 @@ export const ja: Partial<Record<Key, string>> = {
 
   'panel.tab.audioSub': '音声と字幕',
   'panel.tab.playlist': 'プレイリスト',
+  'panel.tab.channels': 'チャンネル',
   'panel.tab.chapters': 'チャプター',
 
   'panel.empty.queue': 'キューは空です',

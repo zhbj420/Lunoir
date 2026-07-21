@@ -29,6 +29,7 @@ import {
   type Channel,
   type FavEntry
 } from './settings'
+import type { SourceType } from '../preload/index'
 import { translate, effectiveLocale, type Key } from '@shared/i18n'
 
 const isDev = !app.isPackaged
@@ -149,6 +150,9 @@ let curOpenChannels: Channel[] | null = null
 // a URL open waiting on 'seekable' to decide recents: only a seekable VOD is added;
 // a live (non-seekable) stream never is. Files are added at once (never live).
 let curRecentPending = false
+// what the loaded list IS → the right panel labels it 播放列表 vs 频道, and the
+// bottom save button saves a playlist vs 收藏s the IPTV source
+let sourceType: SourceType = 'queue'
 let repeatMode: RepeatMode = 'off'
 // resume: the file + position we're currently tracking, and when we last wrote it
 let resumePath = ''
@@ -349,6 +353,7 @@ async function loadPlaylistUrl(url: string): Promise<void> {
   playlist = entries.map(e => e.url)
   urlTitles = {}
   for (const e of entries) urlTitles[e.url] = e.title
+  sourceType = 'playlist-url' // a YouTube-style URL playlist (a queue, not IPTV)
   playlistKey = playlistKeyOf(url)
   // resume at the last video watched in this playlist (if it's still in the list)
   plIndex = 0
@@ -367,7 +372,8 @@ function playlistPayload() {
     items: playlist.map(p => ({ path: p, name: urlTitles[p] || basename(p) })),
     index: plIndex,
     repeat: repeatMode,
-    shuffle: shuffleOn
+    shuffle: shuffleOn,
+    sourceType
   }
 }
 
@@ -475,6 +481,7 @@ async function loadChannelList(source: string): Promise<void> {
   urlTitles = {}
   for (const c of channels) urlTitles[c.url] = c.name
   curOpenChannels = channels // remember for a possible 收藏 snapshot of this list
+  sourceType = 'iptv' // a channel directory, not a play-through queue → panel says 频道
   playlistKey = ''
   discDevice = ''
   plIndex = 0
@@ -493,6 +500,7 @@ function recordOpen(target: string): void {
   curOpen = { target, kind }
   curOpenChannels = null // set by loadChannelList if this open turns out to be a list
   curRecentPending = false
+  sourceType = 'queue' // loadChannelList / loadPlaylistUrl override for iptv / yt-playlist
   broadcast('library:current-fav', isFavourite(target)) // right-click 收藏 reflects it
   // What enters "recently played":
   //  - a whole channel list (IPTV m3u/txt, or a playlist URL) never does — it's a
@@ -1123,6 +1131,7 @@ function closeLeftPanel(): void {
   leftPanelOpen = false
   animatePanel('left', false)
   leftPanelWin?.webContents.send('panel:reveal', false)
+  broadcast('ui:settings-open', false) // OSC gear un-highlights
 }
 
 /** Both side panels shift the OSC and are mutually exclusive (opening one closes
@@ -1150,6 +1159,7 @@ function toggleSettingsPanel(): void {
     leftPanelOpen = true
     animatePanel('left', true)
     leftPanelWin.webContents.send('panel:reveal', true)
+    broadcast('ui:settings-open', true) // OSC gear highlights while settings is open
   }
   slideOscToRest()
 }
@@ -1212,7 +1222,7 @@ function closeLibrary(): void {
   if (!libraryOpen) return
   libraryOpen = false
   animateLibrary(false)
-  libraryWin?.webContents.send('library:reveal', false)
+  broadcast('library:reveal', false) // library window (scale-out) + main window (cursor/Home on-state)
 }
 
 function toggleLibrary(): void {
@@ -1233,7 +1243,7 @@ function toggleLibrary(): void {
   broadcast('ui:hide')
   animateOsc(false)
   animateLibrary(true)
-  libraryWin.webContents.send('library:reveal', true)
+  broadcast('library:reveal', true) // library window (scale-in) + main window (cursor/Home on-state)
 }
 
 /** Keep the open overlay centred on the window (skip mid-animation). */

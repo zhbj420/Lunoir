@@ -137,6 +137,7 @@ export const zhCN: Partial<Record<Key, string>> = {
   // ---- 右面板：标签页 ----
   'panel.tab.audioSub': '音轨与字幕',
   'panel.tab.playlist': '播放列表',
+  'panel.tab.channels': '频道',
   'panel.tab.chapters': '章节',
 
   // ---- 右面板：播放列表 ----
