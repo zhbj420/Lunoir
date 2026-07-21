@@ -254,6 +254,7 @@ export const ru: Partial<Record<Key, string>> = {
   'menu.stopRecord': 'Остановить запись',
   'toast.recordingSaved': 'Запись сохранена: {name}',
   'toast.favourited': 'Добавлено в библиотеку',
+  'toast.alreadyFav': 'Уже в библиотеке',
   'toast.unfavourited': 'Удалено из библиотеки',
   'dlg.chooseRecDir': 'Выбрать папку для записей',
   'set.recDir.label': 'Папка для записей',

@@ -250,6 +250,7 @@ export const zhCN: Partial<Record<Key, string>> = {
   'menu.stopRecord': '停止录制',
   'toast.recordingSaved': '录制已保存:{name}',
   'toast.favourited': '已收藏',
+  'toast.alreadyFav': '此项已在收藏中',
   'toast.unfavourited': '已取消收藏',
   'dlg.chooseRecDir': '选择录制文件夹',
   'set.recDir.label': '录制文件夹',

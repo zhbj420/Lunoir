@@ -251,6 +251,7 @@ export const en = {
   'toast.screenshotSaved': 'Screenshot saved to Pictures › Lunoir',
   'toast.recordingSaved': 'Recording saved: {name}',
   'toast.favourited': 'Saved to library',
+  'toast.alreadyFav': 'Already in your library',
   'toast.unfavourited': 'Removed from library',
   'toast.loading': 'Loading…',
 

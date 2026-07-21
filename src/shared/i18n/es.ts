@@ -253,6 +253,7 @@ export const es: Partial<Record<Key, string>> = {
   'menu.stopRecord': 'Detener grabación',
   'toast.recordingSaved': 'Grabación guardada: {name}',
   'toast.favourited': 'Añadido a la biblioteca',
+  'toast.alreadyFav': 'Ya está en la biblioteca',
   'toast.unfavourited': 'Quitado de la biblioteca',
   'dlg.chooseRecDir': 'Elegir carpeta de grabación',
   'set.recDir.label': 'Carpeta de grabación',

@@ -255,6 +255,7 @@ export const ja: Partial<Record<Key, string>> = {
   'menu.stopRecord': '録画を停止',
   'toast.recordingSaved': '録画を保存しました: {name}',
   'toast.favourited': 'ライブラリに追加しました',
+  'toast.alreadyFav': '既にライブラリにあります',
   'toast.unfavourited': 'ライブラリから削除しました',
   'dlg.chooseRecDir': '録画フォルダーを選択',
   'set.recDir.label': '録画フォルダー',

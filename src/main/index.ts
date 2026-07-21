@@ -2350,13 +2350,12 @@ function registerIpc(): void {
   ipcMain.on('library:fav-add', (_e, target: string) => {
     if (typeof target === 'string' && target) favouriteTarget(target)
   })
-  // right-click "收藏当前": toggle the currently-playing thing in/out of 收藏
+  // right-click "收藏当前": ADD only, never remove ("Save" shouldn't un-save — that
+  // would mislead; deletion is the trash in the overlay). If already saved, just say so.
   ipcMain.on('library:fav-current', () => {
     if (!curOpen) return
     if (isFavourite(curOpen.target)) {
-      removeFavourite(curOpen.target)
-      afterFavChange()
-      broadcast('ui:toast', tr('toast.unfavourited'))
+      broadcast('ui:toast', tr('toast.alreadyFav'))
     } else {
       favouriteTarget(curOpen.target) // broadcasts afterFavChange
       broadcast('ui:toast', tr('toast.favourited'))

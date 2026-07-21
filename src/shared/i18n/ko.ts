@@ -255,6 +255,7 @@ export const ko: Partial<Record<Key, string>> = {
   'menu.stopRecord': '녹화 중지',
   'toast.recordingSaved': '녹화 저장됨: {name}',
   'toast.favourited': '보관함에 추가함',
+  'toast.alreadyFav': '이미 보관함에 있습니다',
   'toast.unfavourited': '보관함에서 제거함',
   'dlg.chooseRecDir': '녹화 폴더 선택',
   'set.recDir.label': '녹화 폴더',

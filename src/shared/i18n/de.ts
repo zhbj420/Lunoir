@@ -253,6 +253,7 @@ export const de: Partial<Record<Key, string>> = {
   'menu.stopRecord': 'Aufnahme stoppen',
   'toast.recordingSaved': 'Aufnahme gespeichert: {name}',
   'toast.favourited': 'Zur Bibliothek hinzugefügt',
+  'toast.alreadyFav': 'Bereits in der Bibliothek',
   'toast.unfavourited': 'Aus der Bibliothek entfernt',
   'dlg.chooseRecDir': 'Aufnahmeordner wählen',
   'set.recDir.label': 'Aufnahmeordner',
