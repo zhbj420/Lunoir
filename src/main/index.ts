@@ -377,11 +377,94 @@ function scanFolder(dir: string): string[] {
   }
 }
 
+// A browser-ish User-Agent — IPTV list servers commonly stub or refuse requests
+// that don't look like a browser (verified: without it the list came back empty).
+const IPTV_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+
+/** Parse an IPTV channel list — extended M3U (#EXTINF) or the common txt
+ *  (`name,url` with `group,#genre#` headers) — into flat {name,url,group} entries.
+ *  Multi-source lists list the same channel several times; kept flat for now. */
+function parseChannelList(text: string): { name: string; url: string; group: string }[] {
+  const out: { name: string; url: string; group: string }[] = []
+  const lines = text.split(/\r?\n/)
+  const isM3u = /^﻿?#EXTM3U/i.test(lines[0] || '') || lines.some(l => /^#EXTINF/i.test(l))
+  if (isM3u) {
+    let pending: { name: string; group: string } | null = null
+    for (const raw of lines) {
+      const line = raw.trim()
+      if (/^#EXTINF/i.test(line)) {
+        const group = (line.match(/group-title="([^"]*)"/i)?.[1] || '').trim()
+        // display name follows the comma after the last attribute (so a comma
+        // inside an attribute value doesn't cut the name short)
+        const q = line.lastIndexOf('"')
+        const c = line.indexOf(',', q >= 0 ? q : 0)
+        pending = { name: c >= 0 ? line.slice(c + 1).trim() : '', group }
+      } else if (line && !line.startsWith('#')) {
+        if (/^https?:\/\//i.test(line)) out.push({ name: pending?.name || line, url: line, group: pending?.group || '' })
+        pending = null
+      }
+    }
+  } else {
+    let group = ''
+    for (const raw of lines) {
+      const line = raw.trim()
+      const c = line.indexOf(',')
+      if (!line || c < 0) continue
+      const left = line.slice(0, c).trim()
+      const right = line.slice(c + 1).trim()
+      if (right === '#genre#') group = left
+      else if (/^https?:\/\//i.test(right)) out.push({ name: left || right, url: right, group })
+    }
+  }
+  return out
+}
+
+/** Load an IPTV channel list (.m3u/.txt, local or remote) into the playlist and
+ *  play the first channel. Falls back to playing `source` directly if it doesn't
+ *  parse as a list (≥2 http entries). */
+async function loadChannelList(source: string): Promise<void> {
+  broadcast('ui:loading', true)
+  broadcast('ui:toast', tr('main.loadingPlaylist'))
+  let text = ''
+  try {
+    if (/^https?:\/\//i.test(source)) {
+      const res = await fetch(source, { headers: { 'User-Agent': IPTV_UA } })
+      text = await res.text()
+    } else {
+      text = readFileSync(source, 'utf8')
+    }
+  } catch {
+    broadcast('ui:loading', false)
+    broadcast('ui:toast', tr('main.playlistFailed'))
+    return
+  }
+  const channels = parseChannelList(text)
+  if (channels.length < 2) {
+    broadcast('ui:loading', false)
+    mpv?.loadFile(source) // not a channel list — treat it as a single item
+    return
+  }
+  playlist = channels.map(c => c.url)
+  urlTitles = {}
+  for (const c of channels) urlTitles[c.url] = c.name
+  playlistKey = ''
+  discDevice = ''
+  plIndex = 0
+  resyncShuffle()
+  playCurrent() // the loading spinner clears on the first channel's first frame
+}
+
 /** Open media the user picked — a file, a URL, a Blu-ray/DVD disc folder, or a
  *  plain folder (whose videos are queued). */
 function openMedia(target: string): void {
   if (isPlaylistUrl(target)) {
     loadPlaylistUrl(target) // async: enumerate the entries, then queue + play them
+    return
+  }
+  // an IPTV channel list (.m3u / .txt — NOT .m3u8, which is a stream manifest)
+  if (/\.(m3u|txt)$/i.test(target)) {
+    loadChannelList(target)
     return
   }
   const disc = discInfo(target)
@@ -445,6 +528,10 @@ function playCurrent(): void {
     if (isDiscUri(target)) {
       mpv.setProperty(target === 'bd://' ? 'bluray-device' : 'dvd-device', discDevice)
       mpv.setProperty('force-media-title', urlTitles[target] || 'Blu-ray')
+    } else if (isUrl(target) && !needsYtdl(target) && urlTitles[target]) {
+      // a direct-stream channel (IPTV): the HLS/http feed carries no useful
+      // title, so surface the channel name from the list instead of its ugly URL
+      mpv.setProperty('force-media-title', urlTitles[target])
     } else {
       mpv.setProperty('force-media-title', '')
     }
