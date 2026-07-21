@@ -575,10 +575,12 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       return next
     })
 
-  // one playlist/channel row (shared by the flat queue + the grouped IPTV view)
+  // one playlist/channel row (shared by the flat queue + the grouped IPTV view).
+  // Key by the original index, never the path — an IPTV list can repeat a URL
+  // (multi-source / duplicate channels), and duplicate React keys leave ghost rows.
   const plRow = (it: { path: string; name: string }, i: number) => (
     <div
-      key={it.path}
+      key={i}
       className={`pl-item ${i === pl.index ? 'active' : ''}`}
       title={it.name}
       onClick={() => window.mmp.playIndex(i)}
