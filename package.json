@@ -14,6 +14,7 @@
   "scripts": {
     "setup": "node scripts/download-mpv.mjs",
     "subset-font": "node scripts/subset-font.mjs",
+    "i18n-check": "node scripts/i18n-check.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
