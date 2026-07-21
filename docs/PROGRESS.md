@@ -2,6 +2,17 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-22 · 修复 mpv stdout 管道憋死播放器 · v0.5.1）
+
+**阶段：修一个 v0.5.0 就带着的潜在死锁 —— 看直播切几次台后整个播放器卡死在 `Loading…`,连之前能看的台也 load 不了,必须重启 Lunoir。根因不在直播逻辑,在子进程管道。**
+
+- **根因**:`MpvController`([mpv.ts](../src/main/mpv.ts))spawn mpv 用 `stdio:['ignore','pipe','pipe']`,但代码**只读了 stderr**。mpv 的终端日志(状态行 + 每次 `loadfile` 一坨 `[component]` 行)几乎全写 **stdout** —— 没人读 → 那个 OS 管道缓冲区被填满 → mpv 下一次 `write()` **阻塞** → 整个播放器冻住。重启 = 全新空管道,所以"必须重启才好"。**切台每次吐一坨**,所以几次就犯;单看本地文件写得少,基本撞不到,故一直潜伏到 IPTV 才现形。
+- **意外的对照实验**:临时把 mpv 开到 `--msg-level=all=v`(狂灌 stdout)→ 几乎秒卡;加上 stdout 排空 → 怎么都复现不出来。这一翻转锁死了病因。
+- **修复**:stdout 也接上 `on('data', …)` 排空(直接丢弃,免得状态行刷屏 dev 终端;真报错仍走 stderr → `log` 事件)。**通用铁律:任何 spawn 出来的子进程,每一路 piped 流都必须读掉,否则缓冲区一满就把子进程憋死。**(项目里 MediaInfo 探测、yt-dlp 下载都已在读各自的 stdout,安全。)
+- **诊断插曲**:一开始日志根本抓不到,正是因为老代码只监听 stderr(几乎是空的)——同一个 bug 的另一面,顺带修好;现在 dev 里 `[mpv]` 也能打了(默认只放行 stderr,不刷屏)。
+
+---
+
 ## 当前状态（2026-07-21 · 收藏 library + IPTV 直播 + 录制 · v0.5.0 发布）
 
 **阶段：Home 从「空 Open File」升级成 **收藏启动器**（最近 / 收藏 / 播放列表 / 直播源 四 tab），新增 **IPTV m3u/txt 直播**（分组 + 搜索 + 打开即刷新）、**直播录制**（MKV 流复制）。类型 / `i18n-check`(9 语言) / 构建全绿；真机逐条测过；两个 exe（setup + portable）发 GitHub release，Latest。**

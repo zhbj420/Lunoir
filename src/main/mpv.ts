@@ -93,6 +93,15 @@ export class MpvController extends EventEmitter {
     if (opts.wid != null) args.push(`--wid=${opts.wid}`)
 
     this.proc = spawn(this.mpvPath, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    // Drain stdout so its OS pipe buffer can't fill and block mpv. mpv streams its
+    // status line (refreshed several times a second) + a burst of [component] lines
+    // per loadfile to STDOUT; we used to read only stderr, leaving stdout piped but
+    // unread. Its buffer filled over a viewing session / several channel switches
+    // and, once full, mpv BLOCKED on its next write() — freezing playback so nothing
+    // would load until a restart (the IPTV "everything freezes" bug). We DISCARD
+    // stdout rather than forward it, to keep the dev console quiet; the rare real
+    // errors arrive on stderr, which stays wired to the 'log' event.
+    this.proc.stdout?.on('data', () => {})
     this.proc.stderr?.on('data', d => this.emit('log', String(d)))
     this.proc.on('exit', code => {
       this.connected = false
