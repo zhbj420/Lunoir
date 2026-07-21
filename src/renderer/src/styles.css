@@ -1603,6 +1603,92 @@ body.library-win.library-shown .library {
   white-space: nowrap;
 }
 
+/* IPTV channel search box, above the grouped channel list */
+.panel-search {
+  flex: none;
+  padding: 8px 12px 6px;
+}
+.panel-search input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  padding: 5px 9px;
+  outline: none;
+}
+:root[data-cjk] .panel-search input {
+  font-size: 14px;
+}
+.panel-search input:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.panel-search input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* collapsible channel-group header */
+.pl-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 9px 14px 5px;
+  cursor: pointer;
+}
+:root[data-cjk] .pl-group-head {
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+}
+@media (hover: hover) {
+  .pl-group-head:hover {
+    color: var(--text);
+  }
+}
+.pl-group-chev {
+  flex: none;
+  transform: rotate(90deg); /* expanded → points down; .shut → points right */
+  transition: transform 0.15s;
+  opacity: 0.75;
+}
+.pl-group-head.shut .pl-group-chev {
+  transform: rotate(0deg);
+}
+.pl-group-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pl-group-count {
+  flex: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+/* a collapsed group that hides the currently-playing channel → a grey bar behind
+   the header (same as the active channel row), so you can spot where playback is */
+.pl-group-head.has-active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+.pl-group-head.has-active .pl-group-chev {
+  opacity: 1;
+}
+.pl-group-head.has-active .pl-group-count {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .pl-time {
   flex: none;
   color: rgba(255, 255, 255, 0.42);

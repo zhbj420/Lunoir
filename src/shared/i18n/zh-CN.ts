@@ -153,6 +153,9 @@ export const zhCN: Partial<Record<Key, string>> = {
   'panel.addFiles': '添加文件',
   'panel.savePlaylist': '保存播放列表',
   'panel.saveSource': '收藏此直播源',
+  'panel.searchChannels': '搜索频道',
+  'panel.ungrouped': '未分组',
+  'panel.noMatches': '无匹配频道',
   'panel.removeCurrent': '移除当前',
 
   // ---- 右面板：章节 ----

@@ -189,6 +189,9 @@ export const en = {
   'panel.addFiles': 'Add files',
   'panel.savePlaylist': 'Save playlist',
   'panel.saveSource': 'Save this source',
+  'panel.searchChannels': 'Search channels',
+  'panel.ungrouped': 'Ungrouped',
+  'panel.noMatches': 'No matching channels',
   'panel.removeCurrent': 'Remove current',
 
   // ---- right panel: chapters ----

@@ -91,7 +91,7 @@ export type RepeatMode = 'off' | 'all' | 'one'
 // URL playlist (YouTube). Drives the right panel's label (播放列表 vs 频道) + save.
 export type SourceType = 'queue' | 'iptv' | 'playlist-url'
 export interface Playlist {
-  items: { path: string; name: string }[]
+  items: { path: string; name: string; group?: string }[] // group = IPTV group-title
   index: number
   repeat: RepeatMode
   shuffle: boolean

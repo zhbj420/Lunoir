@@ -165,6 +165,9 @@ export const ja: Partial<Record<Key, string>> = {
   'panel.addFiles': 'ファイルを追加',
   'panel.savePlaylist': 'プレイリストを保存',
   'panel.saveSource': 'ソースを保存',
+  'panel.searchChannels': 'チャンネルを検索',
+  'panel.ungrouped': 'グループなし',
+  'panel.noMatches': '一致するチャンネルなし',
   'panel.removeCurrent': '現在の項目を削除',
 
   'panel.empty.chapters': 'チャプターなし',

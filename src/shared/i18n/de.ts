@@ -163,6 +163,9 @@ export const de: Partial<Record<Key, string>> = {
   'panel.addFiles': 'Dateien hinzufügen',
   'panel.savePlaylist': 'Wiedergabeliste speichern',
   'panel.saveSource': 'Quelle speichern',
+  'panel.searchChannels': 'Kanäle suchen',
+  'panel.ungrouped': 'Ohne Gruppe',
+  'panel.noMatches': 'Keine passenden Kanäle',
   'panel.removeCurrent': 'Aktuelles entfernen',
 
   'panel.empty.chapters': 'Keine Kapitel',

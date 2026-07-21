@@ -164,6 +164,9 @@ export const ru: Partial<Record<Key, string>> = {
   'panel.addFiles': 'Добавить файлы',
   'panel.savePlaylist': 'Сохранить плейлист',
   'panel.saveSource': 'Сохранить источник',
+  'panel.searchChannels': 'Поиск каналов',
+  'panel.ungrouped': 'Без группы',
+  'panel.noMatches': 'Нет совпадений',
   'panel.removeCurrent': 'Убрать текущий',
 
   'panel.empty.chapters': 'Нет глав',

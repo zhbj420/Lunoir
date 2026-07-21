@@ -369,9 +369,12 @@ async function loadPlaylistUrl(url: string): Promise<void> {
 }
 
 function playlistPayload() {
+  // IPTV channels carry a group-title; map url → group so the panel can group them
+  const groupOf =
+    sourceType === 'iptv' && curOpenChannels ? new Map(curOpenChannels.map(c => [c.url, c.group])) : null
   return {
     // URL items get their resolved title once known; local items use the basename
-    items: playlist.map(p => ({ path: p, name: urlTitles[p] || basename(p) })),
+    items: playlist.map(p => ({ path: p, name: urlTitles[p] || basename(p), group: groupOf?.get(p) || '' })),
     index: plIndex,
     repeat: repeatMode,
     shuffle: shuffleOn,
@@ -720,16 +723,19 @@ function playCurrent(): void {
     if (isDiscUri(target)) {
       mpv.setProperty(target === 'bd://' ? 'bluray-device' : 'dvd-device', discDevice)
       mpv.setProperty('force-media-title', urlTitles[target] || 'Blu-ray')
-    } else if (isUrl(target) && !needsYtdl(target) && urlTitles[target]) {
-      // a direct-stream channel (IPTV): the HLS/http feed carries no useful
-      // title, so surface the channel name from the list instead of its ugly URL
+    } else if (isUrl(target) && urlTitles[target] && (sourceType === 'iptv' || !needsYtdl(target))) {
+      // a direct-stream channel (IPTV): the HLS/http feed carries no useful title,
+      // so surface the channel name from the list instead of its ugly URL. IPTV URLs
+      // often don't end in a media extension (.php, query params) — force it anyway.
       mpv.setProperty('force-media-title', urlTitles[target])
     } else {
       mpv.setProperty('force-media-title', '')
     }
   }
   if (isUrl(target) || isDiscUri(target)) broadcast('ui:loading', true) // grey until the first frame (disc scan takes a moment)
-  if (needsYtdl(target)) {
+  // IPTV channels are direct streams — never yt-dlp them (their URLs just don't end
+  // in a media extension, which is the only thing needsYtdl keys off).
+  if (needsYtdl(target) && sourceType !== 'iptv') {
     // fetch yt-dlp if needed, point mpv's ytdl_hook at it, then load
     ensureYtdl().then(path => {
       if (!mpv) return
@@ -2044,8 +2050,17 @@ function startMpv(): void {
       stopRecording(true) // a new file means the old recording is done — end it quietly
       runProbe(data)
     }
-    // give URL playlist items a real name once mpv resolves the media title
-    if (name === 'media-title' && typeof data === 'string' && data && plIndex >= 0 && isUrl(playlist[plIndex])) {
+    // give URL playlist items a real name once mpv resolves the media title — but
+    // NOT for IPTV: there the m3u's channel name is authoritative, and the stream's
+    // own title (often the raw URL) must never overwrite it.
+    if (
+      name === 'media-title' &&
+      typeof data === 'string' &&
+      data &&
+      plIndex >= 0 &&
+      isUrl(playlist[plIndex]) &&
+      sourceType !== 'iptv'
+    ) {
       if (urlTitles[playlist[plIndex]] !== data) {
         urlTitles[playlist[plIndex]] = data
         broadcast('playlist:changed', playlistPayload())

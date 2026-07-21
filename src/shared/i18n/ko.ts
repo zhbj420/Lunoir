@@ -165,6 +165,9 @@ export const ko: Partial<Record<Key, string>> = {
   'panel.addFiles': '파일 추가',
   'panel.savePlaylist': '재생목록 저장',
   'panel.saveSource': '소스 저장',
+  'panel.searchChannels': '채널 검색',
+  'panel.ungrouped': '그룹 없음',
+  'panel.noMatches': '일치하는 채널 없음',
   'panel.removeCurrent': '현재 항목 제거',
 
   'panel.empty.chapters': '챕터 없음',

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useT, type T } from '../useT'
 
 type Tab = 'playlist' | 'chapters' | 'tracks'
 type RepeatMode = 'off' | 'all' | 'one'
 type SourceType = 'queue' | 'iptv' | 'playlist-url'
 interface Playlist {
-  items: { path: string; name: string }[]
+  items: { path: string; name: string; group?: string }[]
   index: number
   repeat: RepeatMode
   shuffle: boolean
@@ -377,6 +377,8 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
   const [subBright, setSubBright] = useState(100) // % of white; local (sub-color)
   const [subAdjOpen, setSubAdjOpen] = useState(false)
   const [collectionSaved, setCollectionSaved] = useState(false) // is this queue/source in 收藏?
+  const [channelSearch, setChannelSearch] = useState('') // IPTV channel filter
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set()) // collapsed group names
 
   // playlist state, pushed from main
   useEffect(() => {
@@ -387,6 +389,30 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
 
   // whether the current collection (queue / IPTV source) is saved → save-button state
   useEffect(() => window.mmp.onCollectionSaved(setCollectionSaved), [])
+
+  // when a NEW IPTV list loads, collapse every group but the first (a channel switch
+  // within the same list keeps your collapse state — guarded by a list identity)
+  const listId = useRef('')
+  useEffect(() => {
+    if (pl.sourceType !== 'iptv') {
+      listId.current = ''
+      return
+    }
+    const id = pl.items.length + '|' + (pl.items[0]?.path ?? '')
+    if (id === listId.current) return
+    listId.current = id
+    const seen = new Set<string>()
+    const names: string[] = []
+    for (const it of pl.items) {
+      const g = it.group || t('panel.ungrouped')
+      if (!seen.has(g)) {
+        seen.add(g)
+        names.push(g)
+      }
+    }
+    setCollapsed(new Set(names.slice(1))) // all but the first group
+    setChannelSearch('') // a fresh list starts unfiltered
+  }, [pl, t])
 
   // chapters: fetch on mount / file change, and follow live position
   useEffect(() => {
@@ -517,6 +543,59 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
     Math.round(subScale * 100) !== 100 ||
     subBright !== 100
 
+  // IPTV: the channel list is grouped by group-title + filterable; a normal queue
+  // stays flat. Keep each item's original playlist index for playIndex().
+  const isIptv = pl.sourceType === 'iptv'
+  const q = channelSearch.trim().toLowerCase()
+  const shownChannels = pl.items
+    .map((it, i) => ({ ...it, i }))
+    .filter(it => !q || it.name.toLowerCase().includes(q))
+  const channelGroups: { name: string; items: typeof shownChannels }[] = []
+  if (isIptv) {
+    for (const it of shownChannels) {
+      const g = it.group || t('panel.ungrouped')
+      let grp = channelGroups.find(x => x.name === g)
+      if (!grp) {
+        grp = { name: g, items: [] }
+        channelGroups.push(grp)
+      }
+      grp.items.push(it)
+    }
+  }
+  // the group the currently-playing channel lives in → highlight its header if collapsed
+  const activeGroup =
+    isIptv && pl.index >= 0 && pl.items[pl.index]
+      ? pl.items[pl.index].group || t('panel.ungrouped')
+      : null
+  const toggleGroup = (name: string): void =>
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+
+  // one playlist/channel row (shared by the flat queue + the grouped IPTV view)
+  const plRow = (it: { path: string; name: string }, i: number) => (
+    <div
+      key={it.path}
+      className={`pl-item ${i === pl.index ? 'active' : ''}`}
+      title={it.name}
+      onClick={() => window.mmp.playIndex(i)}
+    >
+      <span className="pl-mark">
+        {i === pl.index ? (
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+            <path d="M1 0.5 L8 4.5 L1 8.5 Z" />
+          </svg>
+        ) : (
+          <span className="pl-idx">{i + 1}</span>
+        )}
+      </span>
+      <span className="pl-name">{it.name}</span>
+    </div>
+  )
+
   return (
     // The panel lives inside the main window's .app, whose onMouseMove/onWheel
     // reveal the OSC and change volume. Stop those events here so interacting
@@ -547,29 +626,46 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
 
       {tab === 'playlist' && (
         <>
+          {isIptv && pl.items.length > 0 && (
+            <div className="panel-search">
+              <input
+                value={channelSearch}
+                spellCheck={false}
+                placeholder={t('panel.searchChannels')}
+                onChange={e => setChannelSearch(e.target.value)}
+                onKeyDown={e => e.stopPropagation()}
+              />
+            </div>
+          )}
           <div className="panel-body">
             {pl.items.length === 0 ? (
               <div className="panel-empty">{t('panel.empty.queue')}</div>
+            ) : isIptv ? (
+              channelGroups.length === 0 ? (
+                <div className="panel-empty">{t('panel.noMatches')}</div>
+              ) : (
+                channelGroups.map(g => {
+                  const shut = collapsed.has(g.name) && !q
+                  const holdsActive = shut && g.name === activeGroup // playing channel is hidden here
+                  return (
+                    <div key={g.name} className="pl-group">
+                      <button
+                        className={`pl-group-head ${shut ? 'shut' : ''} ${holdsActive ? 'has-active' : ''}`}
+                        onClick={() => toggleGroup(g.name)}
+                      >
+                        <svg className="pl-group-chev" width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+                          <path d="M1 0.5 L8 4.5 L1 8.5 Z" />
+                        </svg>
+                        <span className="pl-group-name">{g.name}</span>
+                        <span className="pl-group-count">{g.items.length}</span>
+                      </button>
+                      {!shut && g.items.map(it => plRow(it, it.i))}
+                    </div>
+                  )
+                })
+              )
             ) : (
-              pl.items.map((it, i) => (
-                <div
-                  key={it.path}
-                  className={`pl-item ${i === pl.index ? 'active' : ''}`}
-                  title={it.name}
-                  onClick={() => window.mmp.playIndex(i)}
-                >
-                  <span className="pl-mark">
-                    {i === pl.index ? (
-                      <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
-                        <path d="M1 0.5 L8 4.5 L1 8.5 Z" />
-                      </svg>
-                    ) : (
-                      <span className="pl-idx">{i + 1}</span>
-                    )}
-                  </span>
-                  <span className="pl-name">{it.name}</span>
-                </div>
-              ))
+              pl.items.map((it, i) => plRow(it, i))
             )}
           </div>
 
