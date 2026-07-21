@@ -39,10 +39,18 @@ clean Win11 acrylic UI.
 - `gpu-next` rendering: Dolby Vision, HDR10 / HDR10+ tone-mapping, 10-bit
 - Blu-ray / DVD disc **folders** (`bd://` / `dvd://`), plays the main title
 - Online video & **playlists** via yt-dlp (YouTube, etc.)
+- **Live TV / IPTV** — load `.m3u` / `.txt` channel lists (local or URL); channels
+  group by their `group-title` into collapsible, searchable sections. Live streams
+  show a `● LIVE` badge with one-tap “go live”, and can be **recorded** to MKV
+  (stream-copy, no re-encode)
 
 **Interface**
 - Floating IINA-style OSC that frosts the video (real Win11 acrylic window)
 - Acrylic side panels — playlist / chapters / audio & subtitle tracks, and settings
+- **收藏 — a frosted “saved & recent” launcher**: recently played (local + URL),
+  plus saved files, URLs, playlists, and IPTV sources — each renamable and
+  deletable. Save the current queue as a playlist or the current channel list as a
+  source, right from the panel
 - **9 interface languages** — English, 简体中文, Français, Deutsch, Español,
   Português, Русский, 日本語, 한국어 (auto-detects your Windows language)
 - Frameless, drag-and-drop, opens files straight from Explorer (file associations)
