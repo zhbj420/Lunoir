@@ -8,30 +8,45 @@ it too and install size is watched). How it fits together:
 - `en.ts` is the source of truth: adding a key there is what makes a string
   translatable, and the `Key` type is derived from it, so a typo at a call site
   is a compile error.
-- `zh-CN.ts` is `Partial` on purpose — a missing key falls back to English, never
-  to a raw key on screen.
+- Every non-English locale is `Partial` on purpose — a missing key falls back to
+  English, never to a raw key on screen.
+- **Nine locales ship**: `en`, `zh-CN`, `fr`, `de`, `es`, `pt`, `ru`, `ja`, `ko`.
+  en + zh are the ones we can vet; the other seven are a best-effort first pass
+  (correctable per-key thanks to the fallback). The whole UI is already
+  translated — there are no hardcoded strings left to extract.
 - Renderer components: `const t = useT()` (from `src/renderer/src/useT.ts`), then
   `t('some.key')` / `t('osc.back', { n: 5 })`. One locale store per window;
   components re-render on language change automatically.
-- Main process: `import { translate, effectiveLocale } from '../shared/i18n'`.
+- Main process: `import { translate, effectiveLocale } from '../shared/i18n'`;
+  `tr()` in `index.ts` wraps it.
 
-To translate a surface (SettingsPanel, RightPanel, MenuView and OverlayView still
-have hardcoded strings): move each literal into `en.ts` under a sensible prefix
-(`set.*`, `panel.*`, `menu.*`…), add the Chinese to `zh-CN.ts`, replace the
-literal with `t(...)`. Do NOT translate: the brand name (Lunoir), format/codec
-names (HDR10, Dolby Atmos, PGS…), channel layouts, font family names — see the
-header comment in `en.ts`.
+**Adding a string:** put it in `en.ts` under a sensible prefix (`set.*`, `panel.*`,
+`menu.*`…) — the `Key` type is derived from `en`, so a call-site typo is a compile
+error. Then add it to `zh-CN.ts` (vet this yourself), and to the other seven
+(best-effort). Do NOT translate: brand name (Lunoir), format/codec names (HDR10,
+Dolby Atmos, PGS…), channel layouts, font family names — see the header in `en.ts`.
 
-The empty-state / hero copy lives under the `empty.*` keys in both files.
+**After adding/removing/renaming any key: `npm run i18n-check`.** It reports, per
+locale: missing keys (warning — English covers them), and stale keys / duplicate
+keys / placeholder drift (failures — those silently drop or mangle a string). Green
+means all nine dictionaries are in parity.
+
+The empty-state / hero copy lives under the `empty.*` keys.
 
 ## After ANY change to Chinese UI text: `npm run subset-font`
 
-The app bundles a ~25 KB Noto Sans SC subset (`'Lunoir Sans SC'`,
-`src/renderer/src/assets/fonts/LunoirSansSC.woff2`) containing exactly the
-non-ASCII characters found in `src/**/*.ts|tsx`. New Chinese text (including
-fullwidth punctuation) is NOT in the subset until you re-run
+The app bundles a ~100 KB Noto Sans SC subset (`'Lunoir Sans SC'`,
+`src/renderer/src/assets/fonts/LunoirSansSC.woff2`) containing exactly the non-ASCII
+characters found in `src/**/*.ts|tsx` — **Chinese only**: the script skips the other
+locale dictionaries (`fr`/`de`/`ja`/`ko`/… use Segoe UI or system CJK fonts, so
+their accents/kana/hangul must NOT pollute this SC-only bundle). New Chinese text
+(incl. fullwidth punctuation) is NOT in the subset until you re-run
 `npm run subset-font`, which rebuilds it from `C:\Windows\Fonts\NotoSansSC-VF.ttf`
 (or `$env:NOTO_SC_VF`). Commit the regenerated `.woff2` + `subset-chars.txt`.
+
+(Japanese and Korean deliberately use the system faces — Meiryo / Malgun Gothic,
+keyed off `:root[lang^='ja'|'ko']` in `styles.css`; the CJK size/spacing bumps key
+off a `data-cjk` attribute `useT` sets for zh/ja/ko alike. No bundling for those.)
 
 Symptom of a missed glyph: one character in a line renders in a different font
 (YaHei fallback) — slightly different weight/height. Fix = re-run the script.
