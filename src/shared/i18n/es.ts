@@ -258,5 +258,19 @@ export const es: Partial<Record<Key, string>> = {
   'dlg.chooseRecDir': 'Elegir carpeta de grabación',
   'set.recDir.label': 'Carpeta de grabación',
   'set.recDir.desc':
-    'Dónde se guardan las grabaciones en directo. Escribe una ruta o examina.'
+    'Dónde se guardan las grabaciones en directo. Escribe una ruta o examina.',
+  // ---- updates ----
+  'set.sec.about': 'Acerca de',
+  'set.update.label': 'Versión',
+  'set.update.check': 'Buscar actualizaciones',
+  'set.autoUpdate.label': 'Buscar al iniciar',
+  'set.autoUpdate.desc': 'Buscar discretamente una versión más reciente al iniciar Lunoir.',
+  'update.newVersion': 'Nueva versión disponible',
+  'update.clickToDownload': 'Haz clic para descargar',
+  'update.current': 'Versión actual {version}',
+  'update.checking': 'Buscando…',
+  'update.latest': 'Tienes la última versión',
+  'update.found': 'Nueva versión {version} disponible',
+  'update.checkFailed': 'No se pudo buscar — inténtalo más tarde',
+  'update.download': 'Descargar',
 }

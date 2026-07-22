@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, screen } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, screen, shell } from 'electron'
 import { join, dirname, basename, extname, resolve } from 'node:path'
 import { existsSync, readdirSync, readFileSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
 import { spawn, ChildProcess } from 'node:child_process'
@@ -236,6 +236,72 @@ async function ensureYtdl(): Promise<string | null> {
   }
   if (!ytdlDownloading) ytdlDownloading = downloadYtdl().finally(() => (ytdlDownloading = null))
   return ytdlDownloading
+}
+
+// ---- update check (notify-only) ----
+// Compare the running version to GitHub's latest release; the UI just opens the
+// release page to download. No auto-install: the build is unsigned, so a silent
+// updater would trip SmartScreen and needs signing to install cleanly anyway.
+const UPDATE_REPO = 'zhbj420/Lunoir'
+interface UpdateInfo {
+  current: string // running version, e.g. "0.5.1"
+  latest: string // newest release tag, e.g. "0.5.2"
+  url: string // release page to open for the download
+  hasUpdate: boolean
+}
+let updateCache: UpdateInfo | null = null
+let updateCheckedAt = 0
+
+/** "v0.5.1"/"0.5.1" → [0,5,1]; missing/garbage parts → 0. */
+function verParts(v: string): number[] {
+  return v.replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0)
+}
+/** Is remote strictly newer than local? (numeric major.minor.patch compare) */
+function isNewer(remote: string, local: string): boolean {
+  const a = verParts(remote)
+  const b = verParts(local)
+  for (let i = 0; i < 3; i++) {
+    const x = a[i] ?? 0
+    const y = b[i] ?? 0
+    if (x !== y) return x > y
+  }
+  return false
+}
+
+async function fetchLatestRelease(): Promise<UpdateInfo | null> {
+  const current = app.getVersion()
+  try {
+    const res = await fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
+      headers: { 'User-Agent': 'lunoir', Accept: 'application/vnd.github+json' }
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { tag_name?: string; html_url?: string }
+    const latest = (data.tag_name || '').replace(/^v/i, '')
+    if (!latest) return null
+    return {
+      current,
+      latest,
+      url: data.html_url || `https://github.com/${UPDATE_REPO}/releases/latest`,
+      hasUpdate: isNewer(latest, current)
+    }
+  } catch {
+    return null // offline / rate-limited → stay silent
+  }
+}
+
+/** Check for a newer release. `force` (the manual Settings button) always re-fetches;
+ *  the background path (Home mount) respects the setting and reuses a <1h cache so
+ *  returning to Home doesn't hit the network each time. */
+async function checkUpdate(force: boolean): Promise<UpdateInfo | null> {
+  if (!force && !getSettings().checkForUpdates) return null
+  const fresh = Date.now() - updateCheckedAt < 60 * 60 * 1000
+  if (!force && fresh && updateCache) return updateCache
+  const info = await fetchLatestRelease()
+  if (info) {
+    updateCache = info
+    updateCheckedAt = Date.now()
+  }
+  return info ?? updateCache
 }
 
 /** An explicit playlist URL (YouTube /playlist?…) — expand it into the queue. */
@@ -2450,6 +2516,12 @@ function registerIpc(): void {
     return res.canceled || !res.filePaths[0] ? null : res.filePaths[0]
   })
   ipcMain.handle('settings:get', () => getSettings())
+  // update check (notify-only): Home peeks (cached, setting-gated); Settings forces a fresh check
+  ipcMain.handle('app:version', () => app.getVersion())
+  ipcMain.handle('app:check-update', (_e, force: boolean) => checkUpdate(!!force))
+  ipcMain.on('app:open-external', (_e, url: string) => {
+    if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url)
+  })
   ipcMain.on('settings:set', (_e, key: keyof Settings, value: unknown) => {
     setSetting(key, value as never)
     // rebuild the native menu in the new language (its labels are resolved once at

@@ -40,8 +40,17 @@ export interface Settings {
   recordingDir: string // where stream recordings are saved ('' = Videos/Lunoir default)
   rememberWindow: boolean
   rememberVolume: boolean
+  checkForUpdates: boolean // silently check GitHub for a newer release at launch
   volume: number
   windowBounds: { x: number; y: number; width: number; height: number } | null
+}
+
+/** Result of an update check (notify-only — the UI opens `url` to download). */
+export interface UpdateInfo {
+  current: string
+  latest: string
+  url: string
+  hasUpdate: boolean
 }
 
 // --- 收藏 (library): recents (auto) + favourites (manual) ---
@@ -220,6 +229,13 @@ const api = {
   openDialog: (): Promise<string | null> => ipcRenderer.invoke('app:open-dialog'),
   openDiscDialog: (): void => ipcRenderer.send('ui:open-disc'), // Blu-ray/DVD folder picker
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke('app:pick-folder'),
+
+  // --- updates (notify-only) ---
+  getVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
+  // force=false: cached, gated by the checkForUpdates setting (Home). force=true: fresh (Settings button).
+  checkUpdate: (force = false): Promise<UpdateInfo | null> =>
+    ipcRenderer.invoke('app:check-update', force),
+  openExternal: (url: string): void => ipcRenderer.send('app:open-external', url),
 
   // --- recording (stream-record) ---
   goLive: (): void => ipcRenderer.send('mpv:go-live'), // jump to a live stream's edge

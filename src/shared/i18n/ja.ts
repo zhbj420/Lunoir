@@ -259,5 +259,19 @@ export const ja: Partial<Record<Key, string>> = {
   'toast.unfavourited': 'ライブラリから削除しました',
   'dlg.chooseRecDir': '録画フォルダーを選択',
   'set.recDir.label': '録画フォルダー',
-  'set.recDir.desc': 'ライブ録画の保存先。パスを入力するか参照してください。'
+  'set.recDir.desc': 'ライブ録画の保存先。パスを入力するか参照してください。',
+  // ---- updates ----
+  'set.sec.about': 'このアプリについて',
+  'set.update.label': 'バージョン',
+  'set.update.check': '更新を確認',
+  'set.autoUpdate.label': '起動時に確認',
+  'set.autoUpdate.desc': 'Lunoir の起動時に、新しいバージョンがないか静かに確認します。',
+  'update.newVersion': '新しいバージョンがあります',
+  'update.clickToDownload': 'クリックしてダウンロード',
+  'update.current': '現在のバージョン {version}',
+  'update.checking': '確認中…',
+  'update.latest': '最新バージョンです',
+  'update.found': '新しいバージョン {version} が利用可能',
+  'update.checkFailed': '確認できませんでした — 後でもう一度お試しください',
+  'update.download': 'ダウンロード',
 }

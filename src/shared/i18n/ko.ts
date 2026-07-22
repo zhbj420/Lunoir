@@ -259,5 +259,19 @@ export const ko: Partial<Record<Key, string>> = {
   'toast.unfavourited': '보관함에서 제거함',
   'dlg.chooseRecDir': '녹화 폴더 선택',
   'set.recDir.label': '녹화 폴더',
-  'set.recDir.desc': '라이브 녹화가 저장되는 위치. 경로를 입력하거나 찾아보세요.'
+  'set.recDir.desc': '라이브 녹화가 저장되는 위치. 경로를 입력하거나 찾아보세요.',
+  // ---- updates ----
+  'set.sec.about': '정보',
+  'set.update.label': '버전',
+  'set.update.check': '업데이트 확인',
+  'set.autoUpdate.label': '시작 시 확인',
+  'set.autoUpdate.desc': 'Lunoir 시작 시 새 버전이 있는지 조용히 확인합니다.',
+  'update.newVersion': '새 버전이 있습니다',
+  'update.clickToDownload': '클릭하여 다운로드',
+  'update.current': '현재 버전 {version}',
+  'update.checking': '확인 중…',
+  'update.latest': '최신 버전입니다',
+  'update.found': '새 버전 {version} 사용 가능',
+  'update.checkFailed': '확인할 수 없습니다 — 나중에 다시 시도하세요',
+  'update.download': '다운로드',
 }

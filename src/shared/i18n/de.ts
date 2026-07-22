@@ -258,5 +258,19 @@ export const de: Partial<Record<Key, string>> = {
   'dlg.chooseRecDir': 'Aufnahmeordner wählen',
   'set.recDir.label': 'Aufnahmeordner',
   'set.recDir.desc':
-    'Wo Live-Aufnahmen gespeichert werden. Pfad eingeben oder durchsuchen.'
+    'Wo Live-Aufnahmen gespeichert werden. Pfad eingeben oder durchsuchen.',
+  // ---- updates ----
+  'set.sec.about': 'Über',
+  'set.update.label': 'Version',
+  'set.update.check': 'Nach Updates suchen',
+  'set.autoUpdate.label': 'Beim Start prüfen',
+  'set.autoUpdate.desc': 'Beim Start von Lunoir unauffällig nach einer neueren Version suchen.',
+  'update.newVersion': 'Neue Version verfügbar',
+  'update.clickToDownload': 'Zum Herunterladen klicken',
+  'update.current': 'Aktuelle Version {version}',
+  'update.checking': 'Wird geprüft…',
+  'update.latest': 'Sie haben die neueste Version',
+  'update.found': 'Neue Version {version} verfügbar',
+  'update.checkFailed': 'Prüfung fehlgeschlagen — später erneut versuchen',
+  'update.download': 'Herunterladen',
 }

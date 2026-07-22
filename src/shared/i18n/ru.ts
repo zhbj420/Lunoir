@@ -259,5 +259,19 @@ export const ru: Partial<Record<Key, string>> = {
   'dlg.chooseRecDir': 'Выбрать папку для записей',
   'set.recDir.label': 'Папка для записей',
   'set.recDir.desc':
-    'Куда сохраняются записи трансляций. Введите путь или выберите.'
+    'Куда сохраняются записи трансляций. Введите путь или выберите.',
+  // ---- updates ----
+  'set.sec.about': 'О программе',
+  'set.update.label': 'Версия',
+  'set.update.check': 'Проверить обновления',
+  'set.autoUpdate.label': 'Проверять при запуске',
+  'set.autoUpdate.desc': 'Незаметно проверять наличие новой версии при запуске Lunoir.',
+  'update.newVersion': 'Доступна новая версия',
+  'update.clickToDownload': 'Нажмите для загрузки',
+  'update.current': 'Текущая версия {version}',
+  'update.checking': 'Проверка…',
+  'update.latest': 'У вас последняя версия',
+  'update.found': 'Доступна новая версия {version}',
+  'update.checkFailed': 'Не удалось проверить — повторите позже',
+  'update.download': 'Загрузить',
 }

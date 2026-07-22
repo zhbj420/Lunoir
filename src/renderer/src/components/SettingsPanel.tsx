@@ -50,6 +50,7 @@ interface Settings {
   recordingDir: string
   rememberWindow: boolean
   rememberVolume: boolean
+  checkForUpdates: boolean
   volume: number
   windowBounds: { x: number; y: number; width: number; height: number } | null
 }
@@ -330,10 +331,29 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
   const [pathEdit, setPathEdit] = useState<string | null>(null) // non-null while typing the folder
   const [recPathEdit, setRecPathEdit] = useState<string | null>(null) // same, for the recording folder
 
+  // update check (About section): running version + the manual "check" flow
+  const [version, setVersion] = useState('')
+  const [checkState, setCheckState] = useState<'idle' | 'checking' | 'latest' | 'found' | 'error'>('idle')
+  const [found, setFound] = useState<{ latest: string; url: string } | null>(null)
+
   useEffect(() => {
     window.mmp.getSettings().then(setS)
     return window.mmp.onSettingsChanged(setS)
   }, [])
+  useEffect(() => {
+    window.mmp.getVersion().then(setVersion)
+  }, [])
+
+  const doCheck = async (): Promise<void> => {
+    setCheckState('checking')
+    setFound(null)
+    const info = await window.mmp.checkUpdate(true) // manual → force a fresh check
+    if (!info) setCheckState('error')
+    else if (info.hasUpdate) {
+      setFound({ latest: info.latest, url: info.url })
+      setCheckState('found')
+    } else setCheckState('latest')
+  }
 
   // optimistic local update + persist to main
   const set = <K extends keyof Settings>(key: K, value: Settings[K]): void => {
@@ -358,6 +378,22 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
     else cur.delete(c)
     set('passthroughCodecs', PASSTHROUGH_CODECS.filter(x => cur.has(x.code)).map(x => x.code).join(','))
   }
+
+  // the About row's description line — reflects the manual check's progress
+  const updateStatus: ReactNode =
+    checkState === 'checking' ? t('update.checking')
+    : checkState === 'error' ? t('update.checkFailed')
+    : checkState === 'latest' ? t('update.latest')
+    : checkState === 'found' && found ? (
+        <>
+          {t('update.found', { version: `v${found.latest}` })}
+          {' · '}
+          <button className="set-inline-link" onClick={() => window.mmp.openExternal(found.url)}>
+            {t('update.download')}
+          </button>
+        </>
+      )
+    : t('update.current', { version: `v${version}` })
 
   return (
     <div
@@ -649,6 +685,20 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           </Row>
           <Row label={t('set.rememberVolume.label')}>
             <Toggle on={s.rememberVolume} onChange={v => set('rememberVolume', v)} />
+          </Row>
+
+          <div className="set-sec">{t('set.sec.about')}</div>
+          <Row label={t('set.update.label')} desc={updateStatus}>
+            <button
+              className="set-check-btn"
+              disabled={checkState === 'checking'}
+              onClick={doCheck}
+            >
+              {t('set.update.check')}
+            </button>
+          </Row>
+          <Row label={t('set.autoUpdate.label')} desc={t('set.autoUpdate.desc')}>
+            <Toggle on={s.checkForUpdates} onChange={v => set('checkForUpdates', v)} />
           </Row>
         </div>
       )}

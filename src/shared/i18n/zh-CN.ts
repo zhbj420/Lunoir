@@ -254,5 +254,20 @@ export const zhCN: Partial<Record<Key, string>> = {
   'toast.unfavourited': '已取消收藏',
   'dlg.chooseRecDir': '选择录制文件夹',
   'set.recDir.label': '录制文件夹',
-  'set.recDir.desc': '直播录制的保存位置。可直接输入路径,或点击浏览选择。'
+  'set.recDir.desc': '直播录制的保存位置。可直接输入路径,或点击浏览选择。',
+
+  // ---- 更新（Home 按钮 + 关于） ----
+  'set.sec.about': '关于',
+  'set.update.label': '版本',
+  'set.update.check': '检查更新',
+  'set.autoUpdate.label': '启动时检查更新',
+  'set.autoUpdate.desc': '启动 Lunoir 时静默检查是否有新版本。',
+  'update.newVersion': '有新版本',
+  'update.clickToDownload': '点击下载',
+  'update.current': '当前版本 {version}',
+  'update.checking': '检查中…',
+  'update.latest': '已是最新版本',
+  'update.found': '发现新版本 {version}',
+  'update.checkFailed': '检查失败，请稍后重试',
+  'update.download': '下载'
 }

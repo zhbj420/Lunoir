@@ -258,5 +258,19 @@ export const fr: Partial<Record<Key, string>> = {
   'dlg.chooseRecDir': 'Choisir le dossier d’enregistrement',
   'set.recDir.label': 'Dossier d’enregistrement',
   'set.recDir.desc':
-    'Où les enregistrements en direct sont enregistrés. Saisissez un chemin ou parcourez.'
+    'Où les enregistrements en direct sont enregistrés. Saisissez un chemin ou parcourez.',
+  // ---- updates ----
+  'set.sec.about': 'À propos',
+  'set.update.label': 'Version',
+  'set.update.check': 'Rechercher des mises à jour',
+  'set.autoUpdate.label': 'Vérifier au démarrage',
+  'set.autoUpdate.desc': 'Vérifier discrètement s’il existe une version plus récente au démarrage de Lunoir.',
+  'update.newVersion': 'Nouvelle version disponible',
+  'update.clickToDownload': 'Cliquer pour télécharger',
+  'update.current': 'Version actuelle {version}',
+  'update.checking': 'Vérification…',
+  'update.latest': 'Vous avez la dernière version',
+  'update.found': 'Nouvelle version {version} disponible',
+  'update.checkFailed': 'Vérification impossible — réessayez plus tard',
+  'update.download': 'Télécharger',
 }

@@ -1401,6 +1401,46 @@ body.library-win.library-shown .library {
   }
 }
 
+/* "Check for updates" button in the About section — same control chrome as the
+   dropdowns / path button so it sits consistently on the right of its row. */
+.set-check-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 13px; /* CJK bumps below */
+  white-space: nowrap;
+  cursor: pointer;
+}
+:root[data-cjk] .set-check-btn {
+  font-size: 14px;
+}
+.set-check-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (hover: hover) {
+  .set-check-btn:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+}
+/* the "Download" affordance inline in the About description once a version is found */
+.set-inline-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: rgb(150, 158, 245);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .set-inline-link:hover {
+    text-decoration: underline;
+  }
+}
+
 /* slider setting (e.g. HDR subtitle brightness) */
 .set-slider {
   display: flex;
@@ -2092,6 +2132,38 @@ body.library-win.library-shown .library {
   .settings-entry:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text);
+  }
+}
+
+/* Update nudge on Home — sits just left of the star/gear corner cluster, only when
+   a newer release exists. Low-key, but a touch of the brand accent so it reads as
+   actionable rather than chrome. Square-ish (6px) to match the corner entries. */
+.update-entry {
+  position: absolute;
+  right: 100px;
+  bottom: 16px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(124, 130, 245, 0.16);
+  color: rgb(196, 200, 240);
+  font-size: 12px; /* CJK bumps to 14px below — the label carries hanzi (新版本) */
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+:root[data-cjk] .update-entry {
+  font-size: 14px;
+}
+@media (hover: hover) {
+  .update-entry:hover {
+    background: rgba(124, 130, 245, 0.26);
+    color: rgb(220, 223, 250);
   }
 }
 

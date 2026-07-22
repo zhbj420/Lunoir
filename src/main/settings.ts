@@ -40,6 +40,7 @@ const DEFAULTS: Settings = {
   recordingDir: '', // where stream recordings go ('' = Videos/Lunoir default)
   rememberWindow: true,
   rememberVolume: true,
+  checkForUpdates: true, // silently check GitHub for a newer release at launch (Home button)
   volume: 100,
   windowBounds: null
 }

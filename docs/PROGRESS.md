@@ -2,6 +2,18 @@
 
 > 每到相对重要的节点更新此文档。方案见 [PLAN.md](PLAN.md)。
 
+## 当前状态（2026-07-22 · 检查更新（Home 提示 + 关于区）· 待并入 v0.6.0）
+
+**阶段：加「检查更新」—— 只提示不自动装。Home 右下角有新版才显一个小按钮 → 开 GitHub release 页面下载;设置新增「关于」区(当前版本 + 手动检查 + 启动时检查开关)。零新依赖。攒着,和后续功能一起发 0.6.0。**
+
+- **notify-only 的理由**:包**未签名**,自动下载安装会被 SmartScreen 拦、且需签名才能静默装,还要背上重依赖。且**开 release 页面而非直接下 exe** 是有意的 —— 有 setup / portable 两个包,让用户自己选(不少人用便携版)。彻底免弹窗只有代码签名一条路,以后再说。
+- **主进程**([index.ts](../src/main/index.ts)):`fetchLatestRelease` 打 GitHub `releases/latest`(带 UA + `Accept: vnd.github+json`),`isNewer` 三段数字比对;`checkUpdate(force)` —— Home 路径走 1h 缓存 + 受 `checkForUpdates` 设置门控,设置里手动检查用 `force` 强制刷新。IPC `app:version` / `app:check-update` / `app:open-external`(`shell.openExternal`)。
+- **Home**([EmptyState](../src/renderer/src/components/EmptyState.tsx)):挂载时查一次,有新版才显右下角 `.update-entry` 小按钮(star/gear 左侧),文案「New version available」,点击开页面。空状态是这个提示的合适位置 —— 播放时不打扰。
+- **设置**([SettingsPanel](../src/renderer/src/components/SettingsPanel.tsx)):新增「关于」区,`Version` 行 + `Check for updates` 按钮(检查中 / 已是最新 / 发现新版本·下载 状态)+「启动时检查更新」开关(默认开)。
+- i18n:13 个键 × 9 语言(en/zh 把关,其余 7 语机械翻译),`i18n-check` 222/222 齐平;字体子集已重建。
+
+---
+
 ## 当前状态（2026-07-22 · 修复 mpv stdout 管道憋死播放器 · v0.5.1）
 
 **阶段：修一个 v0.5.0 就带着的潜在死锁 —— 看直播切几次台后整个播放器卡死在 `Loading…`,连之前能看的台也 load 不了,必须重启 Lunoir。根因不在直播逻辑,在子进程管道。**

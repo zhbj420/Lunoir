@@ -67,6 +67,7 @@ export const en = {
   'set.sec.screenshots': 'Screenshots',
   'set.sec.controls': 'Controls',
   'set.sec.window': 'Window',
+  'set.sec.about': 'About',
 
   'set.uiLang.label': 'Interface language',
   'set.uiLang.desc':
@@ -152,6 +153,21 @@ export const en = {
 
   'set.rememberWindow.label': 'Remember size & position',
   'set.rememberVolume.label': 'Remember volume',
+
+  'set.update.label': 'Version',
+  'set.update.check': 'Check for updates',
+  'set.autoUpdate.label': 'Check on startup',
+  'set.autoUpdate.desc': 'Silently check for a newer version when Lunoir starts.',
+
+  // ---- updates (Home button + About section) ----
+  'update.newVersion': 'New version available',
+  'update.clickToDownload': 'Click to download',
+  'update.current': 'Current version {version}',
+  'update.checking': 'Checking…',
+  'update.latest': 'You’re on the latest version',
+  'update.found': 'New version {version} available',
+  'update.checkFailed': 'Couldn’t check — try again later',
+  'update.download': 'Download',
 
   // option lists (format, codec and browser names are never translated)
   'opt.hwdec.auto': 'Auto',
