@@ -596,6 +596,7 @@ function recordOpen(target: string): void {
   pendingMergeSeek = -1
   trims.clear() // trims are per-session-per-queue
   trimClip = -1
+  broadcastTrim() // clear any stale in/out handles from a prior trim session
   sourceType = 'queue' // loadChannelList / loadPlaylistUrl override for iptv / yt-playlist
   broadcast('library:current-fav', isFavourite(target)) // right-click 收藏 reflects it
   // What enters "recently played":
@@ -994,10 +995,14 @@ function toggleMerge(): void {
     shuffleHistory = []
     loadTimeline(plIndex < 0 ? 0 : plIndex)
   } else {
+    const wasTrimming = trimClip >= 0
+    if (trimClip >= 0) plIndex = trimClip // resume the clip we were trimming
     mergeOn = false
     trimClip = -1
+    broadcastTrim() // clear the OSC's in/out handles + reset button
     if (plIndex < 0) plIndex = 0 // plIndex tracks the current chapter while merged
     playCurrent() // resume that clip (from its start — Phase 1)
+    if (wasTrimming) revealUi() // the OSC was pinned during trim → restart its hide cycle so it can disappear
   }
   broadcast('playlist:changed', playlistPayload())
 }
