@@ -34,9 +34,11 @@ care about frame accuracy and colour fidelity. Electron + React wrapping an
   <img src="docs/screenshots/playing.png" alt="Lunoir playing a video — the floating OSC frosts the frame" width="100%">
 </p>
 
-| Home | Settings | Audio &amp; subtitle tracks |
-| :---: | :---: | :---: |
-| ![Home screen](docs/screenshots/home.png) | ![Settings panel](docs/screenshots/settings.png) | ![Audio and subtitle track panel](docs/screenshots/panel.png) |
+| Home | Live TV / IPTV |
+| :---: | :---: |
+| ![Home screen](docs/screenshots/home.png) | ![Live TV — grouped, searchable channels](docs/screenshots/live.png) |
+| **Settings** | **Audio &amp; subtitle tracks** |
+| ![Settings panel](docs/screenshots/settings.png) | ![Audio and subtitle track panel](docs/screenshots/panel.png) |
 
 ## Why Lunoir?
 
