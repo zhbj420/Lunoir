@@ -6,3 +6,7 @@ resources/mediainfo/
 *.log
 .DS_Store
 *.tsbuildinfo
+
+# wingetcreate output (the winget-pkgs submission lives in that PR; our reference
+# manifests are kept under packaging/winget/)
+manifests/
