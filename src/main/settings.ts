@@ -42,6 +42,7 @@ const DEFAULTS: Settings = {
   rememberVolume: true,
   checkForUpdates: true, // silently check GitHub for a newer release at launch (Home button)
   experimentalTimeline: false, // "watch as one" (EDL merge) — opt-in; gates the playlist toggle
+  pinOscInTrim: true, // keep the on-screen controls (the in/out handles) visible while trimming
   volume: 100,
   windowBounds: null
 }

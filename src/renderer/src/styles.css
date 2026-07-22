@@ -674,6 +674,50 @@ body.fullscreen .titlebar {
   pointer-events: none;
 }
 
+/* Timeline per-clip trim (Phase 2): the in→out range paints the seek bar blue, with
+   two draggable blue handles at its ends; outside the range stays the normal colour */
+.trim-range {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 5px;
+  background: rgba(78, 150, 255, 0.6);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.trim-handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 5px;
+  height: 16px;
+  background: rgb(74, 148, 255);
+  border-radius: 2px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  cursor: ew-resize;
+  pointer-events: auto;
+  touch-action: none;
+}
+.trim-reset {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .trim-reset:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text);
+  }
+}
+
 .t {
   font-size: 15px;
   font-weight: 600;
@@ -1651,6 +1695,13 @@ body.library-win.library-shown .library {
 }
 .pl-item.active.selected {
   background: rgba(124, 130, 245, 0.44);
+}
+
+/* the clip currently isolated for trimming — a blue tint + left accent bar */
+.pl-item.trimming {
+  background: rgba(74, 148, 255, 0.22);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 rgb(74, 148, 255);
 }
 
 .pl-mark {

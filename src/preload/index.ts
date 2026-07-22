@@ -42,6 +42,7 @@ export interface Settings {
   rememberVolume: boolean
   checkForUpdates: boolean // silently check GitHub for a newer release at launch
   experimentalTimeline: boolean // "watch as one" (EDL merge) — gates the playlist toggle
+  pinOscInTrim: boolean // keep the controls (in/out handles) visible while trimming
   volume: number
   windowBounds: { x: number; y: number; width: number; height: number } | null
 }
@@ -108,6 +109,14 @@ export interface Playlist {
   sourceType: SourceType
   merge: boolean // "watch as one": the queue plays as a single stitched timeline
   canMerge: boolean // queue is mergeable (local files, ≥2) → show the toggle
+  trimClip: number // clip isolated for in/out trimming (−1 = full timeline)
+}
+
+/** Current Timeline trim edit → the OSC's in/out handles. clip = −1 when not trimming. */
+export interface TrimState {
+  clip: number
+  in: number
+  out: number
 }
 
 // Per-track audio metadata from MediaInfo, keyed by stream index (mpv ff-index).
@@ -208,6 +217,11 @@ const api = {
   playPrev: (): void => ipcRenderer.send('playlist:prev'),
   toggleShuffle: (): void => ipcRenderer.send('playlist:toggle-shuffle'),
   toggleMerge: (): void => ipcRenderer.send('playlist:toggle-merge'), // "watch as one"
+  // Timeline per-clip trim: double-click a clip to isolate/commit, drag the OSC handles
+  trimClip: (i: number): void => ipcRenderer.send('timeline:trim-clip', i),
+  setTrim: (which: 'in' | 'out', t: number): void => ipcRenderer.send('timeline:set-trim', which, t),
+  resetTrim: (): void => ipcRenderer.send('timeline:reset-trim'),
+  onTrim: (cb: (s: TrimState) => void): Unsubscribe => subscribe('timeline:trim', (s: TrimState) => cb(s)),
   removeFromPlaylist: (i: number): void => ipcRenderer.send('playlist:remove', i),
   movePlaylistItems: (indices: number[], to: number): void => ipcRenderer.send('playlist:move', indices, to),
   removePlaylistItems: (indices: number[]): void => ipcRenderer.send('playlist:remove-multi', indices),

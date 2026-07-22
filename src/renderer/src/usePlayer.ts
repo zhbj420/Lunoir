@@ -62,6 +62,9 @@ export interface PlayerState {
   abLoopB: number | null // A-B loop end (seconds)
   merge: boolean // "watch as one" active → draw clip-boundary ticks on the seek bar
   chapters: number[] // chapter start times (s); in merge mode these are the clip boundaries
+  trimClip: number // clip being trimmed (−1 = not trimming) → OSC shows in/out handles
+  trimIn: number // in point (seconds) of the isolated clip
+  trimOut: number // out point (seconds)
 }
 
 const initial: PlayerState = {
@@ -91,7 +94,10 @@ const initial: PlayerState = {
   abLoopA: null,
   abLoopB: null,
   merge: false,
-  chapters: []
+  chapters: [],
+  trimClip: -1,
+  trimIn: 0,
+  trimOut: 0
 }
 
 export function usePlayer() {
@@ -224,6 +230,11 @@ export function usePlayer() {
   // draw clip-boundary ticks (and only then — a normal file's own chapters don't).
   useEffect(
     () => window.mmp.onPlaylistChanged(p => setState(s => (s.merge === p.merge ? s : { ...s, merge: p.merge }))),
+    []
+  )
+  // Timeline trim edit → OSC in/out handles
+  useEffect(
+    () => window.mmp.onTrim(s => setState(st => ({ ...st, trimClip: s.clip, trimIn: s.in, trimOut: s.out }))),
     []
   )
 

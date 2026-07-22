@@ -282,4 +282,8 @@ export const fr: Partial<Record<Key, string>> = {
   'set.timeline.label': 'Chronologie',
   'set.timeline.desc':
     'Assemble les fichiers locaux de la liste de lecture en une seule vidéo continue avec une chronologie et une barre de progression uniques — pour regarder un dossier de clips d’un bout à l’autre.\nLa lecture peut brièvement saccader à la jonction de clips de formats différents. Une fois activé, un bouton apparaît dans le panneau de liste de lecture.',
+  'timeline.resetRange': 'Réinitialiser la plage',
+  // ---- trim ----
+  'set.pinOscTrim.label': 'Garder les commandes visibles pendant le rognage',
+  'set.pinOscTrim.desc': 'Lors de la définition des points d’entrée/sortie d’un extrait, ne masque pas automatiquement les commandes à l’écran, pour que les poignées restent accessibles.',
 }

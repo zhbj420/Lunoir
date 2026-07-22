@@ -282,4 +282,8 @@ export const pt: Partial<Record<Key, string>> = {
   'set.timeline.label': 'Linha do tempo',
   'set.timeline.desc':
     'Junta os ficheiros locais da lista de reprodução num único vídeo contínuo com uma só linha do tempo e barra de procura — para ver uma pasta de clipes de ponta a ponta.\nA reprodução pode engasgar por instantes onde se encontram clipes de formatos diferentes. Quando ativado, aparece um interruptor no painel de lista.',
+  'timeline.resetRange': 'Repor intervalo',
+  // ---- trim ----
+  'set.pinOscTrim.label': 'Manter os controlos visíveis ao recortar',
+  'set.pinOscTrim.desc': 'Ao definir os pontos de entrada/saída de um clipe, não ocultar automaticamente os controlos no ecrã, para que as pegas permaneçam acessíveis.',
 }

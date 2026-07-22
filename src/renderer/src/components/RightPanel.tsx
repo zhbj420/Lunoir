@@ -12,6 +12,7 @@ interface Playlist {
   sourceType: SourceType
   merge: boolean
   canMerge: boolean
+  trimClip: number
 }
 interface Chapter {
   title?: string
@@ -365,7 +366,7 @@ const Chevron = () => (
 export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useT()
   const [tab, setTab] = useState<Tab>('tracks') // Audio & Sub is the default tab
-  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false, sourceType: 'queue', merge: false, canMerge: false })
+  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false, sourceType: 'queue', merge: false, canMerge: false, trimClip: -1 })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [curChapter, setCurChapter] = useState(-1)
   const [tracks, setTracks] = useState<Track[]>([])
@@ -668,13 +669,15 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       <div
         key={i}
         className={`pl-item ${i === pl.index ? 'active' : ''}${!isIptv && selected.has(i) ? ' selected' : ''}${
-          i === dragIndex ? ' dragging' : ''
-        }${dragIndex !== null && dropIndex === i ? ' drop-before' : ''}${
+          pl.merge && pl.trimClip === i ? ' trimming' : ''
+        }${i === dragIndex ? ' dragging' : ''}${dragIndex !== null && dropIndex === i ? ' drop-before' : ''}${
           dragIndex !== null && dropIndex === pl.items.length && i === pl.items.length - 1 ? ' drop-after' : ''
         }`}
         title={it.name}
         onClick={isIptv ? () => window.mmp.playIndex(i) : e => rowSelect(i, e)}
-        onDoubleClick={isIptv ? undefined : () => window.mmp.playIndex(i)}
+        onDoubleClick={
+          isIptv ? undefined : () => (pl.merge ? window.mmp.trimClip(i) : window.mmp.playIndex(i))
+        }
         {...dnd}
       >
         <span className="pl-mark">

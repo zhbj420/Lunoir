@@ -283,4 +283,8 @@ export const ko: Partial<Record<Key, string>> = {
   'set.timeline.label': '타임라인',
   'set.timeline.desc':
     '재생목록의 로컬 파일을 하나의 타임라인과 탐색 막대를 가진 연속된 단일 영상으로 이어 붙입니다 — 클립이 담긴 폴더를 처음부터 끝까지 이어서 볼 때 유용합니다.\n형식이 다른 클립이 만나는 지점에서 재생이 잠깐 끊길 수 있습니다. 켜면 재생목록 패널에 토글이 나타납니다.',
+  'timeline.resetRange': '범위 초기화',
+  // ---- trim ----
+  'set.pinOscTrim.label': '자르는 동안 컨트롤 표시 유지',
+  'set.pinOscTrim.desc': '클립의 시작/끝 지점을 설정하는 동안 화면 컨트롤을 자동으로 숨기지 않아 핸들에 계속 접근할 수 있게 합니다.',
 }

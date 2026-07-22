@@ -163,6 +163,9 @@ export const en = {
   'set.timeline.label': 'Timeline',
   'set.timeline.desc':
     'Stitch the local files in the playlist into one continuous video with a single timeline and seek bar — for watching a folder of clips end to end.\nPlayback may briefly stutter where clips of different formats meet. When on, a toggle appears in the playlist panel.',
+  'set.pinOscTrim.label': 'Keep controls visible while trimming',
+  'set.pinOscTrim.desc':
+    'While setting a clip’s in/out points, don’t auto-hide the on-screen controls, so the handles stay reachable.',
 
   // ---- updates (Home button + About section) ----
   'update.newVersion': 'New version available',
@@ -219,6 +222,7 @@ export const en = {
 
   // ---- "watch as one" (merged timeline) ----
   'timeline.title': 'Timeline',
+  'timeline.resetRange': 'Reset range',
 
   // ---- right panel: chapters ----
   'panel.empty.chapters': 'No chapters',

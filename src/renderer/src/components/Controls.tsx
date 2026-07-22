@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { PlayerState, TimeFormat, currentFrame as frameOf } from '../usePlayer'
 import { useT } from '../useT'
 
@@ -112,6 +112,63 @@ export default function Controls(props: Props) {
   // A-B loop markers on the seek bar (positions as % of duration)
   const dur = state.duration || 0
   const abPct = (t: number): number => (dur > 0 ? Math.max(0, Math.min(100, (t / dur) * 100)) : 0)
+
+  // Timeline trim: two blue in/out handles on the isolated clip's seek bar. Dragging
+  // one sends the point to main, which seeks the preview live and echoes it back.
+  const trimming = state.trimClip >= 0
+  const seekRef = useRef<HTMLDivElement>(null)
+  // While a handle is dragged we scrub the video to preview that frame, but the white
+  // playhead stays anchored where it was; on release the video returns there. So the
+  // handle is a "preview" and playback always resumes from the playhead.
+  const [trimAnchor, setTrimAnchor] = useState<number | null>(null)
+  // the logical playhead during a trim: the frozen anchor while previewing, else live.
+  // Everything (seek fill/value, time readout, drag anchor) reads this so the white bar
+  // and time text don't lurch around as the preview seeks the video to a handle.
+  const headPos = trimAnchor != null ? trimAnchor : Math.min(state.timePos, dur)
+  const dragTrim = (which: 'in' | 'out') => (e: ReactPointerEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const wrap = seekRef.current
+    if (!wrap || dur <= 0) return
+    const anchor = headPos // keep the same logical playhead even if the video is parked on a handle
+    const startX = e.clientX
+    let moved = false
+    const apply = (clientX: number): void => {
+      const r = wrap.getBoundingClientRect()
+      const frac = Math.max(0, Math.min(1, (clientX - r.left) / r.width))
+      window.mmp.setTrim(which, frac * dur)
+    }
+    const move = (ev: PointerEvent): void => {
+      if (!moved) {
+        if (Math.abs(ev.clientX - startX) < 3) return // wait for a real drag so click / double-click still work
+        moved = true
+        setTrimAnchor(anchor) // freeze the white bar once dragging actually begins
+      }
+      apply(ev.clientX)
+    }
+    const up = (): void => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      // a real drag leaves the video parked on the handle frame (anchor kept); a plain
+      // click does nothing — double-click (below) jumps the playhead to the handle
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+  // The video parks on the handle frame after a trim; when playback resumes, jump
+  // back to the anchored playhead (the white bar).
+  const prevPause = useRef(state.pause)
+  useEffect(() => {
+    if (prevPause.current && !state.pause && trimAnchor != null) {
+      props.onSeek(trimAnchor)
+      setTrimAnchor(null)
+    }
+    prevPause.current = state.pause
+  }, [state.pause, trimAnchor])
+  // leaving trim mode drops any leftover anchor
+  useEffect(() => {
+    if (state.trimClip < 0 && trimAnchor != null) setTrimAnchor(null)
+  }, [state.trimClip, trimAnchor])
 
   // reflect whether the right panel is open, so the list button reads "pressed"
   const [panelOpen, setPanelOpen] = useState(false)
@@ -267,18 +324,21 @@ export default function Controls(props: Props) {
                 ? tcFromFrame(frameOf(state), state.fps)
                 : props.timeFormat === 'frame'
                   ? String(frameOf(state))
-                  : fmt(state.timePos)}
+                  : fmt(headPos)}
             </span>
-            <div className="seek-wrap">
+            <div className="seek-wrap" ref={seekRef}>
               <input
                 className="rng seek"
                 type="range"
                 min={0}
                 max={state.duration || 0}
                 step={0.1}
-                value={Math.min(state.timePos, state.duration || 0)}
-                style={{ ['--fill' as any]: `${pct}%` }}
-                onChange={e => props.onSeek(Number(e.target.value))}
+                value={headPos}
+                style={{ ['--fill' as any]: `${abPct(headPos)}%` }}
+                onChange={e => {
+                  if (trimAnchor != null) setTrimAnchor(null) // manual scrub takes over from the trim anchor
+                  props.onSeek(Number(e.target.value))
+                }}
               />
               {/* clip boundaries when merged ("watch as one"); skip the first (t=0) */}
               {state.merge &&
@@ -293,6 +353,32 @@ export default function Controls(props: Props) {
               )}
               {state.abLoopA != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopA)}%` }} />}
               {state.abLoopB != null && <span className="ab-mark" style={{ left: `${abPct(state.abLoopB)}%` }} />}
+              {trimming && (
+                <>
+                  <span
+                    className="trim-range"
+                    style={{ left: `${abPct(state.trimIn)}%`, width: `${abPct(state.trimOut) - abPct(state.trimIn)}%` }}
+                  />
+                  <span
+                    className="trim-handle"
+                    style={{ left: `${abPct(state.trimIn)}%` }}
+                    onPointerDown={dragTrim('in')}
+                    onDoubleClick={() => {
+                      setTrimAnchor(null) // real playhead jump, not a preview
+                      props.onSeek(state.trimIn)
+                    }}
+                  />
+                  <span
+                    className="trim-handle"
+                    style={{ left: `${abPct(state.trimOut)}%` }}
+                    onPointerDown={dragTrim('out')}
+                    onDoubleClick={() => {
+                      setTrimAnchor(null)
+                      props.onSeek(state.trimOut)
+                    }}
+                  />
+                </>
+              )}
             </div>
             {Math.abs(state.speed - 1) > 0.01 && (
               <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
@@ -308,6 +394,18 @@ export default function Controls(props: Props) {
                   ? String(state.frameCount || Math.floor(state.duration * state.fps) || 0)
                   : fmt(state.duration)}
             </span>
+            {trimming && (
+              <button
+                className="trim-reset"
+                title={t('timeline.resetRange')}
+                onClick={() => window.mmp.resetTrim()}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+              </button>
+            )}
           </>
         )}
       </div>

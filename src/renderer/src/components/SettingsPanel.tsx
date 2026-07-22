@@ -52,6 +52,7 @@ interface Settings {
   rememberVolume: boolean
   checkForUpdates: boolean
   experimentalTimeline: boolean
+  pinOscInTrim: boolean
   volume: number
   windowBounds: { x: number; y: number; width: number; height: number } | null
 }
@@ -692,6 +693,11 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label={t('set.timeline.label')} desc={multiline(t('set.timeline.desc'))}>
             <Toggle on={s.experimentalTimeline} onChange={v => set('experimentalTimeline', v)} />
           </Row>
+          {s.experimentalTimeline && (
+            <Row label={t('set.pinOscTrim.label')} desc={t('set.pinOscTrim.desc')}>
+              <Toggle on={s.pinOscInTrim} onChange={v => set('pinOscInTrim', v)} />
+            </Row>
+          )}
 
           <div className="set-sec">{t('set.sec.about')}</div>
           <Row label={t('set.update.label')} desc={updateStatus}>

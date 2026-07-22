@@ -176,6 +176,14 @@ let shuffleHistory: number[] = []
 // instead of reloading, and the seek bar spans the whole set. Reset on a new open.
 let mergeOn = false
 let pendingMergeSeek = -1 // clip to seek to once the timeline's chapters are known
+// Phase 2 — per-clip in/out trim. Session-only, keyed by PATH so a trim travels with
+// its clip through reorder. `trimClip` = the clip currently isolated for trimming
+// (−1 = the normal full timeline); cur* track the isolated clip's edit + duration.
+const trims = new Map<string, { in: number; out: number }>()
+let trimClip = -1
+let curIn = 0
+let curOut = -1 // −1 until the isolated clip's duration resolves it
+let curDur = 0
 const isUrl = (p: string) => /^[a-z][a-z0-9+.-]*:\/\//i.test(p)
 
 // ---- yt-dlp (on-demand) ----
@@ -452,7 +460,8 @@ function playlistPayload() {
     shuffle: shuffleOn,
     sourceType,
     merge: mergeOn, // "watch as one" is active
-    canMerge: canMerge() // queue is mergeable (local, ≥2) → show the toggle
+    canMerge: canMerge(), // queue is mergeable (local, ≥2) → show the toggle
+    trimClip // which clip is isolated for trimming (−1 = full timeline)
   }
 }
 
@@ -585,6 +594,8 @@ function recordOpen(target: string): void {
   curRecentPending = false
   mergeOn = false // a fresh open leaves "watch as one" off; user re-enables per queue
   pendingMergeSeek = -1
+  trims.clear() // trims are per-session-per-queue
+  trimClip = -1
   sourceType = 'queue' // loadChannelList / loadPlaylistUrl override for iptv / yt-playlist
   broadcast('library:current-fav', isFavourite(target)) // right-click 收藏 reflects it
   // What enters "recently played":
@@ -947,7 +958,9 @@ function writeTimelineEdl(): string {
   const lines = ['# mpv EDL v0']
   for (const p of playlist) {
     const fwd = p.replace(/\\/g, '/')
-    lines.push(`%${Buffer.byteLength(fwd, 'utf8')}%${fwd}`)
+    const prefix = `%${Buffer.byteLength(fwd, 'utf8')}%${fwd}`
+    const t = trims.get(p) // a trimmed clip contributes only its in→out span (start,length)
+    lines.push(t && t.out > t.in ? `${prefix},${t.in},${t.out - t.in}` : prefix)
   }
   const edl = join(app.getPath('temp'), 'lunoir-timeline.edl')
   writeFileSync(edl, lines.join('\n') + '\n')
@@ -982,10 +995,83 @@ function toggleMerge(): void {
     loadTimeline(plIndex < 0 ? 0 : plIndex)
   } else {
     mergeOn = false
+    trimClip = -1
     if (plIndex < 0) plIndex = 0 // plIndex tracks the current chapter while merged
     playCurrent() // resume that clip (from its start — Phase 1)
   }
   broadcast('playlist:changed', playlistPayload())
+}
+
+// ---- Phase 2: per-clip in/out trim within the Timeline ----
+
+/** Tell the OSC the current trim edit (clip being trimmed + in/out) so it shows or
+ *  hides the blue handles. clip = −1 → not trimming. */
+function broadcastTrim(): void {
+  broadcast('timeline:trim', { clip: trimClip, in: curIn, out: curOut < 0 ? curDur : curOut })
+}
+
+/** Persist the isolated clip's range into `trims` (keyed by path), or clear it if the
+ *  range is essentially the whole clip. */
+function storeTrim(): void {
+  if (trimClip < 0 || trimClip >= playlist.length) return
+  const p = playlist[trimClip]
+  const out = curOut < 0 ? curDur : curOut
+  if (curIn <= 0.05 && (curDur === 0 || out >= curDur - 0.05)) trims.delete(p)
+  else trims.set(p, { in: Math.max(0, curIn), out })
+}
+
+/** Isolate clip `i` and enter trim mode: play just that clip, paused, so its in/out
+ *  can be set frame by frame. */
+function enterTrim(i: number): void {
+  if (!mpv || i < 0 || i >= playlist.length) return
+  storeTrim() // persist whatever clip we were editing
+  trimClip = i
+  const t = trims.get(playlist[i])
+  curIn = t?.in ?? 0
+  curOut = t?.out ?? -1 // resolved to the clip's duration once it loads
+  curDur = 0
+  mpv.loadFile(playlist[i])
+  mpv.setProperty('pause', true) // paused → frame-accurate handle scrubbing
+  broadcastTrim()
+  broadcast('playlist:changed', playlistPayload())
+  revealUi() // bring the controls up so the in/out handles are visible right away
+}
+
+/** Commit the current trim and return to the full stitched timeline (reflecting it). */
+function exitTrim(): void {
+  if (trimClip < 0) return
+  storeTrim()
+  const clip = trimClip
+  trimClip = -1
+  broadcastTrim() // clip = −1 → the OSC hides the handles
+  loadTimeline(clip) // rebuild the EDL with the trim, land back on that clip
+}
+
+/** Double-click a clip in Timeline mode: the isolated clip → commit (exit); another
+ *  clip → switch to trimming it (committing the current one first). */
+function toggleTrim(i: number): void {
+  if (!mergeOn) return
+  if (trimClip === i) exitTrim()
+  else enterTrim(i)
+}
+
+/** Drag an in/out handle: set that point (seconds) and scrub the preview to it. */
+function setTrim(which: 'in' | 'out', t: number): void {
+  if (trimClip < 0 || !mpv) return
+  const dur = curDur || t
+  const v = Math.max(0, Math.min(dur, t))
+  if (which === 'in') curIn = Math.min(v, (curOut < 0 ? dur : curOut) - 0.1)
+  else curOut = Math.max(v, curIn + 0.1)
+  mpv.command(['seek', which === 'in' ? curIn : curOut, 'absolute']).catch(() => {})
+  broadcastTrim()
+}
+
+/** Reset the isolated clip's range to the full clip. */
+function resetTrim(): void {
+  if (trimClip < 0) return
+  curIn = 0
+  curOut = curDur
+  broadcastTrim()
 }
 
 /** Drag-reorder: move the given queue items (a single row or a whole multi-selection)
@@ -1633,6 +1719,7 @@ function revealUi(): void {
   const delayMs = Math.max(1, getSettings().oscHideDelay) * 1000
   hideTimer = setTimeout(() => {
     if (oscHovered) return // pointer is over the OSC — keep it up (no flicker)
+    if (trimClip >= 0 && getSettings().pinOscInTrim) return // keep the in/out handles reachable while trimming
     broadcast('ui:hide')
     animateOsc(false) // slide down + fade out
   }, delayMs)
@@ -2275,7 +2362,7 @@ function startMpv(): void {
     }
     // "watch as one": once the stitched timeline reports its chapters (one per clip),
     // seek to the clip we were on when merge was toggled.
-    if (name === 'chapter-list' && mergeOn && pendingMergeSeek >= 0) {
+    if (name === 'chapter-list' && mergeOn && trimClip < 0 && pendingMergeSeek >= 0) {
       const count = Array.isArray(data) ? data.length : 0
       if (pendingMergeSeek < count) {
         mpv?.setProperty('chapter', pendingMergeSeek)
@@ -2284,9 +2371,15 @@ function startMpv(): void {
     }
     // while merged, mpv's current chapter IS the current clip → track it so the panel
     // highlights the right row as playback crosses clip boundaries.
-    if (name === 'chapter' && mergeOn && typeof data === 'number' && data >= 0 && data !== plIndex) {
+    if (name === 'chapter' && mergeOn && trimClip < 0 && typeof data === 'number' && data >= 0 && data !== plIndex) {
       plIndex = data
       broadcast('playlist:changed', playlistPayload())
+    }
+    // while trimming an isolated clip, its duration bounds the in/out handles
+    if (name === 'duration' && trimClip >= 0 && typeof data === 'number' && data > 0) {
+      curDur = data
+      if (curOut < 0 || curOut > data) curOut = data
+      broadcastTrim()
     }
     // give URL playlist items a real name once mpv resolves the media title — but
     // NOT for IPTV: there the m3u's channel name is authoritative, and the stream's
@@ -2514,6 +2607,9 @@ function registerIpc(): void {
   ipcMain.on('playlist:prev', () => playPrev())
   ipcMain.on('playlist:toggle-shuffle', () => toggleShuffle())
   ipcMain.on('playlist:toggle-merge', () => toggleMerge())
+  ipcMain.on('timeline:trim-clip', (_e, i: number) => toggleTrim(i)) // double-click a clip
+  ipcMain.on('timeline:set-trim', (_e, which: 'in' | 'out', t: number) => setTrim(which, t))
+  ipcMain.on('timeline:reset-trim', () => resetTrim())
   ipcMain.on('playlist:remove', (_e, i: number) => removeFromPlaylist(i))
   ipcMain.on('playlist:move', (_e, indices: number[], to: number) => movePlaylistItems(indices, to))
   ipcMain.on('playlist:remove-multi', (_e, indices: number[]) => removePlaylistItems(indices))
