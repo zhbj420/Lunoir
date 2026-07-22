@@ -274,4 +274,13 @@ export const ko: Partial<Record<Key, string>> = {
   'update.found': '새 버전 {version} 사용 가능',
   'update.checkFailed': '확인할 수 없습니다 — 나중에 다시 시도하세요',
   'update.download': '다운로드',
+  // ---- timeline ----
+  'panel.merge.on': '타임라인: 켜짐',
+  'panel.merge.off': '타임라인: 꺼짐',
+  'timeline.title': '타임라인',
+  // ---- experimental ----
+  'set.sec.experimental': '실험적 기능',
+  'set.timeline.label': '타임라인',
+  'set.timeline.desc':
+    '재생목록의 로컬 파일을 하나의 타임라인과 탐색 막대를 가진 연속된 단일 영상으로 이어 붙입니다 — 클립이 담긴 폴더를 처음부터 끝까지 이어서 볼 때 유용합니다.\n형식이 다른 클립이 만나는 지점에서 재생이 잠깐 끊길 수 있습니다. 켜면 재생목록 패널에 토글이 나타납니다.',
 }

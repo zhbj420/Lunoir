@@ -41,6 +41,7 @@ export interface Settings {
   rememberWindow: boolean
   rememberVolume: boolean
   checkForUpdates: boolean // silently check GitHub for a newer release at launch
+  experimentalTimeline: boolean // "watch as one" (EDL merge) — gates the playlist toggle
   volume: number
   windowBounds: { x: number; y: number; width: number; height: number } | null
 }
@@ -105,6 +106,8 @@ export interface Playlist {
   repeat: RepeatMode
   shuffle: boolean
   sourceType: SourceType
+  merge: boolean // "watch as one": the queue plays as a single stitched timeline
+  canMerge: boolean // queue is mergeable (local files, ≥2) → show the toggle
 }
 
 // Per-track audio metadata from MediaInfo, keyed by stream index (mpv ff-index).
@@ -204,6 +207,7 @@ const api = {
   playNext: (): void => ipcRenderer.send('playlist:next'),
   playPrev: (): void => ipcRenderer.send('playlist:prev'),
   toggleShuffle: (): void => ipcRenderer.send('playlist:toggle-shuffle'),
+  toggleMerge: (): void => ipcRenderer.send('playlist:toggle-merge'), // "watch as one"
   removeFromPlaylist: (i: number): void => ipcRenderer.send('playlist:remove', i),
   addToPlaylist: (): void => ipcRenderer.send('playlist:add'),
   cycleRepeat: (): void => ipcRenderer.send('playlist:repeat-cycle'),

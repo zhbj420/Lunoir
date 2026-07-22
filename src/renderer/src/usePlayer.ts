@@ -60,6 +60,8 @@ export interface PlayerState {
   audioCommercial: string // active track's MediaInfo commercial name (Atmos / DTS:X …)
   abLoopA: number | null // A-B loop start (seconds) → OSC seek marker, null = unset
   abLoopB: number | null // A-B loop end (seconds)
+  merge: boolean // "watch as one" active → draw clip-boundary ticks on the seek bar
+  chapters: number[] // chapter start times (s); in merge mode these are the clip boundaries
 }
 
 const initial: PlayerState = {
@@ -87,7 +89,9 @@ const initial: PlayerState = {
   audioChannels: 0,
   audioCommercial: '',
   abLoopA: null,
-  abLoopB: null
+  abLoopB: null,
+  merge: false,
+  chapters: []
 }
 
 export function usePlayer() {
@@ -202,12 +206,26 @@ export function usePlayer() {
             return { ...s, abLoopA: typeof data === 'number' && isFinite(data) ? data : null }
           case 'ab-loop-b':
             return { ...s, abLoopB: typeof data === 'number' && isFinite(data) ? data : null }
+          case 'chapter-list': {
+            // in merge mode each chapter is a clip → its start time is a boundary tick
+            const times = Array.isArray(data)
+              ? (data as { time?: number }[]).map(c => c.time).filter((t): t is number => typeof t === 'number')
+              : []
+            return { ...s, chapters: times }
+          }
           default:
             return s
         }
       })
     })
   }, [])
+
+  // "watch as one": follow the merge flag from the playlist payload so the OSC can
+  // draw clip-boundary ticks (and only then — a normal file's own chapters don't).
+  useEffect(
+    () => window.mmp.onPlaylistChanged(p => setState(s => (s.merge === p.merge ? s : { ...s, merge: p.merge }))),
+    []
+  )
 
   // don't leave a deferred unpause pending after teardown
   useEffect(

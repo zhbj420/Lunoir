@@ -280,6 +280,11 @@ export default function Controls(props: Props) {
                 style={{ ['--fill' as any]: `${pct}%` }}
                 onChange={e => props.onSeek(Number(e.target.value))}
               />
+              {/* clip boundaries when merged ("watch as one"); skip the first (t=0) */}
+              {state.merge &&
+                state.chapters.slice(1).map((t, i) => (
+                  <span key={i} className="clip-mark" style={{ left: `${abPct(t)}%` }} />
+                ))}
               {state.abLoopA != null && state.abLoopB != null && (
                 <span
                   className="ab-region"

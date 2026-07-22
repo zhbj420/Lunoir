@@ -51,6 +51,7 @@ interface Settings {
   rememberWindow: boolean
   rememberVolume: boolean
   checkForUpdates: boolean
+  experimentalTimeline: boolean
   volume: number
   windowBounds: { x: number; y: number; width: number; height: number } | null
 }
@@ -685,6 +686,11 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           </Row>
           <Row label={t('set.rememberVolume.label')}>
             <Toggle on={s.rememberVolume} onChange={v => set('rememberVolume', v)} />
+          </Row>
+
+          <div className="set-sec">{t('set.sec.experimental')}</div>
+          <Row label={t('set.timeline.label')} desc={multiline(t('set.timeline.desc'))}>
+            <Toggle on={s.experimentalTimeline} onChange={v => set('experimentalTimeline', v)} />
           </Row>
 
           <div className="set-sec">{t('set.sec.about')}</div>

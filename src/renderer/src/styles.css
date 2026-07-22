@@ -660,6 +660,20 @@ body.fullscreen .titlebar {
   pointer-events: none;
 }
 
+/* clip boundaries on the seek bar in "watch as one" mode — neutral dividers, quieter
+   and shorter than the amber A-B ticks so they read as structure, not a set point */
+.clip-mark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 9px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 1px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
 .t {
   font-size: 15px;
   font-weight: 600;

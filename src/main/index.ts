@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, screen, shell } from 'electron'
 import { join, dirname, basename, extname, resolve } from 'node:path'
-import { existsSync, readdirSync, readFileSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, statSync, renameSync, createWriteStream } from 'node:fs'
 import { spawn, ChildProcess } from 'node:child_process'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
@@ -171,6 +171,11 @@ let pendingResumeToast = '' // show the "Resumed from …" toast only once playb
 let shuffleOn = false
 let shuffleBag: number[] = []
 let shuffleHistory: number[] = []
+// "watch as one" (连起来看): the local queue plays as a single mpv EDL timeline.
+// While on, each clip is an mpv chapter — navigation seeks within the one file
+// instead of reloading, and the seek bar spans the whole set. Reset on a new open.
+let mergeOn = false
+let pendingMergeSeek = -1 // clip to seek to once the timeline's chapters are known
 const isUrl = (p: string) => /^[a-z][a-z0-9+.-]*:\/\//i.test(p)
 
 // ---- yt-dlp (on-demand) ----
@@ -445,7 +450,9 @@ function playlistPayload() {
     index: plIndex,
     repeat: repeatMode,
     shuffle: shuffleOn,
-    sourceType
+    sourceType,
+    merge: mergeOn, // "watch as one" is active
+    canMerge: canMerge() // queue is mergeable (local, ≥2) → show the toggle
   }
 }
 
@@ -576,6 +583,8 @@ function recordOpen(target: string): void {
   curOpen = { target, kind }
   curOpenChannels = null // set by loadChannelList if this open turns out to be a list
   curRecentPending = false
+  mergeOn = false // a fresh open leaves "watch as one" off; user re-enables per queue
+  pendingMergeSeek = -1
   sourceType = 'queue' // loadChannelList / loadPlaylistUrl override for iptv / yt-playlist
   broadcast('library:current-fav', isFavourite(target)) // right-click 收藏 reflects it
   // What enters "recently played":
@@ -839,6 +848,15 @@ function playCurrent(): void {
 function playIndex(i: number): void {
   if (i < 0 || i >= playlist.length) return
   plIndex = i
+  if (mergeOn) {
+    // one stitched timeline: jump to the clip's chapter instead of reloading.
+    // Covers next/prev (they call playIndex) and clicking a clip; unpause in case
+    // we were parked at the timeline's end.
+    mpv?.setProperty('chapter', i)
+    mpv?.setProperty('pause', false)
+    broadcast('playlist:changed', playlistPayload())
+    return
+  }
   // forward navigation (click / next): keep the shuffle bag + history in step
   if (shuffleOn) {
     shuffleBag = shuffleBag.filter(x => x !== i)
@@ -871,6 +889,11 @@ function playPrev(): void {
 
 /** What to do when the current item ends (driven by mpv's eof-reached). */
 function onEnded(): void {
+  if (mergeOn) {
+    // the whole stitched timeline reached its end
+    if (repeatMode === 'all') playIndex(0) // loop the timeline; otherwise stop
+    return
+  }
   if (repeatMode === 'one') {
     playCurrent() // replay the same file
     return
@@ -893,12 +916,74 @@ function resyncShuffle(): void {
 
 /** Toggle shuffle mode (list order stays; auto-advance / next goes random). */
 function toggleShuffle(): void {
+  if (mergeOn) return // a stitched timeline has no shuffle (see toggleMerge)
   shuffleOn = !shuffleOn
   if (shuffleOn) {
     resyncShuffle() // seed bag + history from the current list/position
   } else {
     shuffleBag = []
     shuffleHistory = []
+  }
+  broadcast('playlist:changed', playlistPayload())
+}
+
+// ---- "watch as one" (连起来看): the queue as a single mpv EDL timeline ----
+
+/** Can the current queue play as one timeline? Gated by the experimental setting;
+ *  local files only, at least two. */
+function canMerge(): boolean {
+  return (
+    getSettings().experimentalTimeline &&
+    sourceType === 'queue' &&
+    playlist.length >= 2 &&
+    playlist.every(p => !isUrl(p) && !isDiscUri(p))
+  )
+}
+
+/** Write an mpv EDL of the current queue → its temp path. Length-prefixed paths
+ *  (%<bytes>%<path>) make any filename (commas, spaces) safe; omitting per-clip
+ *  length lets mpv probe true durations and expose one chapter per clip. */
+function writeTimelineEdl(): string {
+  const lines = ['# mpv EDL v0']
+  for (const p of playlist) {
+    const fwd = p.replace(/\\/g, '/')
+    lines.push(`%${Buffer.byteLength(fwd, 'utf8')}%${fwd}`)
+  }
+  const edl = join(app.getPath('temp'), 'lunoir-timeline.edl')
+  writeFileSync(edl, lines.join('\n') + '\n')
+  return edl
+}
+
+/** A title for the merged timeline: the clips' shared folder name, else generic. */
+function timelineTitle(): string {
+  return basename(dirname(playlist[0] || '')) || tr('timeline.title')
+}
+
+/** Load the queue as one continuous EDL timeline, beginning on `startClip` (seek
+ *  applied once mpv reports the timeline's chapters — see the chapter-list handler). */
+function loadTimeline(startClip: number): void {
+  if (!mpv) return
+  pendingMergeSeek = startClip > 0 ? startClip : -1
+  broadcast('playlist:changed', playlistPayload())
+  mpv.loadFile(writeTimelineEdl())
+  mpv.setProperty('force-media-title', timelineTitle())
+  mpv.setProperty('pause', false)
+}
+
+/** Toggle "watch as one". On: play the queue as one EDL (drops shuffle, which makes
+ *  no sense across a stitched timeline). Off: resume the clip the playhead is in. */
+function toggleMerge(): void {
+  if (!mergeOn) {
+    if (!canMerge()) return
+    mergeOn = true
+    shuffleOn = false
+    shuffleBag = []
+    shuffleHistory = []
+    loadTimeline(plIndex < 0 ? 0 : plIndex)
+  } else {
+    mergeOn = false
+    if (plIndex < 0) plIndex = 0 // plIndex tracks the current chapter while merged
+    playCurrent() // resume that clip (from its start — Phase 1)
   }
   broadcast('playlist:changed', playlistPayload())
 }
@@ -1023,8 +1108,9 @@ function parseMediaInfo(json: string): { audio: Record<number, ProbeStream>; hdr
 
 /** Probe a freshly-loaded file and broadcast per-track audio metadata. */
 function runProbe(file: string): void {
-  // only probe real local files — skip URLs, av://lavfi, bd://, dvd://, etc.
-  if (!file || isUrl(file) || !existsSync(file)) return
+  // only probe real local files — skip URLs, av://lavfi, bd://, dvd://, and our own
+  // .edl timeline (a text file — MediaInfo on it is meaningless).
+  if (!file || isUrl(file) || /\.edl$/i.test(file) || !existsSync(file)) return
   const miPath = resolveMediaInfoPath()
   if (!miPath) return
   if (miProc) {
@@ -2137,6 +2223,21 @@ function startMpv(): void {
       stopRecording(true) // a new file means the old recording is done — end it quietly
       runProbe(data)
     }
+    // "watch as one": once the stitched timeline reports its chapters (one per clip),
+    // seek to the clip we were on when merge was toggled.
+    if (name === 'chapter-list' && mergeOn && pendingMergeSeek >= 0) {
+      const count = Array.isArray(data) ? data.length : 0
+      if (pendingMergeSeek < count) {
+        mpv?.setProperty('chapter', pendingMergeSeek)
+        pendingMergeSeek = -1
+      }
+    }
+    // while merged, mpv's current chapter IS the current clip → track it so the panel
+    // highlights the right row as playback crosses clip boundaries.
+    if (name === 'chapter' && mergeOn && typeof data === 'number' && data >= 0 && data !== plIndex) {
+      plIndex = data
+      broadcast('playlist:changed', playlistPayload())
+    }
     // give URL playlist items a real name once mpv resolves the media title — but
     // NOT for IPTV: there the m3u's channel name is authoritative, and the stream's
     // own title (often the raw URL) must never overwrite it.
@@ -2362,6 +2463,7 @@ function registerIpc(): void {
   ipcMain.on('playlist:next', () => playNext())
   ipcMain.on('playlist:prev', () => playPrev())
   ipcMain.on('playlist:toggle-shuffle', () => toggleShuffle())
+  ipcMain.on('playlist:toggle-merge', () => toggleMerge())
   ipcMain.on('playlist:remove', (_e, i: number) => removeFromPlaylist(i))
   ipcMain.on('playlist:repeat-cycle', () => cycleRepeat())
   ipcMain.on('sub:add', async () => {
@@ -2527,6 +2629,12 @@ function registerIpc(): void {
     // rebuild the native menu in the new language (its labels are resolved once at
     // build time, unlike toasts/dialogs which translate at call time)
     if (key === 'uiLanguage') buildMenu()
+    // toggling the experimental "watch as one" feature: refresh the panel's canMerge
+    // (show/hide its toggle); if turned OFF while merged, leave merge mode cleanly.
+    if (key === 'experimentalTimeline') {
+      if (!value && mergeOn) toggleMerge() // turned off while merged → leave merge mode
+      else broadcast('playlist:changed', playlistPayload()) // refresh the toggle's visibility
+    }
     // live-apply just the changed mpv property (languages take effect next file load)
     if (mpv) {
       if (key === 'hwdec') mpv.setProperty('hwdec', value)

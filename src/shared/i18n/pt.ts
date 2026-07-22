@@ -273,4 +273,13 @@ export const pt: Partial<Record<Key, string>> = {
   'update.found': 'Nova versão {version} disponível',
   'update.checkFailed': 'Não foi possível procurar — tente mais tarde',
   'update.download': 'Transferir',
+  // ---- timeline ----
+  'panel.merge.on': 'Linha do tempo: ativada',
+  'panel.merge.off': 'Linha do tempo: desativada',
+  'timeline.title': 'Linha do tempo',
+  // ---- experimental ----
+  'set.sec.experimental': 'Experimental',
+  'set.timeline.label': 'Linha do tempo',
+  'set.timeline.desc':
+    'Junta os ficheiros locais da lista de reprodução num único vídeo contínuo com uma só linha do tempo e barra de procura — para ver uma pasta de clipes de ponta a ponta.\nA reprodução pode engasgar por instantes onde se encontram clipes de formatos diferentes. Quando ativado, aparece um interruptor no painel de lista.',
 }

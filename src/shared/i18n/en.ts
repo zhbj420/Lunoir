@@ -67,6 +67,7 @@ export const en = {
   'set.sec.screenshots': 'Screenshots',
   'set.sec.controls': 'Controls',
   'set.sec.window': 'Window',
+  'set.sec.experimental': 'Experimental',
   'set.sec.about': 'About',
 
   'set.uiLang.label': 'Interface language',
@@ -159,6 +160,10 @@ export const en = {
   'set.autoUpdate.label': 'Check on startup',
   'set.autoUpdate.desc': 'Silently check for a newer version when Lunoir starts.',
 
+  'set.timeline.label': 'Timeline',
+  'set.timeline.desc':
+    'Stitch the local files in the playlist into one continuous video with a single timeline and seek bar — for watching a folder of clips end to end.\nPlayback may briefly stutter where clips of different formats meet. When on, a toggle appears in the playlist panel.',
+
   // ---- updates (Home button + About section) ----
   'update.newVersion': 'New version available',
   'update.clickToDownload': 'Click to download',
@@ -202,6 +207,8 @@ export const en = {
   'panel.repeat.one': 'Repeat: one',
   'panel.shuffle.on': 'Shuffle: on',
   'panel.shuffle.off': 'Shuffle: off',
+  'panel.merge.on': 'Timeline: on',
+  'panel.merge.off': 'Timeline: off',
   'panel.addFiles': 'Add files',
   'panel.savePlaylist': 'Save playlist',
   'panel.saveSource': 'Save this source',
@@ -209,6 +216,9 @@ export const en = {
   'panel.ungrouped': 'Ungrouped',
   'panel.noMatches': 'No matching channels',
   'panel.removeCurrent': 'Remove current',
+
+  // ---- "watch as one" (merged timeline) ----
+  'timeline.title': 'Timeline',
 
   // ---- right panel: chapters ----
   'panel.empty.chapters': 'No chapters',

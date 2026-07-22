@@ -150,6 +150,8 @@ export const zhCN: Partial<Record<Key, string>> = {
   'panel.repeat.one': '循环：单个',
   'panel.shuffle.on': '随机：开',
   'panel.shuffle.off': '随机：关',
+  'panel.merge.on': '时间线：开',
+  'panel.merge.off': '时间线：关',
   'panel.addFiles': '添加文件',
   'panel.savePlaylist': '保存播放列表',
   'panel.saveSource': '收藏此直播源',
@@ -157,6 +159,7 @@ export const zhCN: Partial<Record<Key, string>> = {
   'panel.ungrouped': '未分组',
   'panel.noMatches': '无匹配频道',
   'panel.removeCurrent': '移除当前',
+  'timeline.title': '时间线',
 
   // ---- 右面板：章节 ----
   'panel.empty.chapters': '无章节',
@@ -269,5 +272,11 @@ export const zhCN: Partial<Record<Key, string>> = {
   'update.latest': '已是最新版本',
   'update.found': '发现新版本 {version}',
   'update.checkFailed': '检查失败，请稍后重试',
-  'update.download': '下载'
+  'update.download': '下载',
+
+  // ---- 实验性 ----
+  'set.sec.experimental': '实验性功能',
+  'set.timeline.label': '时间线',
+  'set.timeline.desc':
+    '将播放列表中的本地文件拼接成一段连续视频，共用一条时间线和进度条 —— 适合把一个文件夹里的片段从头看到尾。\n不同格式的片段在衔接处可能有短暂顿挫。开启后，播放列表面板中会出现开关。'
 }

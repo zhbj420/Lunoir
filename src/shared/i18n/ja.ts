@@ -274,4 +274,13 @@ export const ja: Partial<Record<Key, string>> = {
   'update.found': '新しいバージョン {version} が利用可能',
   'update.checkFailed': '確認できませんでした — 後でもう一度お試しください',
   'update.download': 'ダウンロード',
+  // ---- timeline ----
+  'panel.merge.on': 'タイムライン: オン',
+  'panel.merge.off': 'タイムライン: オフ',
+  'timeline.title': 'タイムライン',
+  // ---- experimental ----
+  'set.sec.experimental': '実験的機能',
+  'set.timeline.label': 'タイムライン',
+  'set.timeline.desc':
+    'プレイリスト内のローカルファイルを、単一のタイムラインとシークバーを持つ一本の連続した動画としてつなぎます — クリップの入ったフォルダーを最初から最後まで通して見るためのものです。\n形式の異なるクリップのつなぎ目で、再生が一瞬乱れることがあります。オンにすると、プレイリストパネルに切り替えスイッチが表示されます。',
 }

@@ -273,4 +273,13 @@ export const de: Partial<Record<Key, string>> = {
   'update.found': 'Neue Version {version} verfügbar',
   'update.checkFailed': 'Prüfung fehlgeschlagen — später erneut versuchen',
   'update.download': 'Herunterladen',
+  // ---- timeline ----
+  'panel.merge.on': 'Zeitleiste: ein',
+  'panel.merge.off': 'Zeitleiste: aus',
+  'timeline.title': 'Zeitleiste',
+  // ---- experimental ----
+  'set.sec.experimental': 'Experimentell',
+  'set.timeline.label': 'Zeitleiste',
+  'set.timeline.desc':
+    'Fügt die lokalen Dateien der Wiedergabeliste zu einem durchgehenden Video mit einer einzigen Zeitleiste und einem Suchbalken zusammen — um einen Ordner voller Clips am Stück anzusehen.\nDie Wiedergabe kann an den Übergängen zwischen Clips unterschiedlicher Formate kurz stocken. Wenn aktiviert, erscheint ein Schalter im Wiedergabelisten-Panel.',
 }

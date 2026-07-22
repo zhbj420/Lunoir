@@ -273,4 +273,13 @@ export const es: Partial<Record<Key, string>> = {
   'update.found': 'Nueva versión {version} disponible',
   'update.checkFailed': 'No se pudo buscar — inténtalo más tarde',
   'update.download': 'Descargar',
+  // ---- timeline ----
+  'panel.merge.on': 'Línea de tiempo: activada',
+  'panel.merge.off': 'Línea de tiempo: desactivada',
+  'timeline.title': 'Línea de tiempo',
+  // ---- experimental ----
+  'set.sec.experimental': 'Experimental',
+  'set.timeline.label': 'Línea de tiempo',
+  'set.timeline.desc':
+    'Une los archivos locales de la lista de reproducción en un único vídeo continuo con una sola línea de tiempo y barra de búsqueda — para ver una carpeta de clips de principio a fin.\nLa reproducción puede entrecortarse un instante donde se encuentran clips de formatos distintos. Cuando está activado, aparece un interruptor en el panel de lista.',
 }

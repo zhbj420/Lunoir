@@ -10,6 +10,8 @@ interface Playlist {
   repeat: RepeatMode
   shuffle: boolean
   sourceType: SourceType
+  merge: boolean
+  canMerge: boolean
 }
 interface Chapter {
   title?: string
@@ -363,7 +365,7 @@ const Chevron = () => (
 export default function RightPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useT()
   const [tab, setTab] = useState<Tab>('tracks') // Audio & Sub is the default tab
-  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false, sourceType: 'queue' })
+  const [pl, setPl] = useState<Playlist>({ items: [], index: -1, repeat: 'off', shuffle: false, sourceType: 'queue', merge: false, canMerge: false })
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [curChapter, setCurChapter] = useState(-1)
   const [tracks, setTracks] = useState<Track[]>([])
@@ -692,10 +694,28 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
             <button
               className={`tool ${pl.shuffle ? 'on' : ''}`}
               title={pl.shuffle ? t('panel.shuffle.on') : t('panel.shuffle.off')}
+              disabled={pl.merge}
               onClick={() => window.mmp.toggleShuffle()}
             >
               <IconShuffle />
             </button>
+            {/* "watch as one": stitch the local queue into one continuous timeline.
+                Only offered for a mergeable queue (local files, ≥2). */}
+            {pl.canMerge && (
+              <button
+                className={`tool ${pl.merge ? 'on' : ''}`}
+                title={pl.merge ? t('panel.merge.on') : t('panel.merge.off')}
+                onClick={() => window.mmp.toggleMerge()}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  {/* three clips laid on a timeline track */}
+                  <path d="M3 18h18" />
+                  <rect x="3.5" y="7" width="5" height="7" rx="1" />
+                  <rect x="9.5" y="7" width="5" height="7" rx="1" />
+                  <rect x="15.5" y="7" width="5" height="7" rx="1" />
+                </svg>
+              </button>
+            )}
             <span className="panel-tools-spacer" />
             <button className="tool" title={t('panel.addFiles')} onClick={() => window.mmp.addToPlaylist()}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
