@@ -57,10 +57,6 @@ Open source (MIT), no telemetry, no ads, no bundleware.
   group by their `group-title` into collapsible, searchable sections. Live streams
   show a `● LIVE` badge with one-tap “go live”, and can be **recorded** to MKV
   (stream-copy, no re-encode)
-- **Timeline** *(experimental)* — watch a folder of clips as **one continuous
-  video** (a single seek bar with clip-boundary ticks), and **trim each clip's
-  in/out** with draggable handles on the bar. Built on mpv's native EDL — no
-  re-encoding, no temp files left behind
 
 **Interface**
 - Floating IINA-style OSC that frosts the video (real Win11 acrylic window)
@@ -90,6 +86,10 @@ Open source (MIT), no telemetry, no ads, no bundleware.
 - A-B loop, playback speed (keeps pitch), shuffle / repeat, auto-load external subtitles
 - Audio passthrough (bitstream to a receiver), adjustable OSC auto-hide delay
 - Resume playback — per file *and* per playlist
+
+**Experimental** *(opt-in, under Settings › Experimental)*
+- **Timeline** — stitch a folder of clips into one continuous video and trim each
+  clip's in/out, built on mpv's native EDL. Early — expect rough edges
 
 ## Requirements
 
