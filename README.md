@@ -4,23 +4,29 @@
 
 <img src="assets/Lunoir.png" alt="Lunoir player" width="20%">
 
-A Modern Windows media player with an [**mpv**](https://mpv.io/) core and an
-[**IINA**](https://iina.io/)-inspired interface — frameless, frosted-glass, and
-built for people who care about frame accuracy and colour fidelity.
+### A beautiful media player for Windows — think **IINA**, powered by **mpv**.
 
-Built with Electron + React. mpv does the heavy lifting; Lunoir wraps it in a
-clean Win11 acrylic UI.
+Frameless and frosted-glass, plays essentially anything, and built for people who
+care about frame accuracy and colour fidelity. Electron + React wrapping an
+[mpv](https://mpv.io/) core in a clean Win11 acrylic UI.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Languages](https://img.shields.io/badge/languages-9-blueviolet)
-![Status](https://img.shields.io/badge/status-early-orange)
+[![Latest release](https://img.shields.io/github/v/release/zhbj420/Lunoir?label=download&color=blueviolet)](https://github.com/zhbj420/Lunoir/releases/latest)
 
-> ⚠️ Early / personal project. Windows-only for now. Expect rough edges.
->
-> Lunoir is an **independent** project — not affiliated with, or endorsed by,
-> [IINA](https://iina.io/) or [mpv](https://mpv.io/). The interface is inspired by
-> IINA's design; none of IINA's code is used.
+## ⬇️ Download
+
+**[→ Get the latest release](https://github.com/zhbj420/Lunoir/releases/latest)** — grab
+`Lunoir-<version>-setup.exe` (installer) or `-portable.exe` (no install needed). Windows 10 / 11.
+
+> The build is unsigned, so Windows SmartScreen may warn on first run — click
+> **More info → Run anyway**.
+
+> Lunoir is an **independent** project, not affiliated with or endorsed by
+> [IINA](https://iina.io/) or [mpv](https://mpv.io/) — the interface is *inspired by*
+> IINA's design; none of IINA's code is used. Early and actively developed, so expect
+> the occasional rough edge.
 
 ## Screenshots
 
@@ -31,6 +37,14 @@ clean Win11 acrylic UI.
 | Home | Settings | Audio &amp; subtitle tracks |
 | :---: | :---: | :---: |
 | ![Home screen](docs/screenshots/home.png) | ![Settings panel](docs/screenshots/settings.png) | ![Audio and subtitle track panel](docs/screenshots/panel.png) |
+
+## Why Lunoir?
+
+VLC is everywhere but dated; PotPlayer is powerful but closed and bundles extras;
+MPC-HC is light but looks like 2009; [**mpv**](https://mpv.io/) is the best engine
+going but ships no real GUI. Lunoir is the missing middle: **mpv's rendering
+quality in a genuinely nice Windows interface** — essentially *IINA for Windows*.
+Open source (MIT), no telemetry, no ads, no bundleware.
 
 ## Features
 
@@ -43,10 +57,16 @@ clean Win11 acrylic UI.
   group by their `group-title` into collapsible, searchable sections. Live streams
   show a `● LIVE` badge with one-tap “go live”, and can be **recorded** to MKV
   (stream-copy, no re-encode)
+- **Timeline** *(experimental)* — watch a folder of clips as **one continuous
+  video** (a single seek bar with clip-boundary ticks), and **trim each clip's
+  in/out** with draggable handles on the bar. Built on mpv's native EDL — no
+  re-encoding, no temp files left behind
 
 **Interface**
 - Floating IINA-style OSC that frosts the video (real Win11 acrylic window)
 - Acrylic side panels — playlist / chapters / audio & subtitle tracks, and settings
+- **Playlist** you can actually manage — drag to reorder, multi-select
+  (Ctrl / Shift), double-click to play, batch-delete
 - **收藏 — a frosted “saved & recent” launcher**: recently played (local + URL),
   plus saved files, URLs, playlists, and IPTV sources — each renamable and
   deletable. Save the current queue as a playlist or the current channel list as a
