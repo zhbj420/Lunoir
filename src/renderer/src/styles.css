@@ -1631,6 +1631,28 @@ body.library-win.library-shown .library {
   color: var(--text);
 }
 
+/* drag-to-reorder feedback: the dragged row fades; an insertion line marks where it
+   will land — the top edge of a row (drop-before) or the bottom of the last row (append) */
+.pl-item.dragging {
+  opacity: 0.4;
+}
+.pl-item.drop-before {
+  box-shadow: inset 0 2px 0 rgb(124, 130, 245);
+}
+.pl-item.drop-after {
+  box-shadow: inset 0 -2px 0 rgb(124, 130, 245);
+}
+
+/* selected queue rows (multi-select) — an accent tint, distinct from the neutral
+   highlight of the currently-playing (.active) row. A row can be both. */
+.pl-item.selected {
+  background: rgba(124, 130, 245, 0.3);
+  color: var(--text);
+}
+.pl-item.active.selected {
+  background: rgba(124, 130, 245, 0.44);
+}
+
 .pl-mark {
   flex: none;
   width: 16px;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from 'react'
 import { useT, type T } from '../useT'
 
 type Tab = 'playlist' | 'chapters' | 'tracks'
@@ -548,6 +548,56 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
   // IPTV: the channel list is grouped by group-title + filterable; a normal queue
   // stays flat. Keep each item's original playlist index for playIndex().
   const isIptv = pl.sourceType === 'iptv'
+  // drag-to-reorder the queue (not IPTV channels). HTML5 DnD — a click still fires
+  // play; a real drag reorders. dropIndex marks where the dragged row will land.
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+  // queue multi-select (channels zap on single-click, never select): single click
+  // selects, Ctrl/Shift extend, double-click plays. Selection clears when the list's
+  // contents change (reorder / add / remove shift the indices).
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const selAnchor = useRef<number | null>(null)
+  const itemsSig = pl.items.map(it => it.path).join('|')
+  const lastSig = useRef(itemsSig)
+  useEffect(() => {
+    if (lastSig.current !== itemsSig) {
+      lastSig.current = itemsSig
+      setSelected(new Set())
+      selAnchor.current = null
+    }
+  }, [itemsSig])
+  // Delete key removes the current multi-selection (queue playlist tab only)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Delete' || isIptv || tab !== 'playlist' || selected.size === 0) return
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return
+      e.preventDefault()
+      window.mmp.removePlaylistItems([...selected])
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isIptv, tab, selected])
+  const rowSelect = (i: number, e: ReactMouseEvent): void => {
+    if (e.shiftKey && selAnchor.current !== null) {
+      const lo = Math.min(selAnchor.current, i)
+      const hi = Math.max(selAnchor.current, i)
+      const range = new Set<number>()
+      for (let k = lo; k <= hi; k++) range.add(k)
+      setSelected(range)
+    } else if (e.ctrlKey || e.metaKey) {
+      setSelected(prev => {
+        const next = new Set(prev)
+        if (next.has(i)) next.delete(i)
+        else next.add(i)
+        return next
+      })
+      selAnchor.current = i
+    } else {
+      setSelected(new Set([i]))
+      selAnchor.current = i
+    }
+  }
   const q = channelSearch.trim().toLowerCase()
   const shownChannels = pl.items
     .map((it, i) => ({ ...it, i }))
@@ -580,25 +630,66 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
   // one playlist/channel row (shared by the flat queue + the grouped IPTV view).
   // Key by the original index, never the path — an IPTV list can repeat a URL
   // (multi-source / duplicate channels), and duplicate React keys leave ghost rows.
-  const plRow = (it: { path: string; name: string }, i: number) => (
-    <div
-      key={i}
-      className={`pl-item ${i === pl.index ? 'active' : ''}`}
-      title={it.name}
-      onClick={() => window.mmp.playIndex(i)}
-    >
-      <span className="pl-mark">
-        {i === pl.index ? (
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
-            <path d="M1 0.5 L8 4.5 L1 8.5 Z" />
-          </svg>
-        ) : (
-          <span className="pl-idx">{i + 1}</span>
-        )}
-      </span>
-      <span className="pl-name">{it.name}</span>
-    </div>
-  )
+  const plRow = (it: { path: string; name: string }, i: number) => {
+    // queue rows drag-reorder; IPTV channel rows don't. A click still plays; only a
+    // real drag reorders (HTML5 DnD keeps the two apart).
+    const dnd = isIptv
+      ? {}
+      : {
+          draggable: true,
+          onDragStart: (e: DragEvent) => {
+            setDragIndex(i)
+            e.dataTransfer.effectAllowed = 'move'
+          },
+          onDragOver: (e: DragEvent) => {
+            e.preventDefault()
+            // cursor in the bottom half of a row → insert AFTER it (i+1). This lets you
+            // reach the very end (drop on the last row's bottom half → append).
+            const r = e.currentTarget.getBoundingClientRect()
+            const target = e.clientY > r.top + r.height / 2 ? i + 1 : i
+            if (dropIndex !== target) setDropIndex(target)
+          },
+          onDrop: (e: DragEvent) => {
+            e.preventDefault()
+            if (dragIndex !== null && dropIndex !== null) {
+              // drag the whole multi-selection as a block if the grabbed row is in it
+              const group = selected.has(dragIndex) && selected.size > 1 ? [...selected] : [dragIndex]
+              window.mmp.movePlaylistItems(group, dropIndex)
+            }
+            setDragIndex(null)
+            setDropIndex(null)
+          },
+          onDragEnd: () => {
+            setDragIndex(null)
+            setDropIndex(null)
+          }
+        }
+    return (
+      <div
+        key={i}
+        className={`pl-item ${i === pl.index ? 'active' : ''}${!isIptv && selected.has(i) ? ' selected' : ''}${
+          i === dragIndex ? ' dragging' : ''
+        }${dragIndex !== null && dropIndex === i ? ' drop-before' : ''}${
+          dragIndex !== null && dropIndex === pl.items.length && i === pl.items.length - 1 ? ' drop-after' : ''
+        }`}
+        title={it.name}
+        onClick={isIptv ? () => window.mmp.playIndex(i) : e => rowSelect(i, e)}
+        onDoubleClick={isIptv ? undefined : () => window.mmp.playIndex(i)}
+        {...dnd}
+      >
+        <span className="pl-mark">
+          {i === pl.index ? (
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor">
+              <path d="M1 0.5 L8 4.5 L1 8.5 Z" />
+            </svg>
+          ) : (
+            <span className="pl-idx">{i + 1}</span>
+          )}
+        </span>
+        <span className="pl-name">{it.name}</span>
+      </div>
+    )
+  }
 
   return (
     // The panel lives inside the main window's .app, whose onMouseMove/onWheel
@@ -641,7 +732,34 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
               />
             </div>
           )}
-          <div className="panel-body">
+          <div
+            className="panel-body"
+            onDragOver={
+              isIptv
+                ? undefined
+                : e => {
+                    // dragging over the empty area below the rows → append to the end
+                    // (a big, easy target for "move to last")
+                    if (e.target === e.currentTarget && dragIndex !== null) {
+                      e.preventDefault()
+                      if (dropIndex !== pl.items.length) setDropIndex(pl.items.length)
+                    }
+                  }
+            }
+            onDrop={
+              isIptv
+                ? undefined
+                : e => {
+                    if (e.target === e.currentTarget && dragIndex !== null && dropIndex !== null) {
+                      e.preventDefault()
+                      const group = selected.has(dragIndex) && selected.size > 1 ? [...selected] : [dragIndex]
+                      window.mmp.movePlaylistItems(group, dropIndex)
+                    }
+                    setDragIndex(null)
+                    setDropIndex(null)
+                  }
+            }
+          >
             {pl.items.length === 0 ? (
               <div className="panel-empty">{t('panel.empty.queue')}</div>
             ) : isIptv ? (
@@ -725,8 +843,11 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
             <button
               className="tool"
               title={t('panel.removeCurrent')}
-              disabled={pl.index < 0}
-              onClick={() => pl.index >= 0 && window.mmp.removeFromPlaylist(pl.index)}
+              disabled={pl.index < 0 && selected.size === 0}
+              onClick={() => {
+                if (selected.size > 0) window.mmp.removePlaylistItems([...selected])
+                else if (pl.index >= 0) window.mmp.removeFromPlaylist(pl.index)
+              }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 6h16" />

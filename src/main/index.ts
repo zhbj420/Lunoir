@@ -988,6 +988,30 @@ function toggleMerge(): void {
   broadcast('playlist:changed', playlistPayload())
 }
 
+/** Drag-reorder: move the given queue items (a single row or a whole multi-selection)
+ *  as a block to just before index `to`, keeping the currently-playing item current.
+ *  Rebuilds the stitched timeline in the new order if merged. */
+function movePlaylistItems(indices: number[], to: number): void {
+  const idx = [...new Set(indices)].filter(i => i >= 0 && i < playlist.length).sort((a, b) => a - b)
+  if (!idx.length || to < 0 || to > playlist.length) return
+  const currentPath = plIndex >= 0 ? playlist[plIndex] : null
+  const idxSet = new Set(idx)
+  const moving = idx.map(i => playlist[i])
+  const rest = playlist.filter((_, i) => !idxSet.has(i))
+  // `to` indexes the ORIGINAL array (insert-before that row); shift left by how many
+  // moved items sat before it
+  const insertAt = Math.max(0, Math.min(rest.length, to - idx.filter(i => i < to).length))
+  rest.splice(insertAt, 0, ...moving)
+  playlist = rest
+  if (currentPath !== null) {
+    const ni = playlist.indexOf(currentPath) // local queues have unique paths
+    if (ni >= 0) plIndex = ni
+  }
+  resyncShuffle()
+  if (mergeOn) loadTimeline(plIndex) // rebuild the EDL in the new order, stay on the current clip
+  else broadcast('playlist:changed', playlistPayload())
+}
+
 /** Append files to the list; start playing if nothing was queued before. */
 function addToPlaylist(paths: string[]): void {
   const fresh = paths.filter(p => p && !playlist.includes(p))
@@ -1021,6 +1045,32 @@ function removeFromPlaylist(i: number): void {
   }
   resyncShuffle() // indices shifted — rebuild the bag
   broadcast('playlist:changed', playlistPayload())
+}
+
+/** Remove one or more selected queue items at once. If the playing item is among
+ *  them, advance to whatever slides into its place; rebuilds the timeline if merged. */
+function removePlaylistItems(indices: number[]): void {
+  const idx = [...new Set(indices)].filter(i => i >= 0 && i < playlist.length).sort((a, b) => b - a) // desc
+  if (!idx.length) return
+  const removingCurrent = idx.includes(plIndex)
+  for (const i of idx) {
+    playlist.splice(i, 1)
+    if (i < plIndex) plIndex--
+  }
+  if (removingCurrent) {
+    if (playlist.length === 0) {
+      plIndex = -1
+    } else {
+      plIndex = Math.min(plIndex, playlist.length - 1)
+      resyncShuffle()
+      if (mergeOn) loadTimeline(plIndex)
+      else playCurrent()
+      return // playCurrent / loadTimeline broadcast the change
+    }
+  }
+  resyncShuffle()
+  if (mergeOn) loadTimeline(plIndex)
+  else broadcast('playlist:changed', playlistPayload())
 }
 
 /** Cycle the repeat mode: off → all → one → off. */
@@ -2465,6 +2515,8 @@ function registerIpc(): void {
   ipcMain.on('playlist:toggle-shuffle', () => toggleShuffle())
   ipcMain.on('playlist:toggle-merge', () => toggleMerge())
   ipcMain.on('playlist:remove', (_e, i: number) => removeFromPlaylist(i))
+  ipcMain.on('playlist:move', (_e, indices: number[], to: number) => movePlaylistItems(indices, to))
+  ipcMain.on('playlist:remove-multi', (_e, indices: number[]) => removePlaylistItems(indices))
   ipcMain.on('playlist:repeat-cycle', () => cycleRepeat())
   ipcMain.on('sub:add', async () => {
     const res = await dialog.showOpenDialog(win!, {
