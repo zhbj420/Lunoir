@@ -253,7 +253,20 @@ export default function OverlayView() {
     if (file) {
       const path = window.mmp.getPathForFile(file)
       if (path) window.mmp.loadFile(path)
+      return
     }
+    // No file — dragged from a browser's address bar, or a link off a page. Those carry
+    // text only: uri-list is the standard flavour (it can hold several lines and #
+    // comments), plain text is what some browsers hand over instead. Take the first
+    // http(s) line and open it exactly like the URL box would, so a dropped .m3u
+    // subscription still goes down the channel-list path.
+    const dropped =
+      e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')
+    const url = dropped
+      .split(/\r?\n/)
+      .map(s => s.trim())
+      .find(s => /^https?:\/\//i.test(s))
+    if (url) window.mmp.loadFile(url)
   }
 
   // mpv screenshots the decoded frame at its native resolution (window size
