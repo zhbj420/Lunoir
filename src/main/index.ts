@@ -71,6 +71,28 @@ let win: BrowserWindow | null = null
 let oscWin: BrowserWindow | null = null
 let mpv: MpvController | null = null
 let preFsBounds: Electron.Rectangle | null = null
+// Mini player (PiP): the SAME window shrunk into a corner, kept on top, title strip
+// hidden. No re-parenting — mpv renders into this window's HWND either way, so the
+// whole mode is bounds + alwaysOnTop + a compact overlay drawn in the main window's
+// DOM (a plain scrim, not acrylic: CSS can't frost the video, and nobody expects
+// frost at this size). Non-null = we're in it, and holds the bounds to go back to.
+let preMiniBounds: Electron.Rectangle | null = null
+const isMini = (): boolean => preMiniBounds != null
+const MINI_W = 480 // logical px — readable across the room, still out of the way
+const MINI_MIN_W = 240
+// …and a ceiling. The mini player trades the title bar, the OSC, the side panels and
+// the playlist for staying small and out of the way; blown right up it has paid all of
+// that and kept none of it, and the normal window is better in every respect. Every
+// system PiP caps this for the same reason — the cap is generous, not tight: 55% of the
+// work area, never past 1100px (so ~1056 on a 1920 screen, 1100 on anything wider).
+const MINI_MAX_W = 1100
+const MINI_MAX_SHARE = 0.55
+
+/** Is the title strip absent right now? Fullscreen and the mini player both drop it,
+ *  and the setting hides it in windowed mode too. Everything that positions itself
+ *  below the bar (video margin, side panels, the library overlay) asks this. */
+const noTitleStrip = (): boolean =>
+  Boolean(preFsBounds) || isMini() || getSettings().hideTitleBar
 let fsWasMaximized = false // restore the maximized state when leaving fullscreen
 // Bounds to go back to while "maximized", and the flag for being in that state.
 // We never use the OS maximize — see fakeMaximize().
@@ -1663,7 +1685,7 @@ function slideOscToRest(): void {
  *  the title bar (top = 0 in fullscreen), width = panelW. */
 function panelBounds(side: 'right' | 'left'): Electron.Rectangle {
   const b = win!.getBounds()
-  const top = preFsBounds ? 0 : TITLEBAR_H
+  const top = noTitleStrip() ? 0 : TITLEBAR_H
   const w = panelW(b.width)
   return {
     x: side === 'right' ? b.x + b.width - w : b.x,
@@ -1786,7 +1808,7 @@ function toggleSettingsPanel(): void {
  *  (top = 0 in fullscreen). Re-derived on every open + parent move/resize. */
 function libraryBounds(): Electron.Rectangle {
   const b = win!.getBounds()
-  const top = preFsBounds ? 0 : TITLEBAR_H
+  const top = noTitleStrip() ? 0 : TITLEBAR_H
   const availH = b.height - top
   const w = Math.round(Math.min(880, Math.max(460, b.width * 0.62)))
   const h = Math.round(Math.min(700, Math.max(380, availH * 0.76)))
@@ -1907,6 +1929,7 @@ function makeLibraryWindow(): BrowserWindow {
 
 function revealUi(): void {
   if (menuOpen || libraryOpen) return // don't pop the OSC under the menu / 收藏 overlay
+  if (isMini()) return // the mini player has its own overlay; the OSC would dwarf it
   broadcast('ui:reveal')
   // only run the slide-up when the OSC is actually hidden — re-running it while
   // it's already at rest re-reads getBounds() and, with DPI rounding, animates a
@@ -1932,7 +1955,9 @@ function revealUi(): void {
 function syncFsTopmost(): void {
   if (!win || win.isDestroyed()) return
   const appActive = BrowserWindow.getAllWindows().some(w => !w.isDestroyed() && w.isFocused())
-  win.setAlwaysOnTop(Boolean(preFsBounds) && appActive, 'screen-saver')
+  // the mini player stays on top even when the app is in the background — that IS the
+  // point of it; fullscreen only claims topmost while we're the active app.
+  win.setAlwaysOnTop(isMini() || (Boolean(preFsBounds) && appActive), 'screen-saver')
 }
 
 /**
@@ -1962,6 +1987,7 @@ function unfakeMaximize(): void {
 
 function toggleFullscreen(): void {
   if (!win) return
+  if (isMini()) toggleMini() // the two are exclusive — leave the mini player first
   suppressRevealUntil = Date.now() + 350 // don't let the resize's mousemove pop the OSC
   if (preFsBounds) {
     // EXIT — drop topmost, restore the pre-fullscreen size/state
@@ -2023,10 +2049,110 @@ function toggleFullscreen(): void {
  * the picture sits *below* the grey title bar instead of under it. The ratio is
  * unitless (px/px), so it's DPI-independent. Zero in fullscreen (video fills).
  */
+// Is the cursor over the mini player? Polled from MAIN rather than watched in the
+// renderer, because the whole window is a drag region and those hand their mouse
+// events to the OS — the renderer never sees hover there, which is why a CSS :hover
+// reveal only ever fired once you were already on a button. Comparing the cursor
+// against the window rectangle sidesteps the problem entirely. Only runs while the
+// mini player is up.
+let miniHoverTimer: NodeJS.Timeout | null = null
+let miniHovered = false
+// window rect at the moment a drag began; every move resolves against it — see win:drag-move
+let dragAnchor: Electron.Rectangle | null = null
+
+function stopMiniHoverWatch(): void {
+  if (miniHoverTimer) {
+    clearInterval(miniHoverTimer)
+    miniHoverTimer = null
+  }
+  miniHovered = false
+}
+
+function startMiniHoverWatch(): void {
+  stopMiniHoverWatch()
+  broadcast('ui:mini-hover', false)
+  miniHoverTimer = setInterval(() => {
+    if (!win || win.isDestroyed() || !isMini()) {
+      stopMiniHoverWatch()
+      return
+    }
+    const c = screen.getCursorScreenPoint()
+    const b = win.getBounds()
+    const inside = c.x >= b.x && c.x < b.x + b.width && c.y >= b.y && c.y < b.y + b.height
+    if (inside !== miniHovered) {
+      miniHovered = inside
+      broadcast('ui:mini-hover', inside)
+    }
+  }, 150)
+}
+
+/**
+ * Toggle the mini player. Exclusive with fullscreen, and with the side panels /
+ * library overlay — none of them fit, and the OSC window is hidden outright (its
+ * controls are ~480px of chrome; the mini overlay replaces them).
+ */
+function toggleMini(): void {
+  if (!win || win.isDestroyed()) return
+  suppressRevealUntil = Date.now() + 350 // the resize's mousemove must not pop the OSC
+  if (preMiniBounds) {
+    // EXIT — unlock the aspect, drop topmost, restore size + the normal minimum
+    const restore = preMiniBounds
+    preMiniBounds = null
+    win.setAspectRatio(0)
+    win.setMinimumSize(WIN_MIN_W, 320)
+    win.setMaximumSize(32767, 32767) // effectively unlimited again
+    win.setAlwaysOnTop(false)
+    win.setBounds(restore)
+    setCornerPreference(win, CORNER_DEFAULT)
+    stopMiniHoverWatch()
+    broadcast('ui:mini-hover', false)
+    broadcast('ui:mini', false)
+    updateVideoMargin()
+    revealUi()
+    return
+  }
+  if (!hasMedia) return // nothing to float
+  if (preFsBounds) toggleFullscreen() // leave fullscreen first — the two are exclusive
+  closeRightPanel()
+  closeLeftPanel()
+  if (libraryOpen) closeLibrary()
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+  broadcast('ui:hide')
+  animateOsc(false)
+
+  // go back to the pre-maximize bounds if we were "maximized" — restoring to a
+  // work-area-sized rectangle would otherwise look like it did nothing
+  preMiniBounds = isMaxed() && preMaxBounds ? preMaxBounds : win.getBounds()
+  const aspect = lastAspect > 0.2 && lastAspect < 5 ? lastAspect : 16 / 9
+  const w = MINI_W
+  const h = Math.round(w / aspect)
+  const area = screen.getDisplayNearestPoint(win.getBounds()).workArea
+  win.setMinimumSize(MINI_MIN_W, Math.round(MINI_MIN_W / aspect))
+  const maxW = Math.round(Math.min(MINI_MAX_W, area.width * MINI_MAX_SHARE))
+  win.setMaximumSize(maxW, Math.round(maxW / aspect))
+  win.setBounds({
+    x: area.x + area.width - w - 24, // bottom-right, with a margin off the edges
+    y: area.y + area.height - h - 24,
+    width: w,
+    height: h
+  })
+  win.setAspectRatio(aspect) // free resize, locked shape
+  win.setAlwaysOnTop(true, 'screen-saver')
+  broadcast('ui:mini', true)
+  updateVideoMargin()
+  startMiniHoverWatch()
+}
+
 function updateVideoMargin(): void {
   if (!mpv || !win || win.isDestroyed()) return
   const h = win.getContentBounds().height
-  const ratio = preFsBounds || h <= 0 ? 0 : Math.min(0.4, TITLEBAR_H / h)
+  // no strip reserved when it isn't drawn: fullscreen, the mini player, or the
+  // hide-title-bar setting. The peeking bar then overlays the video instead of
+  // reserving space, so revealing it never reflows the picture.
+  const ratio = noTitleStrip() || h <= 0 ? 0 : Math.min(0.4, TITLEBAR_H / h)
   mpv.setProperty('video-margin-ratio-top', ratio)
 }
 
@@ -2512,7 +2638,11 @@ function persistState(): void {
   if (s.rememberVolume) setSetting('volume', lastVolume)
   // while maximized, persist the bounds we'd restore to, not the work area
   if (s.rememberWindow && win && !win.isDestroyed() && !preFsBounds) {
-    setSetting('windowBounds', preMaxBounds ?? win.getBounds())
+    // Save the rectangle we'd RESTORE to, never a temporary one: quitting from the mini
+    // player (taskbar → Close) otherwise remembered its corner-sized rect and the app
+    // reopened tiny. preMiniBounds already holds the pre-maximize rect when the mini
+    // player was entered while maximized, so it takes precedence.
+    setSetting('windowBounds', preMiniBounds ?? preMaxBounds ?? win.getBounds())
   }
   if (s.resumePlayback && resumePath && canResume()) {
     const nearEnd = lastDuration > 0 && resumePos > lastDuration - 10
@@ -3011,6 +3141,20 @@ function registerIpc(): void {
     if (key === 'uiLanguage') buildMenu()
     // toggling the experimental "watch as one" feature: refresh the panel's canMerge
     // (show/hide its toggle); if turned OFF while merged, leave merge mode cleanly.
+    // showing/hiding the strip moves everything that sits below it
+    if (key === 'hideTitleBar') {
+      updateVideoMargin()
+      if (rightPanelWin && !rightPanelWin.isDestroyed() && rightPanelWin.isVisible()) {
+        rightPanelWin.setBounds(panelBounds('right'))
+      }
+      if (leftPanelWin && !leftPanelWin.isDestroyed() && leftPanelWin.isVisible()) {
+        leftPanelWin.setBounds(panelBounds('left'))
+      }
+      if (libraryWin && !libraryWin.isDestroyed() && libraryWin.isVisible()) {
+        libraryWin.setBounds(libraryBounds())
+      }
+      layoutOsc()
+    }
     if (key === 'experimentalTimeline') {
       if (!value && mergeOn) toggleMerge() // turned off while merged → leave merge mode
       else broadcast('playlist:changed', playlistPayload()) // refresh the toggle's visibility
@@ -3043,7 +3187,43 @@ function registerIpc(): void {
     broadcast('settings:changed', getSettings()) // let other windows (e.g. screenshot) track it
   })
 
-  ipcMain.on('ui:go-home', () => goHome())
+  // Move the window by a pointer delta — how the mini player is dragged. It only ever
+  // moves, never resizes, so it can't fight the mini size the way win:set-bounds would
+  // (that one clamps to WIN_MIN_W). Deltas are incremental, so a dropped event just
+  // means a slightly shorter step rather than a jump.
+  // Dragging the mini window, done as ABSOLUTE positioning against an anchor taken when
+  // the drag starts. Two earlier attempts failed because both fed the window's own state
+  // back in as the next call's input:
+  //   • `b.x + dx` with a locked aspect ratio re-fitted and rounded the size every call,
+  //     and the error compounded dozens of times a second — the window grew as you moved.
+  //   • holding the size constant fixed that, but the POSITION still read back through
+  //     getBounds(); IPC is async, so a move that hadn't landed yet made the next event
+  //     compute from a stale origin and silently drop that step. The window fell further
+  //     and further behind the cursor.
+  // Deriving x/y/width/height from the anchor plus the cursor's total offset removes the
+  // feedback entirely: nothing accumulates, and a dropped event costs nothing because the
+  // next one still resolves to the correct absolute position.
+  ipcMain.on('win:drag-start', () => {
+    if (!win || win.isDestroyed()) return
+    dragAnchor = win.getBounds()
+  })
+  ipcMain.on('win:drag-end', () => {
+    dragAnchor = null
+  })
+  ipcMain.on('win:drag-move', (_e, dx: number, dy: number) => {
+    if (!win || win.isDestroyed() || preFsBounds || isMaxed() || !dragAnchor) return
+    win.setBounds({
+      x: Math.round(dragAnchor.x + dx),
+      y: Math.round(dragAnchor.y + dy),
+      width: dragAnchor.width,
+      height: dragAnchor.height
+    })
+  })
+  ipcMain.on('ui:toggle-mini', () => toggleMini())
+  ipcMain.on('ui:go-home', () => {
+    if (isMini()) toggleMini() // Home has no video to float — leave the mini player
+    goHome()
+  })
   ipcMain.on('ui:open-disc', () => promptOpenFolder()) // double-click Open File → folder/disc
   ipcMain.on('win:minimize', () => win?.minimize())
   ipcMain.on('win:toggle-maximize', () => {

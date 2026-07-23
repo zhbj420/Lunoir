@@ -42,6 +42,7 @@ export interface Settings {
   screenshotFormat: ScreenshotFormat // PNG (lossless) or JPG (high-quality, smaller)
   screenshotDir: string // where screenshots are saved ('' = Pictures/Lunoir default)
   recordingDir: string // where stream recordings are saved ('' = Videos/Lunoir default)
+  hideTitleBar: boolean // windowed mode: hide the title strip, peek it back at the top edge
   rememberWindow: boolean
   rememberVolume: boolean
   checkForUpdates: boolean // silently check GitHub for a newer release at launch
@@ -168,6 +169,21 @@ const api = {
     ipcRenderer.send('mpv:loadfile', path, userAgent),
   // stop playback and clear the queue — back to the Home screen
   goHome: (): void => ipcRenderer.send('ui:go-home'),
+  // mini player (PiP): the window shrunk into a corner, on top, with its own overlay
+  toggleMini: (): void => ipcRenderer.send('ui:toggle-mini'),
+  // Drag the window (the mini player moves this way — it has no -webkit-app-region, so
+  // right-click stays ours instead of the system's). Start anchors the window rect; the
+  // offset is the cursor's TOTAL travel since then, never an increment, so nothing
+  // accumulates and a dropped event doesn't leave the window behind.
+  dragWindowStart: (): void => ipcRenderer.send('win:drag-start'),
+  dragWindowTo: (dx: number, dy: number): void => ipcRenderer.send('win:drag-move', dx, dy),
+  dragWindowEnd: (): void => ipcRenderer.send('win:drag-end'),
+  onMini: (cb: (on: boolean) => void): Unsubscribe =>
+    subscribe('ui:mini', (on: boolean) => cb(on)),
+  // cursor over the mini player — polled in main (a drag region gives the renderer no
+  // hover of its own), so the controls can stay hidden until you point at the window
+  onMiniHover: (cb: (over: boolean) => void): Unsubscribe =>
+    subscribe('ui:mini-hover', (over: boolean) => cb(over)),
   onGoHome: (cb: () => void): Unsubscribe => subscribe('ui:home', () => cb()),
 
   onProperty: (cb: (p: MpvProperty) => void): Unsubscribe =>

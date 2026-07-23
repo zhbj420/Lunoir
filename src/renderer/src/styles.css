@@ -152,6 +152,124 @@ body.has-media .titlebar {
   background: rgba(62, 62, 63, 1);
 }
 
+/* Windowed mode with the strip hidden: the picture runs to the top edge, and the bar
+   slides back when the cursor comes up near it (a wide band — see onMove). It has to
+   come back somehow: this bar holds the drag region and the window buttons.
+   It OVERLAYS the video rather than reserving space (main keeps the video margin at 0
+   either way), so revealing it never reflows the picture. */
+body.no-titlebar .titlebar {
+  transform: translateY(-100%);
+  transition: transform 0.18s ease;
+}
+
+body.no-titlebar.titlebar-peek .titlebar {
+  transform: none;
+}
+
+/* ---------- Mini player (PiP) ---------- */
+/* Same window, shrunk into a corner. No title strip, and the picture IS the drag
+   handle — which is why there's no click-to-pause here and the play button is big.
+   Everything is plain translucency: CSS can't frost the video (that's why the OSC is
+   its own acrylic window), and at this size a scrim is what reads right anyway. */
+body.mini .titlebar {
+  display: none;
+}
+
+/* No -webkit-app-region here on purpose. It would drag the window for free, but Windows
+   treats a drag region as caption: right-clicking it opens the SYSTEM window menu, and
+   the region swallows every mouse event before the DOM sees it — so neither the system
+   menu nor our own could be dealt with. The window is moved by hand instead (pointer
+   deltas → win:move-by), which keeps clicks, hover and right-click ours. */
+
+/* Hidden until the cursor is over the window — and `show` comes from main polling the
+   cursor, not from :hover, because a drag region hands its mouse events to the OS and
+   the renderer never sees hover over the picture.
+   The container must not eat pointer events: everything around the buttons is the
+   window's drag handle. Only the buttons opt back in, and only while shown — invisible
+   buttons that still caught the mouse would silently block dragging. */
+.mini-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+  /* a gentle scrim rides in with the controls; at rest it's pure picture */
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.32) 100%);
+}
+
+.mini-ui.show {
+  opacity: 1;
+}
+
+.mini-ui.show .mini-play,
+.mini-ui.show .mini-exit {
+  pointer-events: auto;
+}
+
+.mini-play,
+.mini-exit {
+  position: absolute;
+  pointer-events: none;
+  /* legible even where the frame behind them is bright */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, opacity 0.14s, transform 0.1s;
+}
+
+.mini-play {
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  /* 12px, same family as .url-input / .open-btn — soft, deliberately not a circle */
+  border-radius: 12px;
+}
+
+.mini-exit {
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+
+@media (hover: hover) {
+  .mini-play:hover,
+  .mini-exit:hover {
+    background: rgba(255, 255, 255, 0.17);
+    border-color: rgba(255, 255, 255, 0.32);
+  }
+}
+
+.mini-play:active,
+.mini-exit:active {
+  transform: scale(0.94);
+}
+
+/* hairline progress, read-only — a drag here would fight the window drag */
+.mini-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  pointer-events: none; /* never steal a drag that starts near the bottom edge */
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.mini-bar span {
+  display: block;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.85);
+}
+
 /* fullscreen is immersive: no strip, the video fills the screen */
 body.fullscreen .titlebar {
   display: none;

@@ -5,6 +5,7 @@ import { useT } from '../useT'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
 import UrlAdvanced from '../components/UrlAdvanced'
+import MiniControls from '../components/MiniControls'
 import type { MenuNode, SerializedMenuNode } from '../components/ContextMenu'
 
 // Release filenames carry a tail of technical tags ("…S01E01.1080p.WEB-DL.AAC2.0
@@ -61,6 +62,10 @@ export default function OverlayView() {
   const [urlOpen, setUrlOpen] = useState(false)
   const [urlText, setUrlText] = useState('')
   const [urlUa, setUrlUa] = useState('') // optional per-source User-Agent (Advanced)
+  const [mini, setMini] = useState(false) // mini player (PiP) — owned by main
+  const [miniHover, setMiniHover] = useState(false) // cursor over it, polled in main
+  const [hideTitleBar, setHideTitleBar] = useState(false) // windowed: strip hidden
+  const [titlePeek, setTitlePeek] = useState(false) // …and the cursor is up near the top
   const [screenshotSubs, setScreenshotSubs] = useState(true)
   const [loading, setLoading] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -145,6 +150,15 @@ export default function OverlayView() {
     const x = e.clientX
     const y = e.clientY
     const h = window.innerHeight
+    // With the strip hidden this is the only way back to the drag region and the window
+    // buttons, so the band is deliberately generous: a first attempt used the top few
+    // pixels and was near-impossible to hit, because a frameless window's outermost
+    // pixels are the OS resize band and the DOM never sees a cursor that far up. 64px
+    // to summon, and it stays until 110 — well past the bar's own 32px, so reaching for
+    // it can't make it duck away. NOT tied to the OSC's reveal: that fires on any
+    // movement anywhere, which would put the bar back on screen constantly and undo the
+    // point of hiding it.
+    if (hideTitleBar) setTitlePeek(prev => (prev ? y <= 110 : y <= 64))
     // Returning to the window (pointer came from outside) shouldn't pop the OSC.
     // A single small nudge on re-entry isn't intent — and if you enter into the
     // top/bottom edge zone, the edge check below would fire immediately. So after
@@ -208,6 +222,32 @@ export default function OverlayView() {
   useEffect(() => {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])
+
+  // mini player: main owns the mode (bounds / topmost / aspect); we just dress the window
+  useEffect(() => window.mmp.onMini(setMini), [])
+  useEffect(() => window.mmp.onMiniHover(setMiniHover), [])
+  useEffect(() => {
+    window.mmp.getSettings().then(s => setHideTitleBar(!!s.hideTitleBar))
+    return window.mmp.onSettingsChanged(s => setHideTitleBar(!!s.hideTitleBar))
+  }, [])
+  useEffect(() => {
+    document.body.classList.toggle('no-titlebar', hideTitleBar)
+  }, [hideTitleBar])
+  useEffect(() => {
+    document.body.classList.toggle('titlebar-peek', titlePeek)
+  }, [titlePeek])
+  useEffect(() => {
+    document.body.classList.toggle('mini', mini)
+  }, [mini])
+  // Esc leaves it, like fullscreen
+  useEffect(() => {
+    if (!mini) return
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') window.mmp.toggleMini()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mini])
 
   // Announce an undecodable audio track once, when it's detected — silence with no
   // explanation reads as "the player is broken". The OSC badge keeps saying Unknown
@@ -363,6 +403,12 @@ export default function OverlayView() {
     // reflects its current state — clicking again removes it
     { label: t('menu.favourite'), checked: currentFav, onClick: () => window.mmp.favouriteCurrent() },
     { sep: true },
+    {
+      label: t('menu.hideTitleBar'),
+      checked: hideTitleBar,
+      onClick: () => window.mmp.setSetting('hideTitleBar', !hideTitleBar)
+    },
+    { label: t('menu.mini'), checked: mini, onClick: () => window.mmp.toggleMini() },
     { label: t('menu.home'), onClick: () => window.mmp.goHome() },
     { label: t('menu.openFile'), onClick: p.openFile },
     { label: t('menu.openUrl'), onClick: () => { setUrlText(''); setUrlUa(''); setUrlOpen(true) } },
@@ -375,7 +421,7 @@ export default function OverlayView() {
   // it when the menu window reports back what was clicked.
   const menuActions = useRef(new Map<string, () => void>())
 
-  const openMenuWindow = (screenX: number, screenY: number): void => {
+  const openMenuWindow = (screenX: number, screenY: number, nodes?: MenuNode[]): void => {
     menuActions.current.clear()
     const pack = (nodes: MenuNode[], prefix = ''): SerializedMenuNode[] =>
       nodes.map((n, i) => {
@@ -390,7 +436,43 @@ export default function OverlayView() {
           submenu: n.submenu ? pack(n.submenu, `${id}.`) : undefined
         }
       })
-    window.mmp.openMenu(screenX, screenY, pack(menuItems))
+    window.mmp.openMenu(screenX, screenY, pack(nodes ?? menuItems))
+  }
+
+  // The mini player gets its own short menu: the full one is a dozen entries aimed at a
+  // window that has a playlist, panels and a settings gear — none of which exist here.
+  const miniMenuItems = (): MenuNode[] => [
+    { label: t('menu.previous'), onClick: () => window.mmp.playPrev(), disabled: plCount <= 1 },
+    { label: t('menu.next'), onClick: () => window.mmp.playNext(), disabled: plCount <= 1 },
+    { label: t('menu.prevChapter'), onClick: () => window.mmp.command(['add', 'chapter', -1]), disabled: !hasChapters },
+    { label: t('menu.nextChapter'), onClick: () => window.mmp.command(['add', 'chapter', 1]), disabled: !hasChapters },
+    { sep: true },
+    { label: t('menu.fullscreen'), onClick: p.fullscreen },
+    { label: t('mini.exit'), onClick: () => window.mmp.toggleMini() }
+  ]
+
+  // Drag the window by hand: the mini player has no -webkit-app-region (that would hand
+  // every mouse event, right-click included, to Windows). What travels is the cursor's
+  // TOTAL offset from where the drag began, not a per-event increment — main anchors the
+  // window rect at the same moment, so the two always resolve to the same absolute spot.
+  // Increments drifted: IPC is async, and a step computed before the previous one landed
+  // was silently lost, leaving the window trailing further behind the cursor.
+  const dragFrom = useRef<{ x: number; y: number } | null>(null)
+  const onMiniPointerDown = (e: React.PointerEvent): void => {
+    if (e.button !== 0) return
+    dragFrom.current = { x: e.screenX, y: e.screenY }
+    window.mmp.dragWindowStart()
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const onMiniPointerMove = (e: React.PointerEvent): void => {
+    const from = dragFrom.current
+    if (!from) return
+    window.mmp.dragWindowTo(e.screenX - from.x, e.screenY - from.y)
+  }
+  const onMiniPointerUp = (e: React.PointerEvent): void => {
+    if (dragFrom.current) window.mmp.dragWindowEnd()
+    dragFrom.current = null
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
   }
 
   return (
@@ -420,19 +502,37 @@ export default function OverlayView() {
       <TitleBar title={p.state.title} />
       <div
         className="video-surface"
-        onClick={p.togglePause}
-        onDoubleClick={p.fullscreen}
+        // In the mini player the picture is the drag handle, so a press moves the window
+        // rather than pausing — that's why the play button is large. Double-click is left
+        // alone there too; exit is the button, the menu, or Esc.
+        onClick={mini ? undefined : p.togglePause}
+        onDoubleClick={mini ? undefined : p.fullscreen}
+        onPointerDown={mini ? onMiniPointerDown : undefined}
+        onPointerMove={mini ? onMiniPointerMove : undefined}
+        onPointerUp={mini ? onMiniPointerUp : undefined}
+        onPointerCancel={mini ? onMiniPointerUp : undefined}
         onContextMenu={e => {
           // right-click menu only during playback (empty state keeps its URL shortcut)
           if (!p.state.hasMedia) return
           e.preventDefault()
-          openMenuWindow(e.screenX, e.screenY)
+          openMenuWindow(e.screenX, e.screenY, mini ? miniMenuItems() : undefined)
         }}
       />
       {/* loading (a URL/playlist resolving) hides the home screen right away — just
           the bare window + spinner, exactly like loading a single video; if it
           fails, end-file clears loading and the home screen comes back */}
-      {!p.state.hasMedia && !loading && <EmptyState onOpen={p.openFile} />}
+      {!p.state.hasMedia && !loading && !mini && <EmptyState onOpen={p.openFile} />}
+
+      {mini && (
+        <MiniControls
+          show={miniHover}
+          pause={p.state.pause}
+          timePos={p.state.timePos}
+          duration={p.state.duration}
+          onToggle={p.togglePause}
+          onExit={() => window.mmp.toggleMini()}
+        />
+      )}
 
       {/* Always-on timecode + frame burn-in. Deliberately independent of the OSC's
           readout: the OSC auto-hides, and staring at frames is exactly when you

@@ -49,6 +49,7 @@ interface Settings {
   screenshotFormat: 'png' | 'jpg'
   screenshotDir: string
   recordingDir: string
+  hideTitleBar: boolean
   rememberWindow: boolean
   rememberVolume: boolean
   checkForUpdates: boolean

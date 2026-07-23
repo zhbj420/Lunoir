@@ -48,6 +48,10 @@ const DEFAULTS: Settings = {
   screenshotFormat: 'png',
   screenshotDir: '',
   recordingDir: '', // where stream recordings go ('' = Videos/Lunoir default)
+  // hide the title strip in windowed mode — the picture runs to the top edge, and the
+  // bar slides back in when the cursor reaches it (otherwise there'd be no way left to
+  // move or close the window)
+  hideTitleBar: false,
   rememberWindow: true,
   rememberVolume: true,
   checkForUpdates: true, // silently check GitHub for a newer release at launch (Home button)
