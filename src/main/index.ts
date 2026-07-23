@@ -220,6 +220,13 @@ const MEDIA_URL_EXT =
   /\.(mp4|mkv|webm|m4v|mov|avi|flv|ts|m2ts|mpg|mpeg|m3u8|mpd|mp3|flac|aac|wav|ogg|opus|m4a)(\?|#|$)/i
 let ytdlDownloading: Promise<string | null> | null = null
 
+// An IPTV channel list — .m3u / .txt, but NOT .m3u8 (that's a stream manifest, and the
+// trailing 8 keeps it out). The (\?|#|$) tail is the point: subscriptions are handed out
+// as https://host/iptv.m3u?userid=…&auth_token=…, and anchoring on the end of the string
+// sent every one of those down the single-file path — mpv then followed the m3u itself
+// and played entry #1, so the whole list looked like one video.
+const CHANNEL_LIST_EXT = /\.(m3u|txt)(\?|#|$)/i
+
 // mpv ytdl-format per quality cap ('' = yt-dlp's default = best available).
 const YTDL_FORMAT: Record<Settings['streamQuality'], string> = {
   best: '',
@@ -540,6 +547,14 @@ function scanFolder(dir: string): string[] {
 const IPTV_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 
+// A custom User-Agent for the source that's open right now, typed into the URL box's
+// Advanced strip and remembered on the saved source. It belongs to the SOURCE, not the
+// player: some providers serve the real stream only to their own app's UA and quietly
+// redirect everyone else to a placeholder clip, so every channel plays the same test
+// video — while another source needs nothing, or something different. Empty = leave both
+// the list fetch (IPTV_UA) and mpv's own UA alone.
+let sourceUa = ''
+
 /** Parse an IPTV channel list — extended M3U (#EXTINF) or the common txt
  *  (`name,url` with `group,#genre#` headers) — into flat {name,url,group} entries.
  *  Multi-source lists list the same channel several times; kept flat for now. */
@@ -584,7 +599,8 @@ async function fetchChannels(source: string): Promise<Channel[]> {
   try {
     let text: string
     if (/^https?:\/\//i.test(source)) {
-      const res = await fetch(source, { headers: { 'User-Agent': IPTV_UA } })
+      // the source's own UA wins when it has one — some providers gate the list too
+      const res = await fetch(source, { headers: { 'User-Agent': sourceUa || IPTV_UA } })
       text = await res.text()
     } else {
       text = readFileSync(source, 'utf8')
@@ -622,7 +638,7 @@ async function loadChannelList(source: string): Promise<void> {
 /** Classify + record a freshly-opened target in the recents list. The name is
  *  provisional (a URL's real title arrives later via media-title → refined then). */
 function recordOpen(target: string): void {
-  const kind: MediaKind = /\.(m3u|txt)$/i.test(target) || isPlaylistUrl(target)
+  const kind: MediaKind = CHANNEL_LIST_EXT.test(target) || isPlaylistUrl(target)
     ? 'list'
     : isUrl(target)
       ? 'url'
@@ -741,6 +757,7 @@ function playFavCollection(fav: FavEntry, channels: Channel[], startIndex: numbe
  *  to the stored snapshot if the source is offline/gone. A saved playlist just plays
  *  its snapshot items (they're local/VOD files, not a live directory). */
 function loadFavCollection(fav: FavEntry, startIndex = 0): void {
+  sourceUa = fav.userAgent ?? '' // restore (or clear) the source's UA before anything fetches
   if (fav.kind === 'playlist' && fav.items?.length) {
     playFavCollection(fav, fav.items.map(i => ({ url: i.path, name: i.name, group: '' })), startIndex)
     return
@@ -770,25 +787,29 @@ function favouriteTarget(target: string): void {
     kind = curOpen.kind
     if (kind === 'list') channels = curOpenChannels ?? undefined
   } else {
-    kind = /\.(m3u|txt)$/i.test(target) || isPlaylistUrl(target) ? 'list' : isUrl(target) ? 'url' : 'file'
+    kind = CHANNEL_LIST_EXT.test(target) || isPlaylistUrl(target) ? 'list' : isUrl(target) ? 'url' : 'file'
   }
   const name = getRecents().find(r => r.target === target)?.name || (kind === 'url' ? target : basename(target) || target)
   const entry: FavEntry = { target, name, kind, at: Date.now() }
   if (channels) entry.channels = channels
+  // remember the source's UA with it — otherwise reopening from the library would go
+  // back to being served the placeholder clip and you'd have to retype it every time
+  if (sourceUa) entry.userAgent = sourceUa
   addFavourite(entry)
   afterFavChange()
 }
 
 /** Open media the user picked — a file, a URL, a Blu-ray/DVD disc folder, or a
  *  plain folder (whose videos are queued). */
-function openMedia(target: string): void {
+function openMedia(target: string, userAgent = ''): void {
+  sourceUa = userAgent // a fresh open replaces it — including clearing it back to none
   recordOpen(target)
   if (isPlaylistUrl(target)) {
     loadPlaylistUrl(target) // async: enumerate the entries, then queue + play them
     return
   }
   // an IPTV channel list (.m3u / .txt — NOT .m3u8, which is a stream manifest)
-  if (/\.(m3u|txt)$/i.test(target)) {
+  if (CHANNEL_LIST_EXT.test(target)) {
     loadChannelList(target)
     return
   }
@@ -868,6 +889,12 @@ function playCurrent(): void {
   if (mpv && isDiscUri(target)) {
     mpv.setProperty(target === 'bd://' ? 'bluray-device' : 'dvd-device', discDevice)
   }
+  // Custom User-Agent, applied per load and ONLY for channels. Some IPTV providers
+  // serve the real stream just to their own app's UA and silently 302 everyone else to
+  // a placeholder clip — every channel then plays the same test video. Set for channel
+  // loads, cleared ('' = mpv's own default) for everything else, so a file, a disc or
+  // an online video is never carrying somebody's IPTV UA.
+  if (mpv) mpv.setProperty('user-agent', sourceType === 'iptv' ? sourceUa : '')
   // The title to force once loaded: a disc's folder name, or an IPTV channel's name
   // (its HLS/http feed carries no useful title, and IPTV URLs often lack a media
   // extension so force it regardless). Everything else clears the override so mpv
@@ -2667,7 +2694,9 @@ function registerIpc(): void {
     }
   })
   ipcMain.on('mpv:set', (_e, name: string, value: unknown) => mpv?.setProperty(name, value))
-  ipcMain.on('mpv:loadfile', (_e, path: string) => openMedia(path))
+  ipcMain.on('mpv:loadfile', (_e, path: string, userAgent?: string) =>
+    openMedia(path, typeof userAgent === 'string' ? userAgent : '')
+  )
   ipcMain.on('ui:activity', () => {
     if (Date.now() < suppressRevealUntil) return // just toggled fullscreen — stay quiet
     revealUi()

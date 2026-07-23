@@ -4,6 +4,7 @@ import { useShortcuts } from '../useShortcuts'
 import { useT } from '../useT'
 import TitleBar from '../components/TitleBar'
 import EmptyState from '../components/EmptyState'
+import UrlAdvanced from '../components/UrlAdvanced'
 import type { MenuNode, SerializedMenuNode } from '../components/ContextMenu'
 
 // Release filenames carry a tail of technical tags ("…S01E01.1080p.WEB-DL.AAC2.0
@@ -59,6 +60,7 @@ export default function OverlayView() {
   const [toast, setToast] = useState<string | null>(null)
   const [urlOpen, setUrlOpen] = useState(false)
   const [urlText, setUrlText] = useState('')
+  const [urlUa, setUrlUa] = useState('') // optional per-source User-Agent (Advanced)
   const [screenshotSubs, setScreenshotSubs] = useState(true)
   const [loading, setLoading] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -270,7 +272,7 @@ export default function OverlayView() {
 
   const submitUrl = (): void => {
     const u = urlText.trim()
-    if (u) window.mmp.loadFile(u)
+    if (u) window.mmp.loadFile(u, urlUa.trim())
     setUrlOpen(false)
   }
 
@@ -342,7 +344,7 @@ export default function OverlayView() {
     { label: t('menu.favourite'), checked: currentFav, onClick: () => window.mmp.favouriteCurrent() },
     { sep: true },
     { label: t('menu.openFile'), onClick: p.openFile },
-    { label: t('menu.openUrl'), onClick: () => { setUrlText(''); setUrlOpen(true) } },
+    { label: t('menu.openUrl'), onClick: () => { setUrlText(''); setUrlUa(''); setUrlOpen(true) } },
     { sep: true },
     { label: t('menu.fullscreen'), onClick: p.fullscreen }
   ]
@@ -434,7 +436,8 @@ export default function OverlayView() {
         className={`url-overlay ${urlOpen ? 'open' : ''}`}
         onMouseDown={() => setUrlOpen(false)}
       >
-        <div className="url-box" onMouseDown={e => e.stopPropagation()}>
+        <div className="url-wrap" onMouseDown={e => e.stopPropagation()}>
+        <div className="url-box">
           <input
             ref={urlInputRef}
             className="url-input"
@@ -453,6 +456,8 @@ export default function OverlayView() {
               <path d="M8 5 L18 12 L8 19 Z" fill="currentColor" />
             </svg>
           </button>
+        </div>
+        <UrlAdvanced ua={urlUa} onChange={setUrlUa} />
         </div>
       </div>
 

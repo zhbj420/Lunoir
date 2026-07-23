@@ -10,6 +10,8 @@ export const de: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Video hierher ziehen zum Abspielen',
   'empty.urlPlaceholder': 'Video- oder Stream-URL einfügen…',
+  'url.advanced': 'Erweitert',
+  'url.userAgent': 'User-Agent (nur wenn diese Quelle einen braucht)',
   'empty.urlPlay': 'Abspielen',
   'empty.openFile': 'Datei öffnen',
   'empty.hint': 'Doppelklick für Ordner · Rechtsklick für URL',

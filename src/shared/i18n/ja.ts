@@ -12,6 +12,8 @@ export const ja: Partial<Record<Key, string>> = {
 
   'empty.tagline': '動画をドロップして再生',
   'empty.urlPlaceholder': '動画やストリームの URL を貼り付け…',
+  'url.advanced': '詳細設定',
+  'url.userAgent': 'User-Agent(このソースに必要な場合のみ)',
   'empty.urlPlay': '再生',
   'empty.openFile': 'ファイルを開く',
   'empty.hint': 'ダブルクリックでフォルダー · 右クリックで URL',

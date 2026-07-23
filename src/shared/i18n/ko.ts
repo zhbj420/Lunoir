@@ -12,6 +12,8 @@ export const ko: Partial<Record<Key, string>> = {
 
   'empty.tagline': '동영상을 끌어다 놓아 재생',
   'empty.urlPlaceholder': '동영상 또는 스트림 URL 붙여넣기…',
+  'url.advanced': '고급',
+  'url.userAgent': 'User-Agent (이 소스에 필요한 경우에만)',
   'empty.urlPlay': '재생',
   'empty.openFile': '파일 열기',
   'empty.hint': '더블클릭은 폴더 · 우클릭은 URL',

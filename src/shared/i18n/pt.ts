@@ -10,6 +10,8 @@ export const pt: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Arraste um vídeo para reproduzir',
   'empty.urlPlaceholder': 'Cole o URL de um vídeo ou transmissão…',
+  'url.advanced': 'Avançado',
+  'url.userAgent': 'User-Agent (só se esta fonte precisar de um)',
   'empty.urlPlay': 'Reproduzir',
   'empty.openFile': 'Abrir ficheiro',
   'empty.hint': 'Duplo clique para uma pasta · clique direito para um URL',

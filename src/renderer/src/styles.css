@@ -309,6 +309,85 @@ body.fullscreen .titlebar {
   font-size: 14px;
 }
 
+/* Column wrapper: the URL row, with the collapsed Advanced strip tucked under it.
+   The margin moved up here so the strip doesn't add a second gap. */
+.url-wrap {
+  margin-top: 26px;
+  pointer-events: auto;
+  width: min(420px, 68vw);
+}
+
+.url-wrap .url-box {
+  margin-top: 0;
+  width: 100%;
+}
+
+/* Advanced (per-source User-Agent) — deliberately quiet: almost nobody needs it, so it
+   reads as a footnote under the URL, not as a second field competing with it. */
+.url-adv {
+  margin-top: 7px;
+}
+
+.url-adv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.42);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.url-adv-toggle svg {
+  transition: transform 0.18s;
+}
+
+.url-adv-toggle.open svg {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+  .url-adv-toggle:hover {
+    color: rgba(255, 255, 255, 0.72);
+  }
+}
+
+/* a value is set but folded away — mark it, so it's never silently in effect */
+.url-adv-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(122, 142, 255, 0.9);
+}
+
+.url-adv-input {
+  width: 100%;
+  margin-top: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.url-adv-input::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.url-adv-input:focus {
+  border-color: rgba(122, 142, 255, 0.7);
+  background: rgba(255, 255, 255, 0.09);
+}
+
 .url-box {
   margin-top: 26px;
   display: flex;

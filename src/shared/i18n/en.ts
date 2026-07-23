@@ -14,6 +14,8 @@ export const en = {
   // ---- empty state (no media loaded) ----
   'empty.tagline': 'Drop a video anywhere to play',
   'empty.urlPlaceholder': 'Paste a video or stream URL…',
+  'url.advanced': 'Advanced',
+  'url.userAgent': 'User-Agent (only if this source needs one)',
   'empty.urlPlay': 'Play',
   'empty.openFile': 'Open File',
   'empty.hint': 'Double-click for a folder · right-click for a URL',

@@ -82,6 +82,7 @@ export interface FavEntry {
   at: number // added epoch ms
   channels?: Channel[] // present for kind === 'list' (IPTV) — the parsed channels
   items?: { path: string; name: string }[] // present for kind === 'playlist' — the queue
+  userAgent?: string // custom UA this source needs (set in the URL box's Advanced strip)
 }
 
 export interface MpvProperty {
@@ -162,7 +163,9 @@ const api = {
   // --- mpv control ---
   command: (cmd: any[]): Promise<any> => ipcRenderer.invoke('mpv:command', cmd),
   set: (name: string, value: unknown): void => ipcRenderer.send('mpv:set', name, value),
-  loadFile: (path: string): void => ipcRenderer.send('mpv:loadfile', path),
+  // userAgent: optional, from the URL box's Advanced strip — belongs to this source
+  loadFile: (path: string, userAgent = ''): void =>
+    ipcRenderer.send('mpv:loadfile', path, userAgent),
 
   onProperty: (cb: (p: MpvProperty) => void): Unsubscribe =>
     subscribe('mpv:property', (p: MpvProperty) => cb(p)),

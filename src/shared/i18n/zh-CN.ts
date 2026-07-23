@@ -9,6 +9,8 @@ export const zhCN: Partial<Record<Key, string>> = {
 
   'empty.tagline': '拖入视频开始播放',
   'empty.urlPlaceholder': '粘贴视频或流媒体链接…',
+  'url.advanced': '高级',
+  'url.userAgent': 'User-Agent(仅当此源需要时填写)',
   'empty.urlPlay': '播放',
   'empty.openFile': '打开文件',
   'empty.hint': '双击打开文件夹 · 右键打开 URL',

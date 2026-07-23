@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import logoUrl from '../assets/logo.png'
 import wordmarkUrl from '../assets/Lunoir.png'
 import { useT } from '../useT'
+import UrlAdvanced from './UrlAdvanced'
 
 export default function EmptyState({ onOpen }: { onOpen: () => void }) {
   const t = useT()
   const [urlInput, setUrlInput] = useState(false)
   const [url, setUrl] = useState('')
+  const [ua, setUa] = useState('') // optional per-source User-Agent (Advanced)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // reflect the open state of the surfaces these two entries toggle (like the OSC)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -24,7 +26,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
 
   const submitUrl = () => {
     const u = url.trim()
-    if (u) window.mmp.loadFile(u)
+    if (u) window.mmp.loadFile(u, ua.trim())
   }
 
   // single click = open a file; double click = open a Blu-ray/DVD disc folder
@@ -55,6 +57,7 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
       <div className="brand-tagline">{t('empty.tagline')}</div>
 
       {urlInput ? (
+        <div className="url-wrap">
         <div
           className="url-box"
           onContextMenu={e => {
@@ -79,6 +82,8 @@ export default function EmptyState({ onOpen }: { onOpen: () => void }) {
               <path d="M8 5 L18 12 L8 19 Z" fill="currentColor" />
             </svg>
           </button>
+        </div>
+        <UrlAdvanced ua={ua} onChange={setUa} />
         </div>
       ) : (
         <div className="cta-wrap">

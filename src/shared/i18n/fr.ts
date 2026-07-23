@@ -10,6 +10,8 @@ export const fr: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Déposez une vidéo pour la lire',
   'empty.urlPlaceholder': 'Collez l’URL d’une vidéo ou d’un flux…',
+  'url.advanced': 'Avancé',
+  'url.userAgent': 'User-Agent (seulement si cette source en exige un)',
   'empty.urlPlay': 'Lire',
   'empty.openFile': 'Ouvrir un fichier',
   'empty.hint': 'Double-clic pour un dossier · clic droit pour une URL',

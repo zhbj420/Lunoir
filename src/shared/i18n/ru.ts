@@ -11,6 +11,8 @@ export const ru: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Перетащите видео для воспроизведения',
   'empty.urlPlaceholder': 'Вставьте URL видео или потока…',
+  'url.advanced': 'Дополнительно',
+  'url.userAgent': 'User-Agent (только если он нужен этому источнику)',
   'empty.urlPlay': 'Воспроизвести',
   'empty.openFile': 'Открыть файл',
   'empty.hint': 'Двойной щелчок — папка · правый щелчок — URL',
