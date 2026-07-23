@@ -10,3 +10,6 @@ resources/mediainfo/
 # wingetcreate output (the winget-pkgs submission lives in that PR; our reference
 # manifests are kept under packaging/winget/)
 manifests/
+
+# Working notes for AI pair-programming — kept local
+CLAUDE.md
