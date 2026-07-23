@@ -20,6 +20,15 @@ const ALPHA_SOLID = 0.68 // slider 0
 const ALPHA_GLASS = 0.12 // slider 100
 const INACTIVE_BUMP = 0.1 // heavier when the app isn't focused (see above)
 
+// The empty state (Home) gets the same treatment, on its own much lighter range —
+// it sits on the main window's own acrylic, which already carries most of the tint,
+// so it never needed as heavy a scrim as the panels. Endpoints are picked so the
+// DEFAULT slider position reproduces the old fixed values exactly (0.20 / 0.32),
+// i.e. nothing moves unless the user actually drags the slider.
+const EMPTY_SOLID = 0.34 // slider 0
+const EMPTY_GLASS = 0.06 // slider 100
+const EMPTY_INACTIVE_BUMP = 0.12
+
 export const FROST_DEFAULT = 50 // ≈ alpha 0.40 — the look before this setting existed
 // (recompute this whenever an endpoint moves: v = (0.40 - SOLID) / (GLASS - SOLID))
 
@@ -30,6 +39,10 @@ function apply(strength: number): void {
   const el = document.documentElement
   el.style.setProperty('--panel', `rgba(${R}, ${G}, ${B}, ${active.toFixed(3)})`)
   el.style.setProperty('--panel-inactive', `rgba(${R}, ${G}, ${B}, ${inactive.toFixed(3)})`)
+  const emptyActive = EMPTY_SOLID + v * (EMPTY_GLASS - EMPTY_SOLID)
+  const emptyInactive = Math.min(0.6, emptyActive + EMPTY_INACTIVE_BUMP)
+  el.style.setProperty('--empty-scrim', `rgba(16, 16, 20, ${emptyActive.toFixed(3)})`)
+  el.style.setProperty('--empty-scrim-inactive', `rgba(16, 16, 20, ${emptyInactive.toFixed(3)})`)
 }
 
 window.mmp.getSettings().then(s => apply(s.frostStrength ?? FROST_DEFAULT))
