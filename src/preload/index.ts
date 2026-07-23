@@ -166,6 +166,9 @@ const api = {
   // userAgent: optional, from the URL box's Advanced strip — belongs to this source
   loadFile: (path: string, userAgent = ''): void =>
     ipcRenderer.send('mpv:loadfile', path, userAgent),
+  // stop playback and clear the queue — back to the Home screen
+  goHome: (): void => ipcRenderer.send('ui:go-home'),
+  onGoHome: (cb: () => void): Unsubscribe => subscribe('ui:home', () => cb()),
 
   onProperty: (cb: (p: MpvProperty) => void): Unsubscribe =>
     subscribe('mpv:property', (p: MpvProperty) => cb(p)),

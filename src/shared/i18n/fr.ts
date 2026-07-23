@@ -10,6 +10,8 @@ export const fr: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Déposez une vidéo pour la lire',
   'empty.urlPlaceholder': 'Collez l’URL d’une vidéo ou d’un flux…',
+  'osc.audioUnknown': 'Inconnu',
+  'osc.audioUnsupported': 'Ce format audio ne peut pas être décodé — image seule',
   'url.advanced': 'Avancé',
   'url.userAgent': 'User-Agent (seulement si cette source en exige un)',
   'empty.urlPlay': 'Lire',
@@ -219,6 +221,7 @@ export const fr: Partial<Record<Key, string>> = {
   'menu.screenshot': 'Capture d’écran',
   'menu.tcOverlay': 'Timecode en incrustation',
   'menu.favourite': 'Ajouter à la bibliothèque',
+  'menu.home': 'Retour à l’accueil',
   'menu.openFile': 'Ouvrir un fichier…',
   'menu.openUrl': 'Ouvrir une URL…',
   'menu.fullscreen': 'Plein écran',

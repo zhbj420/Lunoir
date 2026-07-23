@@ -12,6 +12,8 @@ export const ja: Partial<Record<Key, string>> = {
 
   'empty.tagline': '動画をドロップして再生',
   'empty.urlPlaceholder': '動画やストリームの URL を貼り付け…',
+  'osc.audioUnknown': '不明',
+  'osc.audioUnsupported': 'この音声形式はデコードできません(映像のみ)',
   'url.advanced': '詳細設定',
   'url.userAgent': 'User-Agent(このソースに必要な場合のみ)',
   'empty.urlPlay': '再生',
@@ -221,6 +223,7 @@ export const ja: Partial<Record<Key, string>> = {
   'menu.screenshot': 'スクリーンショット',
   'menu.tcOverlay': 'タイムコード表示',
   'menu.favourite': 'ライブラリに追加',
+  'menu.home': 'ホームに戻る',
   'menu.openFile': 'ファイルを開く…',
   'menu.openUrl': 'URL を開く…',
   'menu.fullscreen': '全画面',

@@ -9,6 +9,8 @@ export const zhCN: Partial<Record<Key, string>> = {
 
   'empty.tagline': '拖入视频开始播放',
   'empty.urlPlaceholder': '粘贴视频或流媒体链接…',
+  'osc.audioUnknown': '未知',
+  'osc.audioUnsupported': '此音频格式无法解码,仅有画面',
   'url.advanced': '高级',
   'url.userAgent': 'User-Agent(仅当此源需要时填写)',
   'empty.urlPlay': '播放',
@@ -217,6 +219,7 @@ export const zhCN: Partial<Record<Key, string>> = {
   'menu.screenshot': '截图',
   'menu.tcOverlay': '时间码角标',
   'menu.favourite': '收藏当前',
+  'menu.home': '返回主页',
   'menu.openFile': '打开文件…',
   'menu.openUrl': '打开 URL…',
   'menu.fullscreen': '全屏',

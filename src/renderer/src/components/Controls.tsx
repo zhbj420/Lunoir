@@ -103,7 +103,12 @@ export default function Controls(props: Props) {
   const pct = state.duration > 0 ? (state.timePos / state.duration) * 100 : 0
   const volPct = Math.min(100, (state.volume / 150) * 100)
   const hdr = hdrLabel(state.gamma, state.hdrFormat)
-  const audio = audioBadge(state.audioCodec, state.audioChannels, state.audioCommercial)
+  // "Unknown" rather than the codec name mpv guessed — when the demuxer can't even probe
+  // the stream, printing a format that isn't playing is worse than admitting we don't
+  // know. The full explanation arrives once, as a toast (see OverlayView).
+  const audio = state.audioUnsupported
+    ? t('osc.audioUnknown')
+    : audioBadge(state.audioCodec, state.audioChannels, state.audioCommercial)
   // resolution — only for streams (locally you already know the quality). Sits on the
   // top badge line with HDR, e.g. "2160p HDR10". The "p" is only printed where it's
   // certain: web VOD is progressive, but a broadcast channel can be either and mpv's

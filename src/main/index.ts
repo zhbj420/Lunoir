@@ -801,6 +801,37 @@ function favouriteTarget(target: string): void {
 
 /** Open media the user picked — a file, a URL, a Blu-ray/DVD disc folder, or a
  *  plain folder (whose videos are queued). */
+/** Stop playback and clear everything the queue described — back to the Home screen.
+ *  Mirrors what a fresh open resets, minus loading anything: mpv goes idle, the panels
+ *  empty out, and the renderer drops its media state (see onGoHome). */
+function goHome(): void {
+  mpv?.command(['stop']).catch(() => {})
+  mpv?.setProperty('speed', 1) // a timeline clip may have owned the rate
+  playlist = []
+  plIndex = -1
+  urlTitles = {}
+  playlistKey = ''
+  discDevice = ''
+  curOpen = null
+  curOpenChannels = null
+  curRecentPending = false
+  sourceType = 'queue'
+  sourceUa = ''
+  mergeOn = false
+  pendingMergeSeek = -1
+  trimClip = -1
+  clipStarts = []
+  timelineChapterTimes = []
+  trims.clear()
+  clipFps.clear()
+  resumePath = '' // nothing playing → nothing to write a position for
+  broadcastTrim()
+  broadcast('playlist:changed', playlistPayload())
+  broadcast('library:collection-saved', collectionSaved())
+  broadcast('ui:loading', false)
+  broadcast('ui:home')
+}
+
 function openMedia(target: string, userAgent = ''): void {
   sourceUa = userAgent // a fresh open replaces it — including clearing it back to none
   recordOpen(target)
@@ -3002,6 +3033,7 @@ function registerIpc(): void {
     broadcast('settings:changed', getSettings()) // let other windows (e.g. screenshot) track it
   })
 
+  ipcMain.on('ui:go-home', () => goHome())
   ipcMain.on('ui:open-disc', () => promptOpenFolder()) // double-click Open File → folder/disc
   ipcMain.on('win:minimize', () => win?.minimize())
   ipcMain.on('win:toggle-maximize', () => {

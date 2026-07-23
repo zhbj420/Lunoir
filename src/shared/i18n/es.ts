@@ -10,6 +10,8 @@ export const es: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Arrastra un vídeo para reproducir',
   'empty.urlPlaceholder': 'Pega la URL de un vídeo o emisión…',
+  'osc.audioUnknown': 'Desconocido',
+  'osc.audioUnsupported': 'Este formato de audio no se puede decodificar: solo imagen',
   'url.advanced': 'Avanzado',
   'url.userAgent': 'User-Agent (solo si esta fuente lo necesita)',
   'empty.urlPlay': 'Reproducir',
@@ -219,6 +221,7 @@ export const es: Partial<Record<Key, string>> = {
   'menu.screenshot': 'Captura',
   'menu.tcOverlay': 'Timecode superpuesto',
   'menu.favourite': 'Añadir a la biblioteca',
+  'menu.home': 'Volver al inicio',
   'menu.openFile': 'Abrir archivo…',
   'menu.openUrl': 'Abrir URL…',
   'menu.fullscreen': 'Pantalla completa',

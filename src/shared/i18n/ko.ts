@@ -12,6 +12,8 @@ export const ko: Partial<Record<Key, string>> = {
 
   'empty.tagline': '동영상을 끌어다 놓아 재생',
   'empty.urlPlaceholder': '동영상 또는 스트림 URL 붙여넣기…',
+  'osc.audioUnknown': '알 수 없음',
+  'osc.audioUnsupported': '이 오디오 형식은 디코딩할 수 없습니다 — 영상만 재생',
   'url.advanced': '고급',
   'url.userAgent': 'User-Agent (이 소스에 필요한 경우에만)',
   'empty.urlPlay': '재생',
@@ -221,6 +223,7 @@ export const ko: Partial<Record<Key, string>> = {
   'menu.screenshot': '스크린샷',
   'menu.tcOverlay': '타임코드 오버레이',
   'menu.favourite': '보관함에 추가',
+  'menu.home': '홈으로 돌아가기',
   'menu.openFile': '파일 열기…',
   'menu.openUrl': 'URL 열기…',
   'menu.fullscreen': '전체 화면',

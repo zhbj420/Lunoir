@@ -14,6 +14,8 @@ export const en = {
   // ---- empty state (no media loaded) ----
   'empty.tagline': 'Drop a video anywhere to play',
   'empty.urlPlaceholder': 'Paste a video or stream URL…',
+  'osc.audioUnknown': 'Unknown',
+  'osc.audioUnsupported': 'This audio format can’t be decoded — video only',
   'url.advanced': 'Advanced',
   'url.userAgent': 'User-Agent (only if this source needs one)',
   'empty.urlPlay': 'Play',
@@ -281,6 +283,7 @@ export const en = {
   'menu.stopRecord': 'Stop recording',
   'menu.tcOverlay': 'Timecode overlay',
   'menu.favourite': 'Save to library',
+  'menu.home': 'Back to Home',
   'menu.openFile': 'Open file…',
   'menu.openUrl': 'Open URL…',
   'menu.fullscreen': 'Fullscreen',

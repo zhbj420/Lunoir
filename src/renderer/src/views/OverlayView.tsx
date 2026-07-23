@@ -209,6 +209,13 @@ export default function OverlayView() {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])
 
+  // Announce an undecodable audio track once, when it's detected — silence with no
+  // explanation reads as "the player is broken". The OSC badge keeps saying Unknown
+  // afterwards; this just makes sure the reason is stated at least once.
+  useEffect(() => {
+    if (p.state.audioUnsupported) showToast(t('osc.audioUnsupported'))
+  }, [p.state.audioUnsupported])
+
   // the menu window hides the OSC, which would drop us into .ui-hidden (cursor:none)
   const [menuOpen, setMenuOpen] = useState(false)
   const [tcOverlay, setTcOverlay] = useState(false)
@@ -343,6 +350,7 @@ export default function OverlayView() {
     // reflects its current state — clicking again removes it
     { label: t('menu.favourite'), checked: currentFav, onClick: () => window.mmp.favouriteCurrent() },
     { sep: true },
+    { label: t('menu.home'), onClick: () => window.mmp.goHome() },
     { label: t('menu.openFile'), onClick: p.openFile },
     { label: t('menu.openUrl'), onClick: () => { setUrlText(''); setUrlUa(''); setUrlOpen(true) } },
     { sep: true },

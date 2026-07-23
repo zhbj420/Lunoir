@@ -11,6 +11,8 @@ export const ru: Partial<Record<Key, string>> = {
 
   'empty.tagline': 'Перетащите видео для воспроизведения',
   'empty.urlPlaceholder': 'Вставьте URL видео или потока…',
+  'osc.audioUnknown': 'Неизвестно',
+  'osc.audioUnsupported': 'Этот формат звука не декодируется — только изображение',
   'url.advanced': 'Дополнительно',
   'url.userAgent': 'User-Agent (только если он нужен этому источнику)',
   'empty.urlPlay': 'Воспроизвести',
@@ -220,6 +222,7 @@ export const ru: Partial<Record<Key, string>> = {
   'menu.screenshot': 'Скриншот',
   'menu.tcOverlay': 'Таймкод поверх видео',
   'menu.favourite': 'Добавить в библиотеку',
+  'menu.home': 'На главную',
   'menu.openFile': 'Открыть файл…',
   'menu.openUrl': 'Открыть URL…',
   'menu.fullscreen': 'Во весь экран',

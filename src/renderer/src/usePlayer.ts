@@ -78,6 +78,11 @@ export interface PlayerState {
   trimClip: number // clip being trimmed (−1 = not trimming) → OSC shows in/out handles
   trimIn: number // in point (seconds) of the isolated clip
   trimOut: number // out point (seconds)
+  // A track IS selected (mpv named a codec) but no channel layout ever arrived, because
+  // nothing actually decoded → the OSC says so instead of showing a codec that isn't
+  // playing. How AV3A (Audio Vivid) presents: FFmpeg can't probe the stream, guesses a
+  // codec from the TS stream type, and produces no samples at all — picture, no sound.
+  audioUnsupported: boolean
 }
 
 const initial: PlayerState = {
@@ -114,7 +119,8 @@ const initial: PlayerState = {
   clipSrcFps: 0,
   trimClip: -1,
   trimIn: 0,
-  trimOut: 0
+  trimOut: 0,
+  audioUnsupported: false
 }
 
 // The playlist payload arrives on every panel change; without this the boundary array
@@ -318,6 +324,31 @@ export function usePlayer() {
     )
   }, [])
 
+
+  // Decide "this audio track can't be decoded" on a delay: the channel layout
+  // legitimately lags the codec name by a moment while a file opens, so judging it
+  // immediately would flash the warning on perfectly good media.
+  useEffect(() => {
+    if (!state.audioCodec || state.audioChannels > 0) {
+      setState(s => (s.audioUnsupported ? { ...s, audioUnsupported: false } : s))
+      return
+    }
+    const id = setTimeout(
+      () =>
+        setState(s =>
+          s.audioCodec && s.audioChannels === 0 ? { ...s, audioUnsupported: true } : s
+        ),
+      5000
+    )
+    return () => clearTimeout(id)
+  }, [state.audioCodec, state.audioChannels])
+
+  // "Back to Home": main stopped playback and cleared the queue. Drop everything that
+  // described the file, but keep volume/mute — those are the user's, not the media's.
+  useEffect(
+    () => window.mmp.onGoHome(() => setState(s => ({ ...initial, volume: s.volume, mute: s.mute }))),
+    []
+  )
 
   // Reveal / auto-hide is coordinated by main across both windows.
   useEffect(() => {
