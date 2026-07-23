@@ -1712,12 +1712,17 @@ body.library-win.library-shown .library {
   padding: 2px 0;
 }
 
+/* Every scrolling surface in the app shares this — the 收藏 overlay (.lib-body) was
+   left on Chromium's default bar, which reads as a grey 2009 widget bolted onto the
+   frosted UI. Keep new scrollable areas in this list. */
 .panel-body::-webkit-scrollbar,
+.lib-body::-webkit-scrollbar,
 .set-dropdown-list::-webkit-scrollbar {
   width: 8px;
 }
 
 .panel-body::-webkit-scrollbar-thumb,
+.lib-body::-webkit-scrollbar-thumb,
 .set-dropdown-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.14);
   border-radius: 4px;
