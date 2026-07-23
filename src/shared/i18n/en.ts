@@ -196,12 +196,14 @@ export const en = {
   'opt.lang.russian': 'Russian',
   'opt.lang.portuguese': 'Portuguese',
   'opt.uiLang.system': 'System',
+  'opt.clipFps.original': 'Original frame rate',
 
   // ---- right panel: tabs ----
   'panel.tab.audioSub': 'Audio & Sub',
   'panel.tab.playlist': 'Playlist',
   'panel.tab.channels': 'Channels',
   'panel.tab.chapters': 'Chapters',
+  'panel.tab.clips': 'Clips', // the playlist tab's name while the Timeline is on
 
   // ---- right panel: playlist ----
   'panel.empty.queue': 'Nothing queued',

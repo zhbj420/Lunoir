@@ -150,11 +150,13 @@ export const ja: Partial<Record<Key, string>> = {
   'opt.lang.russian': 'ロシア語',
   'opt.lang.portuguese': 'ポルトガル語',
   'opt.uiLang.system': 'システム',
+  'opt.clipFps.original': '元のフレームレート',
 
   'panel.tab.audioSub': '音声と字幕',
   'panel.tab.playlist': 'プレイリスト',
   'panel.tab.channels': 'チャンネル',
   'panel.tab.chapters': 'チャプター',
+  'panel.tab.clips': 'クリップ',
 
   'panel.empty.queue': 'キューは空です',
   'panel.repeat.off': 'リピート: オフ',

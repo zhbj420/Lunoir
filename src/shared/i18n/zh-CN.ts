@@ -136,12 +136,14 @@ export const zhCN: Partial<Record<Key, string>> = {
   'opt.lang.russian': '俄语',
   'opt.lang.portuguese': '葡萄牙语',
   'opt.uiLang.system': '跟随系统',
+  'opt.clipFps.original': '原始帧率',
 
   // ---- 右面板：标签页 ----
   'panel.tab.audioSub': '音轨与字幕',
   'panel.tab.playlist': '播放列表',
   'panel.tab.channels': '频道',
   'panel.tab.chapters': '章节',
+  'panel.tab.clips': '片段',
 
   // ---- 右面板：播放列表 ----
   'panel.empty.queue': '列表为空',

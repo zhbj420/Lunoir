@@ -150,11 +150,13 @@ export const ko: Partial<Record<Key, string>> = {
   'opt.lang.russian': '러시아어',
   'opt.lang.portuguese': '포르투갈어',
   'opt.uiLang.system': '시스템',
+  'opt.clipFps.original': '원본 프레임 레이트',
 
   'panel.tab.audioSub': '오디오·자막',
   'panel.tab.playlist': '재생목록',
   'panel.tab.channels': '채널',
   'panel.tab.chapters': '챕터',
+  'panel.tab.clips': '클립',
 
   'panel.empty.queue': '대기열 비어 있음',
   'panel.repeat.off': '반복: 끄기',

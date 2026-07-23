@@ -61,7 +61,12 @@ export interface PlayerState {
   abLoopA: number | null // A-B loop start (seconds) → OSC seek marker, null = unset
   abLoopB: number | null // A-B loop end (seconds)
   merge: boolean // "watch as one" active → draw clip-boundary ticks on the seek bar
-  chapters: number[] // chapter start times (s); in merge mode these are the clip boundaries
+  chapters: number[] // the file's own chapter start times (s) — the Chapters tab
+  clipStarts: number[] // merge mode: the CLIP boundaries, filtered out of the chapter list
+                       // by main (a stitched rip also drags in its own chapters)
+  clipFps: number // the current clip's frame-rate override (0 = none)
+  clipSrcFps: number // …and its native rate. The OSC names one of these instead of a speed
+                     // multiplier — you set a frame rate, so you read a frame rate.
   trimClip: number // clip being trimmed (−1 = not trimming) → OSC shows in/out handles
   trimIn: number // in point (seconds) of the isolated clip
   trimOut: number // out point (seconds)
@@ -95,10 +100,18 @@ const initial: PlayerState = {
   abLoopB: null,
   merge: false,
   chapters: [],
+  clipStarts: [],
+  clipFps: 0,
+  clipSrcFps: 0,
   trimClip: -1,
   trimIn: 0,
   trimOut: 0
 }
+
+// The playlist payload arrives on every panel change; without this the boundary array
+// would be a fresh object each time and re-render the OSC for nothing.
+const sameNums = (a: number[], b: number[] | undefined): boolean =>
+  !!b && a.length === b.length && a.every((v, i) => v === b[i])
 
 export function usePlayer() {
   const [state, setState] = useState<PlayerState>(initial)
@@ -213,7 +226,8 @@ export function usePlayer() {
           case 'ab-loop-b':
             return { ...s, abLoopB: typeof data === 'number' && isFinite(data) ? data : null }
           case 'chapter-list': {
-            // in merge mode each chapter is a clip → its start time is a boundary tick
+            // the file's OWN chapters (Chapters tab). Merge-mode boundary ticks do NOT
+            // come from here — main filters them into `clipStarts` (see below).
             const times = Array.isArray(data)
               ? (data as { time?: number }[]).map(c => c.time).filter((t): t is number => typeof t === 'number')
               : []
@@ -226,10 +240,23 @@ export function usePlayer() {
     })
   }, [])
 
-  // "watch as one": follow the merge flag from the playlist payload so the OSC can
-  // draw clip-boundary ticks (and only then — a normal file's own chapters don't).
+  // "watch as one": follow the merge flag AND the clip boundaries from the playlist
+  // payload, so the OSC draws a tick per clip (and only then — a normal file's own
+  // chapters never draw ticks).
   useEffect(
-    () => window.mmp.onPlaylistChanged(p => setState(s => (s.merge === p.merge ? s : { ...s, merge: p.merge }))),
+    () =>
+      window.mmp.onPlaylistChanged(p => {
+        const cf = p.clipFps ?? 0
+        const csf = p.clipSrcFps ?? 0
+        setState(s =>
+          s.merge === p.merge &&
+          s.clipFps === cf &&
+          s.clipSrcFps === csf &&
+          sameNums(s.clipStarts, p.clipStarts)
+            ? s
+            : { ...s, merge: p.merge, clipStarts: p.clipStarts ?? [], clipFps: cf, clipSrcFps: csf }
+        )
+      }),
     []
   )
   // Timeline trim edit → OSC in/out handles

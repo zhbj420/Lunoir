@@ -148,11 +148,13 @@ export const es: Partial<Record<Key, string>> = {
   'opt.lang.russian': 'Ruso',
   'opt.lang.portuguese': 'Portugués',
   'opt.uiLang.system': 'Sistema',
+  'opt.clipFps.original': 'Velocidad de fotogramas original',
 
   'panel.tab.audioSub': 'Audio y sub.',
   'panel.tab.playlist': 'Lista',
   'panel.tab.channels': 'Canales',
   'panel.tab.chapters': 'Capítulos',
+  'panel.tab.clips': 'Clips',
 
   'panel.empty.queue': 'Cola vacía',
   'panel.repeat.off': 'Repetir: no',

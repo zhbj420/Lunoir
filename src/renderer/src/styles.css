@@ -765,6 +765,12 @@ body.fullscreen .titlebar {
 
 /* playback-speed indicator on the seek row (only shown when speed != 1×). Plain
    muted text, like the time — reads as info, not a control. */
+/* the clip-rate badge when YOU set it (vs just reporting the clip's native rate) —
+   same blue as the panel's per-clip tag so the two read as one idea */
+.osc-speed.set {
+  color: rgba(120, 200, 255, 0.95);
+}
+
 .osc-speed {
   flex: none;
   font-size: 12px;
@@ -1728,6 +1734,20 @@ body.library-win.library-shown .library {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Timeline: a clip whose playback frame rate was overridden (right-click). Numbers only,
+   so it stays on the English scale even in Chinese — no CJK glyphs in it. */
+.pl-fps {
+  flex: none;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: rgba(46, 160, 232, 0.22);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 /* IPTV channel search box, above the grouped channel list */

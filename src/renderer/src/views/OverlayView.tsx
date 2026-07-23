@@ -291,17 +291,24 @@ export default function OverlayView() {
     { label: t('menu.prevChapter'), onClick: () => window.mmp.command(['add', 'chapter', -1]), disabled: !hasChapters },
     { label: t('menu.nextChapter'), onClick: () => window.mmp.command(['add', 'chapter', 1]), disabled: !hasChapters },
     { sep: true },
-    {
-      label: t('menu.speed'),
-      submenu: SPEEDS.map(v => ({
-        label: v === 1 ? t('menu.speedNormal') : `${v}×`,
-        checked: Math.abs(p.state.speed - v) < 0.01,
-        onClick: () => {
-          window.mmp.set('speed', v)
-          showToast(v === 1 ? t('toast.speedNormal') : t('toast.speed', { v }))
-        }
-      }))
-    },
+    // No speed entry anywhere in the Timeline — trimming included. There the playback
+    // rate is a property of the CLIP (right-click it in the Clips panel to set its frame
+    // rate), and a second, competing way to change the rate would only muddle that.
+    ...(p.state.merge
+      ? []
+      : [
+          {
+            label: t('menu.speed'),
+            submenu: SPEEDS.map(v => ({
+              label: v === 1 ? t('menu.speedNormal') : `${v}×`,
+              checked: Math.abs(p.state.speed - v) < 0.01,
+              onClick: () => {
+                window.mmp.set('speed', v)
+                showToast(v === 1 ? t('toast.speedNormal') : t('toast.speed', { v }))
+              }
+            }))
+          }
+        ]),
     {
       label: t('menu.aspect'),
       // ratios (16:9…) name themselves; only Default and Stretch are words

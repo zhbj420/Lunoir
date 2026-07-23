@@ -176,10 +176,24 @@ let shuffleHistory: number[] = []
 // instead of reloading, and the seek bar spans the whole set. Reset on a new open.
 let mergeOn = false
 let pendingMergeSeek = -1 // clip to seek to once the timeline's chapters are known
+// The stitched timeline's chapter list mixes OUR clip boundaries with each source
+// file's OWN chapters (a Blu-ray rip drags in 15+ of them), so a chapter index is NOT
+// a clip index. `clipStarts` is the boundaries alone — every downstream use (seek-bar
+// ticks, current-clip tracking, clip seeking) goes through it, never a raw chapter.
+let clipStarts: number[] = [] // start time (s) of each clip within the timeline
+let timelineChapterTimes: number[] = [] // every chapter's time, to map a chapter index → clip
 // Phase 2 — per-clip in/out trim. Session-only, keyed by PATH so a trim travels with
 // its clip through reorder. `trimClip` = the clip currently isolated for trimming
 // (−1 = the normal full timeline); cur* track the isolated clip's edit + duration.
 const trims = new Map<string, { in: number; out: number }>()
+// Per-clip playback frame rate (Timeline). Session-only, keyed by PATH so it travels with
+// the clip through reorder — same model as `trims`. Absent = play at the clip's own rate.
+// A target BELOW the clip's capture fps is the slow motion, and it's driven through mpv's
+// `speed`: unlike a container-fps override, speed is a runtime property (so it can differ
+// per clip), it slows picture and sound TOGETHER (pitch-corrected, so audio survives), and it
+// leaves container-fps alone so the frame/timecode readout stays honest.
+const clipFps = new Map<string, number>()
+const srcFps = new Map<string, number>() // capture fps per path, probed once via MediaInfo
 let trimClip = -1
 let curIn = 0
 let curOut = -1 // −1 until the isolated clip's duration resolves it
@@ -449,19 +463,31 @@ async function loadPlaylistUrl(url: string): Promise<void> {
 }
 
 function playlistPayload() {
+  // the clip the playback rate applies to (trimmed one, else the playing one) — the OSC
+  // names its rate: the override if it has one, otherwise its probed native rate
+  const curPath = playlist[trimClip >= 0 ? trimClip : plIndex] ?? ''
   // IPTV channels carry a group-title; map url → group so the panel can group them
   const groupOf =
     sourceType === 'iptv' && curOpenChannels ? new Map(curOpenChannels.map(c => [c.url, c.group])) : null
   return {
     // URL items get their resolved title once known; local items use the basename
-    items: playlist.map(p => ({ path: p, name: urlTitles[p] || basename(p), group: groupOf?.get(p) || '' })),
+    // fps = this clip's Timeline playback rate (0 = its own); drives the panel's tick
+    items: playlist.map(p => ({
+      path: p,
+      name: urlTitles[p] || basename(p),
+      group: groupOf?.get(p) || '',
+      fps: clipFps.get(p) ?? 0
+    })),
     index: plIndex,
     repeat: repeatMode,
     shuffle: shuffleOn,
     sourceType,
     merge: mergeOn, // "watch as one" is active
     canMerge: canMerge(), // queue is mergeable (local, ≥2) → show the toggle
-    trimClip // which clip is isolated for trimming (−1 = full timeline)
+    trimClip, // which clip is isolated for trimming (−1 = full timeline)
+    clipStarts, // clip boundary times (s) — the OSC's ticks; NOT the source files' chapters
+    clipFps: clipFps.get(curPath) ?? 0, // current clip's override (0 = none)
+    clipSrcFps: srcFps.get(curPath) ?? 0 // …and its native rate, once probed
   }
 }
 
@@ -594,6 +620,9 @@ function recordOpen(target: string): void {
   curRecentPending = false
   mergeOn = false // a fresh open leaves "watch as one" off; user re-enables per queue
   pendingMergeSeek = -1
+  clipStarts = []
+  timelineChapterTimes = []
+  clipFps.clear() // per-clip rates are per-session-per-queue, like trims
   trims.clear() // trims are per-session-per-queue
   trimClip = -1
   broadcastTrim() // clear any stale in/out handles from a prior trim session
@@ -861,10 +890,11 @@ function playIndex(i: number): void {
   if (i < 0 || i >= playlist.length) return
   plIndex = i
   if (mergeOn) {
-    // one stitched timeline: jump to the clip's chapter instead of reloading.
-    // Covers next/prev (they call playIndex) and clicking a clip; unpause in case
-    // we were parked at the timeline's end.
-    mpv?.setProperty('chapter', i)
+    // one stitched timeline: jump to the clip's start instead of reloading. Covers
+    // next/prev (they call playIndex) and clicking a clip; unpause in case we were
+    // parked at the timeline's end. NOT mpv's `chapter` property — the source files'
+    // own chapters share that list, so chapter N ≠ clip N.
+    seekToClip(i)
     mpv?.setProperty('pause', false)
     broadcast('playlist:changed', playlistPayload())
     return
@@ -973,6 +1003,77 @@ function timelineTitle(): string {
   return basename(dirname(playlist[0] || '')) || tr('timeline.title')
 }
 
+/** A clip's true capture fps via MediaInfo, cached per path. 0 when unreadable — the
+ *  caller then leaves the speed alone rather than guessing. */
+function probeSrcFps(path: string): Promise<number> {
+  const hit = srcFps.get(path)
+  if (hit !== undefined) return Promise.resolve(hit)
+  const mi = resolveMediaInfoPath()
+  if (!mi) return Promise.resolve(0)
+  return new Promise(resolve => {
+    let out = ''
+    let settled = false
+    const done = (v: number): void => {
+      if (settled) return
+      settled = true
+      srcFps.set(path, v)
+      resolve(v)
+    }
+    const proc = spawn(mi, ['--Inform=Video;%FrameRate%', path], { windowsHide: true })
+    proc.stdout?.on('data', d => (out += d))
+    proc.on('error', () => done(0))
+    proc.on('close', () => {
+      const fps = parseFloat(out.trim())
+      done(Number.isFinite(fps) && fps > 0 ? fps : 0)
+    })
+  })
+}
+
+/** The clip the rate applies to: the one being trimmed, else the one playing. */
+function currentClip(): number {
+  return trimClip >= 0 ? trimClip : plIndex
+}
+
+/** Drive mpv's speed from the current clip's target frame rate, and publish that clip's
+ *  NATIVE rate so the OSC can name it even when there's no override. Runs in the timeline
+ *  AND in trim — the rate is a property of the clip, so trimming previews exactly what the
+ *  timeline will play. Outside the timeline the user owns `speed` outright. */
+async function applyClipSpeed(): Promise<void> {
+  if (!mpv || !mergeOn) return
+  const path = playlist[currentClip()]
+  if (!path) return
+  const src = await probeSrcFps(path) // cached; also feeds the OSC's "59.94 fps"
+  if (!mergeOn || playlist[currentClip()] !== path) return // clip moved on while probing
+  const target = clipFps.get(path) ?? 0
+  mpv?.setProperty('speed', target > 0 && src > 0 ? target / src : 1)
+  broadcast('playlist:changed', playlistPayload()) // the probed native rate may have just landed
+}
+
+/** Right-click a clip → set its playback frame rate (0 = its own / original). */
+function setClipFps(i: number, fps: number): void {
+  const path = playlist[i]
+  if (!path) return
+  if (fps > 0) clipFps.set(path, fps)
+  else clipFps.delete(path)
+  broadcast('playlist:changed', playlistPayload())
+  if (i === plIndex) void applyClipSpeed()
+}
+
+/** Which clip contains timeline position `t` — the last boundary at or before it.
+ *  (Boundaries can share a timestamp with a source chapter, hence the epsilon.) */
+function clipAt(t: number): number {
+  let k = 0
+  for (let i = 0; i < clipStarts.length; i++) if (t >= clipStarts[i] - 0.001) k = i
+  return k
+}
+
+/** Seek the stitched timeline to clip `i`'s start. Exact, so we land inside the clip —
+ *  a keyframe seek can land just before the boundary, i.e. in the previous clip. */
+function seekToClip(i: number): void {
+  if (i < 0 || i >= clipStarts.length) return
+  mpv?.command(['seek', clipStarts[i], 'absolute', 'exact']).catch(() => {})
+}
+
 /** Load the queue as one continuous EDL timeline, beginning on `startClip` (seek
  *  applied once mpv reports the timeline's chapters — see the chapter-list handler). */
 function loadTimeline(startClip: number): void {
@@ -999,6 +1100,9 @@ function toggleMerge(): void {
     if (trimClip >= 0) plIndex = trimClip // resume the clip we were trimming
     mergeOn = false
     trimClip = -1
+    clipStarts = [] // leaving the timeline → drop its boundaries (and the OSC's ticks)
+    timelineChapterTimes = []
+    mpv?.setProperty('speed', 1) // the timeline owned the rate; hand it back at normal
     broadcastTrim() // clear the OSC's in/out handles + reset button
     if (plIndex < 0) plIndex = 0 // plIndex tracks the current chapter while merged
     playCurrent() // resume that clip (from its start — Phase 1)
@@ -1037,6 +1141,7 @@ function enterTrim(i: number): void {
   curDur = 0
   mpv.loadFile(playlist[i])
   mpv.setProperty('pause', true) // paused → frame-accurate handle scrubbing
+  void applyClipSpeed() // trim previews at the clip's own rate — what the timeline will play
   broadcastTrim()
   broadcast('playlist:changed', playlistPayload())
   revealUi() // bring the controls up so the in/out handles are visible right away
@@ -2365,20 +2470,35 @@ function startMpv(): void {
       stopRecording(true) // a new file means the old recording is done — end it quietly
       runProbe(data)
     }
-    // "watch as one": once the stitched timeline reports its chapters (one per clip),
-    // seek to the clip we were on when merge was toggled.
-    if (name === 'chapter-list' && mergeOn && trimClip < 0 && pendingMergeSeek >= 0) {
-      const count = Array.isArray(data) ? data.length : 0
-      if (pendingMergeSeek < count) {
-        mpv?.setProperty('chapter', pendingMergeSeek)
+    // "watch as one": derive the clip boundaries from the timeline's chapter list. mpv
+    // titles a segment boundary with the exact path we wrote into the EDL, while the
+    // source files' own chapters carry their own titles — that's how we tell them apart
+    // (verified for plain AND trimmed `path,in,len` entries). Without this split, a rip
+    // that brings its own chapters would litter the seek bar and break clip tracking.
+    if (name === 'chapter-list' && mergeOn && trimClip < 0) {
+      const list = Array.isArray(data) ? (data as { time?: number; title?: string }[]) : []
+      const edlPaths = new Set(playlist.map(p => p.replace(/\\/g, '/'))) // the EDL writes forward slashes
+      timelineChapterTimes = list.map(c => (typeof c.time === 'number' ? c.time : 0))
+      clipStarts = list
+        .filter(c => typeof c.title === 'string' && edlPaths.has(c.title))
+        .map(c => (typeof c.time === 'number' ? c.time : 0))
+      broadcast('playlist:changed', playlistPayload()) // hand the boundaries to the OSC
+      if (pendingMergeSeek >= 0 && pendingMergeSeek < clipStarts.length) {
+        seekToClip(pendingMergeSeek)
         pendingMergeSeek = -1
       }
+      void applyClipSpeed() // a fresh timeline starts on some clip — honour its rate
     }
-    // while merged, mpv's current chapter IS the current clip → track it so the panel
-    // highlights the right row as playback crosses clip boundaries.
-    if (name === 'chapter' && mergeOn && trimClip < 0 && typeof data === 'number' && data >= 0 && data !== plIndex) {
-      plIndex = data
-      broadcast('playlist:changed', playlistPayload())
+    // while merged, map mpv's current chapter to the clip that CONTAINS it (a source
+    // file's own chapters all belong to their own clip) so the panel highlights the
+    // right row as playback crosses clip boundaries.
+    if (name === 'chapter' && mergeOn && trimClip < 0 && typeof data === 'number' && data >= 0) {
+      const clip = clipAt(timelineChapterTimes[data] ?? 0)
+      if (clip !== plIndex) {
+        plIndex = clip
+        broadcast('playlist:changed', playlistPayload())
+        void applyClipSpeed() // the new clip may run at a different playback rate
+      }
     }
     // while trimming an isolated clip, its duration bounds the in/out handles
     if (name === 'duration' && trimClip >= 0 && typeof data === 'number' && data > 0) {
@@ -2569,6 +2689,14 @@ function registerIpc(): void {
     // OSC reveal band and pop the OSC — which would cover a toast the action fires
     // (e.g. 收藏当前). Stay quiet briefly so the confirmation is actually visible.
     suppressRevealUntil = Date.now() + 1200
+    // "clipfps:<clip>:<fps>" — the clips panel's right-click menu. Handled here rather
+    // than forwarded: it's main-process state (it drives mpv's speed), and the menu's
+    // reply only ever reaches `win`, not the panel window that raised it.
+    const cf = /^clipfps:(\d+):(\d+)$/.exec(id)
+    if (cf) {
+      setClipFps(Number(cf[1]), Number(cf[2]))
+      return
+    }
     if (win && !win.isDestroyed()) win.webContents.send('menu:invoke', id)
   })
   ipcMain.on('menu:size', (_e, w: number, h: number) => {
@@ -2581,6 +2709,11 @@ function registerIpc(): void {
     if (firstSize) {
       menuWin.setIgnoreMouseEvents(false)
       setWinOpacity(menuWin, 1)
+      // Raise above the sibling child windows BEFORE focusing. focus() alone doesn't
+      // reorder them reliably: opening the menu from a panel (right-click a clip) left
+      // it *behind* that panel, showing through the acrylic as a blur — and only came
+      // forward on a second right-click, because the first focus had nudged its z-order.
+      menuWin.moveTop()
       menuWin.focus() // focused → DWM keeps it frosted, and gives us blur-to-dismiss
     }
   })

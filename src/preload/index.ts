@@ -102,7 +102,8 @@ export type RepeatMode = 'off' | 'all' | 'one'
 // URL playlist (YouTube). Drives the right panel's label (播放列表 vs 频道) + save.
 export type SourceType = 'queue' | 'iptv' | 'playlist-url'
 export interface Playlist {
-  items: { path: string; name: string; group?: string }[] // group = IPTV group-title
+  // group = IPTV group-title; fps = this clip's Timeline playback rate (0 = its own)
+  items: { path: string; name: string; group?: string; fps?: number }[]
   index: number
   repeat: RepeatMode
   shuffle: boolean
@@ -110,6 +111,9 @@ export interface Playlist {
   merge: boolean // "watch as one": the queue plays as a single stitched timeline
   canMerge: boolean // queue is mergeable (local files, ≥2) → show the toggle
   trimClip: number // clip isolated for in/out trimming (−1 = full timeline)
+  clipStarts: number[] // clip boundary times (s) in the stitched timeline → the OSC's ticks
+  clipFps: number // current clip's frame-rate override (0 = none)
+  clipSrcFps: number // …and its native rate, once probed — the OSC shows this when there's no override
 }
 
 /** Current Timeline trim edit → the OSC's in/out handles. clip = −1 when not trimming. */

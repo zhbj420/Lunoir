@@ -5,7 +5,7 @@ type Tab = 'playlist' | 'chapters' | 'tracks'
 type RepeatMode = 'off' | 'all' | 'one'
 type SourceType = 'queue' | 'iptv' | 'playlist-url'
 interface Playlist {
-  items: { path: string; name: string; group?: string }[]
+  items: { path: string; name: string; group?: string; fps?: number }[]
   index: number
   repeat: RepeatMode
   shuffle: boolean
@@ -631,7 +631,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
   // one playlist/channel row (shared by the flat queue + the grouped IPTV view).
   // Key by the original index, never the path — an IPTV list can repeat a URL
   // (multi-source / duplicate channels), and duplicate React keys leave ghost rows.
-  const plRow = (it: { path: string; name: string }, i: number) => {
+  const plRow = (it: { path: string; name: string; fps?: number }, i: number) => {
     // queue rows drag-reorder; IPTV channel rows don't. A click still plays; only a
     // real drag reorders (HTML5 DnD keeps the two apart).
     const dnd = isIptv
@@ -678,6 +678,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
         onDoubleClick={
           isIptv ? undefined : () => (pl.merge ? window.mmp.trimClip(i) : window.mmp.playIndex(i))
         }
+        onContextMenu={pl.merge && !isIptv ? e => openClipFpsMenu(i, e) : undefined}
         {...dnd}
       >
         <span className="pl-mark">
@@ -690,7 +691,33 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
           )}
         </span>
         <span className="pl-name">{it.name}</span>
+        {pl.merge && (it.fps ?? 0) > 0 && <span className="pl-fps">{it.fps} fps</span>}
       </div>
+    )
+  }
+
+  // In Timeline mode the clips ARE the structure, so "chapters" has no meaning there —
+  // and a stitched rip drags in its source files' own chapters, which is just noise. Hide
+  // the tab while merged, falling back to the playlist if it was the one showing. Derived
+  // (not stored) so turning the timeline off restores whatever tab you were on.
+  const activeTab: Tab = pl.merge && tab === 'chapters' ? 'playlist' : tab
+
+  // Timeline: right-click a clip → its playback frame rate. Below the clip's own rate is
+  // slow motion (main turns it into an mpv `speed` for that clip, so the sound comes with
+  // it). Reuses the app's acrylic menu window — openMenu takes SCREEN coords, so it works
+  // from this panel's own window; main claims the "clipfps:" ids itself, because a menu
+  // reply only ever reaches the main window, never this one.
+  const openClipFpsMenu = (i: number, e: ReactMouseEvent): void => {
+    e.preventDefault()
+    const cur = pl.items[i]?.fps ?? 0
+    window.mmp.openMenu(
+      e.screenX,
+      e.screenY,
+      [0, 24, 30, 60].map(f => ({
+        id: `clipfps:${i}:${f}`,
+        label: f === 0 ? t('opt.clipFps.original') : `${f} fps`,
+        checked: cur === f
+      }))
     )
   }
 
@@ -705,15 +732,23 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
       onWheel={e => e.stopPropagation()}
     >
       <div className="panel-tabs">
-        <button className={`panel-tab ${tab === 'tracks' ? 'active' : ''}`} onClick={() => setTab('tracks')}>
+        <button className={`panel-tab ${activeTab === 'tracks' ? 'active' : ''}`} onClick={() => setTab('tracks')}>
           {t('panel.tab.audioSub')}
         </button>
-        <button className={`panel-tab ${tab === 'playlist' ? 'active' : ''}`} onClick={() => setTab('playlist')}>
-          {pl.sourceType === 'iptv' ? t('panel.tab.channels') : t('panel.tab.playlist')}
+        <button className={`panel-tab ${activeTab === 'playlist' ? 'active' : ''}`} onClick={() => setTab('playlist')}>
+          {/* the tab names what it's actually listing: channels for IPTV, clips once the
+              queue is stitched into a timeline, otherwise a plain playlist */}
+          {pl.merge
+            ? t('panel.tab.clips')
+            : pl.sourceType === 'iptv'
+              ? t('panel.tab.channels')
+              : t('panel.tab.playlist')}
         </button>
-        <button className={`panel-tab ${tab === 'chapters' ? 'active' : ''}`} onClick={() => setTab('chapters')}>
-          {t('panel.tab.chapters')}
-        </button>
+        {!pl.merge && (
+          <button className={`panel-tab ${activeTab === 'chapters' ? 'active' : ''}`} onClick={() => setTab('chapters')}>
+            {t('panel.tab.chapters')}
+          </button>
+        )}
         <span className="panel-tabs-spacer" />
         <button className="panel-collapse" title={t('common.collapse')} onClick={onClose}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -722,7 +757,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
         </button>
       </div>
 
-      {tab === 'playlist' && (
+      {activeTab === 'playlist' && (
         <>
           {isIptv && pl.items.length > 0 && (
             <div className="panel-search">
@@ -862,7 +897,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
         </>
       )}
 
-      {tab === 'chapters' && (
+      {activeTab === 'chapters' && (
         <div className="panel-body">
           {chapters.length === 0 ? (
             <div className="panel-empty">{t('panel.empty.chapters')}</div>
@@ -890,7 +925,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
         </div>
       )}
 
-      {tab === 'tracks' && (
+      {activeTab === 'tracks' && (
         <>
           <div className="panel-body">
             <div className="track-sec">{t('panel.sec.audio')}</div>

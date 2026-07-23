@@ -90,8 +90,11 @@ Open source (MIT), no telemetry, no ads, no bundleware.
 - Resume playback — per file *and* per playlist
 
 **Experimental** *(opt-in, under Settings › Experimental)*
-- **Timeline** — stitch a folder of clips into one continuous video and trim each
-  clip's in/out, built on mpv's native EDL. Early — expect rough edges
+- **Timeline** — stitch a folder of clips into one continuous video, trim each clip's
+  in/out, and give any clip its own **playback frame rate** (right-click it) so
+  high-frame-rate footage plays back as true slow motion. Built on mpv's native EDL
+- Meant as a **quick preview and a rough reference while editing elsewhere** — it is not
+  an editing tool and makes no attempt to be one. Early, and expect rough edges
 
 ## Requirements
 

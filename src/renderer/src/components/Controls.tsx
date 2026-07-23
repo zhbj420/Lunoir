@@ -125,6 +125,11 @@ export default function Controls(props: Props) {
   // Everything (seek fill/value, time readout, drag anchor) reads this so the white bar
   // and time text don't lurch around as the preview seeks the video to a handle.
   const headPos = trimAnchor != null ? trimAnchor : Math.min(state.timePos, dur)
+  // In the Timeline (trim included) the playback rate belongs to the CLIP: its frame-rate
+  // override if it has one, else its native rate. The OSC names that rather than a speed
+  // multiplier — you set a frame rate, so you read a frame rate back. 0 = not in a
+  // timeline, so the usual speed badge applies.
+  const clipRate = state.merge ? (state.clipFps > 0 ? state.clipFps : state.clipSrcFps) : 0
   const dragTrim = (which: 'in' | 'out') => (e: ReactPointerEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -305,8 +310,16 @@ export default function Controls(props: Props) {
           <>
             <span className="t cur">{fmt(state.timePos)}</span>
             <div className="seek-wrap" />
-            {Math.abs(state.speed - 1) > 0.01 && (
-              <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+            {/* the clip's rate in a timeline (a bare "0.5005×" would be noise), else the
+                user's speed. `.set` tints the ones you overrode, like the panel's badge. */}
+            {clipRate > 0 ? (
+              <span className={`osc-speed${state.clipFps > 0 ? ' set' : ''}`}>
+                {+clipRate.toFixed(3)} fps
+              </span>
+            ) : (
+              Math.abs(state.speed - 1) > 0.01 && (
+                <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+              )
             )}
             <button className="t dur live-badge" title="Go to live" onClick={() => window.mmp.goLive()}>
               <span className="live-dot" />
@@ -340,9 +353,10 @@ export default function Controls(props: Props) {
                   props.onSeek(Number(e.target.value))
                 }}
               />
-              {/* clip boundaries when merged ("watch as one"); skip the first (t=0) */}
+              {/* clip boundaries when merged ("watch as one"); skip the first (t=0).
+                  clipStarts, not chapters — a stitched Blu-ray rip brings its own. */}
               {state.merge &&
-                state.chapters.slice(1).map((t, i) => (
+                state.clipStarts.slice(1).map((t, i) => (
                   <span key={i} className="clip-mark" style={{ left: `${abPct(t)}%` }} />
                 ))}
               {state.abLoopA != null && state.abLoopB != null && (
@@ -380,8 +394,16 @@ export default function Controls(props: Props) {
                 </>
               )}
             </div>
-            {Math.abs(state.speed - 1) > 0.01 && (
-              <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+            {/* the clip's rate in a timeline (a bare "0.5005×" would be noise), else the
+                user's speed. `.set` tints the ones you overrode, like the panel's badge. */}
+            {clipRate > 0 ? (
+              <span className={`osc-speed${state.clipFps > 0 ? ' set' : ''}`}>
+                {+clipRate.toFixed(3)} fps
+              </span>
+            ) : (
+              Math.abs(state.speed - 1) > 0.01 && (
+                <span className="osc-speed">{+state.speed.toFixed(2)}×</span>
+              )
             )}
             <span
               className="t dur clickable"
