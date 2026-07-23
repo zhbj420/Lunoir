@@ -825,6 +825,16 @@ function goHome(): void {
   trims.clear()
   clipFps.clear()
   resumePath = '' // nothing playing → nothing to write a position for
+  // main keeps its OWN hasMedia (revealUi gates the OSC on it) and until now nothing
+  // ever cleared it — there was no way back to Home with a file loaded. Leaving it set
+  // makes every mouse move on the Home screen pop the OSC back up.
+  hasMedia = false
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+  broadcast('ui:hide')
+  animateOsc(false)
   broadcastTrim()
   broadcast('playlist:changed', playlistPayload())
   broadcast('library:collection-saved', collectionSaved())
