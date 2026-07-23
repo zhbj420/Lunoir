@@ -104,9 +104,15 @@ export default function Controls(props: Props) {
   const volPct = Math.min(100, (state.volume / 150) * 100)
   const hdr = hdrLabel(state.gamma, state.hdrFormat)
   const audio = audioBadge(state.audioCodec, state.audioChannels, state.audioCommercial)
-  // resolution — only for streams (locally you already know the quality). Sits on
-  // the top badge line with HDR, e.g. "2160p HDR10" / "2160p".
-  const res = state.isStream && state.videoHeight > 0 ? `${state.videoHeight}p` : ''
+  // resolution — only for streams (locally you already know the quality). Sits on the
+  // top badge line with HDR, e.g. "2160p HDR10". The "p" is only printed where it's
+  // certain: web VOD is progressive, but a broadcast channel can be either and mpv's
+  // per-frame interlace flag proved too unreliable to claim one (see main/index.ts), so
+  // a channel just gets the number.
+  const res =
+    state.isStream && state.videoHeight > 0
+      ? `${state.videoHeight}${state.isChannel ? '' : 'p'}`
+      : ''
   const topBadge = [res, hdr].filter(Boolean).join(' ')
 
   // A-B loop markers on the seek bar (positions as % of duration)

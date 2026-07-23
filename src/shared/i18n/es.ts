@@ -104,6 +104,9 @@ export const es: Partial<Record<Key, string>> = {
   'set.hwdec.autoCopy':
     'Decodificación por GPU con copia de vuelta a la memoria del sistema. La requieren filtros de CPU como SVP.',
   'set.hwdec.off': 'Decodificación por software en la CPU. La más compatible, pero más exigente.',
+  'set.deint.label': 'Desentrelazado',
+  'set.deint.desc':
+    'El vídeo de difusión (1080i, 576i: la mayoría de canales en directo, DVD y grabaciones de TV) guarda cada fotograma como dos campos de media altura captados con una fracción de segundo de diferencia. En una pantalla moderna aparecen como dientes de peine en los bordes en movimiento.\nAuto solo actúa si la fuente se declara entrelazada; el vídeo progresivo no se toca. Fuérzalo si un canal está mal etiquetado.',
   'set.quality.label': 'Calidad de vídeo en línea',
   'set.quality.desc':
     'Un límite máximo. La calidad real depende de la fuente: un vídeo limitado a 1080p se reproduce en 1080p sin importar este ajuste. «Máxima» elige la mayor calidad que ofrezca la fuente. Se aplica a la próxima emisión.',
@@ -133,6 +136,9 @@ export const es: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': 'Auto',
   'opt.hwdec.autoCopy': 'Auto (copia de vuelta)',
   'opt.hwdec.off': 'Desactivado (software)',
+  'opt.deint.auto': 'Auto (si la fuente está entrelazada)',
+  'opt.deint.on': 'Siempre activado',
+  'opt.deint.off': 'Desactivado',
   'opt.quality.best': 'Máxima',
   'opt.shot.png': 'PNG (sin pérdida)',
   'opt.shot.jpg': 'JPG (alta calidad)',

@@ -39,6 +39,7 @@ interface Settings {
   frostStrength: number
   subHdrPeak: number
   hwdec: 'auto' | 'auto-copy' | 'no'
+  deinterlace: 'auto' | 'yes' | 'no'
   streamQuality: 'best' | '2160' | '1080' | '720' | '480'
   useCookies: boolean
   cookiesBrowser: string
@@ -74,6 +75,14 @@ const hwdecOpts = (t: T): Opt[] => [
   { value: 'auto', label: t('opt.hwdec.auto') },
   { value: 'auto-copy', label: t('opt.hwdec.autoCopy') },
   { value: 'no', label: t('opt.hwdec.off') }
+]
+// Interlaced material is broadcast's legacy: each frame is two half-height fields shot
+// a 50th/60th of a second apart, which comb on any progressive display. 'auto' engages
+// only when the stream flags itself, so progressive files are never touched.
+const deinterlaceOpts = (t: T): Opt[] => [
+  { value: 'auto', label: t('opt.deint.auto') },
+  { value: 'yes', label: t('opt.deint.on') },
+  { value: 'no', label: t('opt.deint.off') }
 ]
 const qualityOpts = (t: T): Opt[] => [
   { value: 'best', label: t('opt.quality.best') },
@@ -571,6 +580,13 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <div className="set-sec">{t('set.sec.video')}</div>
           <Row label={t('set.hwdec.label')} desc={hwdecDesc(t)[s.hwdec]}>
             <Select value={s.hwdec} options={hwdecOpts(t)} onChange={v => set('hwdec', v as Settings['hwdec'])} />
+          </Row>
+          <Row label={t('set.deint.label')} desc={multiline(t('set.deint.desc'))}>
+            <Select
+              value={s.deinterlace}
+              options={deinterlaceOpts(t)}
+              onChange={v => set('deinterlace', v as Settings['deinterlace'])}
+            />
           </Row>
           <Row label={t('set.quality.label')} desc={t('set.quality.desc')}>
             <Select value={s.streamQuality} options={qualityOpts(t)} onChange={v => set('streamQuality', v as Settings['streamQuality'])} />

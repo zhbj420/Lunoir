@@ -23,6 +23,16 @@ const DEFAULTS: Settings = {
   frostStrength: 50, // 0..100, higher = more see-through; 50 ≈ the default alpha 0.40
   subHdrPeak: 120, // dimmer than mpv's ~SDR-white default so HDR subs aren't harsh
   hwdec: 'auto',
+  // OFF by default, matching mpv's own default. 'auto' was tried and reverted: on real
+  // IPTV it made the picture judder badly. Deinterlacing is only as good as the
+  // deinterlacer and the metadata, and both are unreliable here — with hwdec on, mpv
+  // hands the job to the GPU's video processor, which on some drivers is plain "bob"
+  // (each field stretched to full height, so the image bounces), and IPTV streams
+  // mislabel their scan type often enough that auto ends up "fixing" progressive video.
+  // Combing is a real defect, but a shaking picture is a worse one — so this stays
+  // opt-in: turn it on for a channel that visibly combs, which is the only signal we
+  // can trust (an i/p badge was tried and removed — see the note in main/index.ts).
+  deinterlace: 'no',
   streamQuality: 'best',
   useCookies: false,
   cookiesBrowser: 'edge',

@@ -95,6 +95,9 @@ export const zhCN: Partial<Record<Key, string>> = {
   'set.hwdec.auto': 'GPU 解码。效率最佳，视频画面始终留在显存中。',
   'set.hwdec.autoCopy': 'GPU 解码后将画面拷回内存。SVP 等 CPU 滤镜需要此模式。',
   'set.hwdec.off': '由 CPU 进行软件解码。兼容性最好，但开销更大。',
+  'set.deint.label': '反交错',
+  'set.deint.desc':
+    '广播视频(1080i、576i —— 多数直播频道、DVD 和电视录像)把每一帧存成两个半高的"场",两场相差几十分之一秒。在现代逐行屏幕上,运动物体的边缘会出现梳齿状横纹。\n"自动"只在源标明自己是隔行时才介入,逐行内容完全不碰。遇到标记错误的频道,可以强制开启。',
   'set.quality.label': '在线视频画质',
   'set.quality.desc':
     '设定最高值，实际画质仍取决于片源：最高只有 1080p 的视频，无论此处如何设置都只能以 1080p 播放。\n选择「最高」则取片源提供的最高画质。\n设置变更会在下一个视频流开始时生效。',
@@ -121,6 +124,9 @@ export const zhCN: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': '自动',
   'opt.hwdec.autoCopy': '自动回拷',
   'opt.hwdec.off': '关闭（软件解码）',
+  'opt.deint.auto': '自动(源为隔行时)',
+  'opt.deint.on': '始终开启',
+  'opt.deint.off': '关闭',
   'opt.quality.best': '最高',
   'opt.shot.png': 'PNG（无损）',
   'opt.shot.jpg': 'JPG（高质量）',

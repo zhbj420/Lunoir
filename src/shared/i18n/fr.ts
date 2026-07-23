@@ -104,6 +104,9 @@ export const fr: Partial<Record<Key, string>> = {
   'set.hwdec.autoCopy':
     'Décodage GPU avec recopie des images en mémoire système. Requis par les filtres CPU comme SVP.',
   'set.hwdec.off': 'Décodage logiciel sur le CPU. Le plus compatible, mais plus exigeant.',
+  'set.deint.label': 'Désentrelacement',
+  'set.deint.desc':
+    'La vidéo de diffusion (1080i, 576i — la plupart des chaînes en direct, DVD et enregistrements TV) stocke chaque image en deux trames de demi-hauteur captées à une fraction de seconde d’intervalle. Sur un écran moderne, cela donne des dents de peigne le long des contours en mouvement.\nAuto n’intervient que si la source se déclare entrelacée ; la vidéo progressive n’est jamais touchée. Forcez-le si une chaîne est mal étiquetée.',
   'set.quality.label': 'Qualité des vidéos en ligne',
   'set.quality.desc':
     'Une limite maximale. La qualité réelle dépend de la source : une vidéo limitée à 1080p se lit en 1080p quel que soit ce réglage. « Meilleure » choisit la plus haute qualité proposée par la source. S’applique au prochain flux.',
@@ -133,6 +136,9 @@ export const fr: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': 'Auto',
   'opt.hwdec.autoCopy': 'Auto (recopie)',
   'opt.hwdec.off': 'Désactivé (logiciel)',
+  'opt.deint.auto': 'Auto (si la source est entrelacée)',
+  'opt.deint.on': 'Toujours activé',
+  'opt.deint.off': 'Désactivé',
   'opt.quality.best': 'Meilleure',
   'opt.shot.png': 'PNG (sans perte)',
   'opt.shot.jpg': 'JPG (haute qualité)',

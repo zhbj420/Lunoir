@@ -106,6 +106,9 @@ export const ko: Partial<Record<Key, string>> = {
   'set.hwdec.autoCopy':
     'GPU 디코딩 후 프레임을 시스템 메모리로 다시 복사합니다. SVP 같은 CPU 필터에 필요합니다.',
   'set.hwdec.off': 'CPU 소프트웨어 디코딩. 호환성은 가장 높지만 부하가 큽니다.',
+  'set.deint.label': '인터레이스 해제',
+  'set.deint.desc':
+    '방송 영상(1080i, 576i — 대부분의 실시간 채널, DVD, TV 녹화)은 한 프레임을 몇십 분의 1초 차이로 촬영된 절반 높이의 두 필드로 저장합니다. 최신 디스플레이에서는 움직이는 가장자리에 빗살 무늬로 나타납니다.\n"자동"은 소스가 스스로 인터레이스라고 알릴 때만 개입하며, 프로그레시브 영상은 건드리지 않습니다. 채널 표기가 잘못된 경우 강제로 켜세요.',
   'set.quality.label': '온라인 동영상 화질',
   'set.quality.desc':
     '상한값입니다. 실제 화질은 소스에 따라 다르며, 1080p 상한 동영상은 이 설정과 무관하게 1080p로 재생됩니다. 「최고」는 소스가 제공하는 최고 화질을 선택합니다. 다음 스트림부터 적용됩니다.',
@@ -135,6 +138,9 @@ export const ko: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': '자동',
   'opt.hwdec.autoCopy': '자동(메모리로 복사)',
   'opt.hwdec.off': '끄기(소프트웨어)',
+  'opt.deint.auto': '자동(소스가 인터레이스일 때)',
+  'opt.deint.on': '항상 켜기',
+  'opt.deint.off': '끄기',
   'opt.quality.best': '최고',
   'opt.shot.png': 'PNG(무손실)',
   'opt.shot.jpg': 'JPG(고품질)',

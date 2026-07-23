@@ -106,6 +106,9 @@ export const ja: Partial<Record<Key, string>> = {
   'set.hwdec.autoCopy':
     'GPU デコードしてフレームをシステムメモリーに戻します。SVP など CPU フィルターに必要です。',
   'set.hwdec.off': 'CPU によるソフトウェアデコード。最も互換性が高いが負荷も大きい。',
+  'set.deint.label': 'インターレース解除',
+  'set.deint.desc':
+    '放送映像(1080i、576i —— 多くの生放送チャンネル、DVD、テレビ録画)は、各フレームをわずかに異なる時刻に撮影された半分の高さの2つのフィールドとして記録します。現代のディスプレイでは、動く輪郭に沿って櫛状のギザギザが現れます。\n「自動」はソース自身がインターレースと申告した場合にのみ働き、プログレッシブ映像には一切触れません。チャンネルの表示が誤っている場合は強制的に有効にしてください。',
   'set.quality.label': 'オンライン動画の画質',
   'set.quality.desc':
     '上限です。実際の画質はソース次第で、1080p 上限の動画はこの設定に関係なく 1080p で再生されます。「最高」はソースが提供する最高画質を選びます。次のストリームから有効です。',
@@ -135,6 +138,9 @@ export const ja: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': '自動',
   'opt.hwdec.autoCopy': '自動（メモリーに戻す）',
   'opt.hwdec.off': 'オフ（ソフトウェア）',
+  'opt.deint.auto': '自動(ソースがインターレースのとき)',
+  'opt.deint.on': '常に有効',
+  'opt.deint.off': 'オフ',
   'opt.quality.best': '最高',
   'opt.shot.png': 'PNG（無劣化）',
   'opt.shot.jpg': 'JPG（高品質）',

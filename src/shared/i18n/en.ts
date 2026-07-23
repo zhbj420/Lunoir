@@ -128,6 +128,9 @@ export const en = {
   'set.hwdec.autoCopy':
     'GPU decoding with frames copied back to system memory. Required by CPU filters such as SVP.',
   'set.hwdec.off': 'Software decoding on the CPU. Most compatible, but more demanding.',
+  'set.deint.label': 'Deinterlacing',
+  'set.deint.desc':
+    'Broadcast video (1080i, 576i — most live TV, DVDs and TV recordings) stores each frame as two half-height fields captured a fraction of a second apart. On a modern display they show as comb-like teeth along moving edges.\nAuto only steps in when the source says it’s interlaced, so progressive video is left untouched. Force it on if a channel is mislabelled.',
   'set.quality.label': 'Online video quality',
   'set.quality.desc':
     'An upper limit. Actual quality still depends on the source: a video capped at 1080p plays at 1080p regardless of this setting. Best selects the highest the source offers. Applies to the next stream.',
@@ -181,6 +184,9 @@ export const en = {
   'opt.hwdec.auto': 'Auto',
   'opt.hwdec.autoCopy': 'Auto (copy back)',
   'opt.hwdec.off': 'Off (software)',
+  'opt.deint.auto': 'Auto (when the source is interlaced)',
+  'opt.deint.on': 'Always on',
+  'opt.deint.off': 'Off',
   'opt.quality.best': 'Best',
   'opt.shot.png': 'PNG (lossless)',
   'opt.shot.jpg': 'JPG (high quality)',

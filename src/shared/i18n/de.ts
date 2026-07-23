@@ -104,6 +104,9 @@ export const de: Partial<Record<Key, string>> = {
   'set.hwdec.autoCopy':
     'GPU-Dekodierung mit Rückkopie in den Systemspeicher. Nötig für CPU-Filter wie SVP.',
   'set.hwdec.off': 'Software-Dekodierung auf der CPU. Am kompatibelsten, aber aufwendiger.',
+  'set.deint.label': 'Deinterlacing',
+  'set.deint.desc':
+    'Broadcast-Video (1080i, 576i – die meisten Live-Sender, DVDs und TV-Aufnahmen) speichert jedes Bild als zwei halbhohe Halbbilder, die Sekundenbruchteile auseinander aufgenommen wurden. Auf modernen Displays zeigen sich dadurch kammartige Zacken an bewegten Kanten.\nAuto greift nur ein, wenn die Quelle sich als interlaced meldet; progressives Video bleibt unangetastet. Bei falsch gekennzeichneten Sendern erzwingen.',
   'set.quality.label': 'Online-Videoqualität',
   'set.quality.desc':
     'Eine Obergrenze. Die tatsächliche Qualität hängt von der Quelle ab: Ein auf 1080p begrenztes Video läuft unabhängig von dieser Einstellung in 1080p. „Beste“ wählt die höchste von der Quelle angebotene Qualität. Gilt für den nächsten Stream.',
@@ -133,6 +136,9 @@ export const de: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': 'Auto',
   'opt.hwdec.autoCopy': 'Auto (Rückkopie)',
   'opt.hwdec.off': 'Aus (Software)',
+  'opt.deint.auto': 'Auto (wenn die Quelle interlaced ist)',
+  'opt.deint.on': 'Immer an',
+  'opt.deint.off': 'Aus',
   'opt.quality.best': 'Beste',
   'opt.shot.png': 'PNG (verlustfrei)',
   'opt.shot.jpg': 'JPG (hohe Qualität)',

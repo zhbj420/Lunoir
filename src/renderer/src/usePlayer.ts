@@ -53,7 +53,15 @@ export interface PlayerState {
   hdrFormat: string // MediaInfo HDR flavour: 'Dolby Vision'/'HDR10+'/'HDR10'/'' → refines the badge
   videoHeight: number // decoded height → resolution badge
   isStream: boolean // playing a network URL (show the resolution badge only then)
-  isLive: boolean // mpv 'seekable' is false → a live stream; OSC shows ● LIVE, no seek bar
+  // Live → OSC shows ● LIVE and no seek bar. Two ways to be live: mpv says the stream
+  // isn't seekable, OR we're playing from a channel list (see isChannel).
+  isLive: boolean
+  // Playing out of an IPTV channel list. Needed because HLS live with a sliding window
+  // reports seekable=TRUE — mpv can jump between the segments still in the playlist — and
+  // a duration equal to that window (~a minute). That gave those channels a normal seek
+  // bar that kept rebasing as the window slid. A channel is live by definition, so this
+  // settles it without guessing from the stream's own claims.
+  isChannel: boolean
   isDisc: boolean // playing a Blu-ray/DVD disc (bd:// / dvd://) → title from the folder name
   audioCodec: string // audio-codec-name → format badge
   audioChannels: number // audio-params/channel-count → layout suffix
@@ -92,6 +100,7 @@ const initial: PlayerState = {
   videoHeight: 0,
   isStream: false,
   isLive: false,
+  isChannel: false,
   isDisc: false,
   audioCodec: '',
   audioChannels: 0,
@@ -208,8 +217,9 @@ export function usePlayer() {
           }
           case 'seekable':
             // a non-seekable network stream is live (local files & VOD are seekable);
-            // gate on isStream so a local file's transient false at load isn't "live"
-            return { ...s, isLive: s.isStream && data === false }
+            // gate on isStream so a local file's transient false at load isn't "live".
+            // A channel stays live whatever it claims — sliding-window HLS says true.
+            return { ...s, isLive: s.isChannel || (s.isStream && data === false) }
           case 'video-params/gamma':
             return { ...s, gamma: typeof data === 'string' ? data : '' }
           case 'video-params/h':
@@ -248,13 +258,25 @@ export function usePlayer() {
       window.mmp.onPlaylistChanged(p => {
         const cf = p.clipFps ?? 0
         const csf = p.clipSrcFps ?? 0
+        const ch = p.sourceType === 'iptv'
         setState(s =>
           s.merge === p.merge &&
           s.clipFps === cf &&
           s.clipSrcFps === csf &&
+          s.isChannel === ch &&
           sameNums(s.clipStarts, p.clipStarts)
             ? s
-            : { ...s, merge: p.merge, clipStarts: p.clipStarts ?? [], clipFps: cf, clipSrcFps: csf }
+            : {
+                ...s,
+                merge: p.merge,
+                clipStarts: p.clipStarts ?? [],
+                clipFps: cf,
+                clipSrcFps: csf,
+                isChannel: ch,
+                // a channel is live even when the stream claims to be seekable; leaving
+                // the list loads a new file, which re-derives isLive from scratch
+                isLive: ch || s.isLive
+              }
         )
       }),
     []
@@ -295,6 +317,7 @@ export function usePlayer() {
       setState(s => ({ ...s, hdrFormat: typeof hdr === 'string' ? hdr : '' }))
     )
   }, [])
+
 
   // Reveal / auto-hide is coordinated by main across both windows.
   useEffect(() => {

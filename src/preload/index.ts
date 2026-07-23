@@ -3,6 +3,9 @@ import type { LangSetting } from '@shared/i18n'
 
 // Persisted user settings (the IPC contract). main/settings.ts imports this type.
 export type Hwdec = 'auto' | 'auto-copy' | 'no'
+/** mpv's deinterlacer. 'auto' only engages when the stream flags itself interlaced,
+ *  so progressive material is never touched — broadcast (1080i/576i) is fixed silently. */
+export type Deinterlace = 'auto' | 'yes' | 'no'
 export type StreamQuality = 'best' | '2160' | '1080' | '720' | '480'
 export type ScreenshotFormat = 'png' | 'jpg'
 /** How the OSC prints position/duration. Click the readout to cycle. */
@@ -29,6 +32,7 @@ export interface Settings {
   frostStrength: number // 0..100 → acrylic panel scrim alpha (lower = more see-through)
   subHdrPeak: number // peak nits for subtitles over HDR video (mpv sub-hdr-peak)
   hwdec: Hwdec
+  deinterlace: Deinterlace
   streamQuality: StreamQuality // online (yt-dlp) max quality
   useCookies: boolean // read browser cookies for member/age-restricted/Premium content
   cookiesBrowser: string // which browser to read cookies from (yt-dlp cookies-from-browser)

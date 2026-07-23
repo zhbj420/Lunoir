@@ -104,6 +104,9 @@ export const pt: Partial<Record<Key, string>> = {
   'set.hwdec.autoCopy':
     'Descodificação por GPU com cópia de volta para a memória do sistema. Necessária para filtros de CPU como o SVP.',
   'set.hwdec.off': 'Descodificação por software na CPU. A mais compatível, mas mais exigente.',
+  'set.deint.label': 'Desentrelaçamento',
+  'set.deint.desc':
+    'O vídeo de difusão (1080i, 576i — a maioria dos canais em direto, DVD e gravações de TV) guarda cada imagem como dois campos de meia altura captados com uma fração de segundo de diferença. Num ecrã moderno surgem como dentes de pente nos contornos em movimento.\nO modo automático só atua se a fonte se declarar entrelaçada; o vídeo progressivo nunca é tocado. Force-o se um canal estiver mal identificado.',
   'set.quality.label': 'Qualidade de vídeo online',
   'set.quality.desc':
     'Um limite máximo. A qualidade real depende da fonte: um vídeo limitado a 1080p reproduz em 1080p independentemente desta definição. «Máxima» escolhe a maior qualidade oferecida pela fonte. Aplica-se à próxima transmissão.',
@@ -133,6 +136,9 @@ export const pt: Partial<Record<Key, string>> = {
   'opt.hwdec.auto': 'Auto',
   'opt.hwdec.autoCopy': 'Auto (cópia de volta)',
   'opt.hwdec.off': 'Desativado (software)',
+  'opt.deint.auto': 'Auto (se a fonte for entrelaçada)',
+  'opt.deint.on': 'Sempre ativo',
+  'opt.deint.off': 'Desligado',
   'opt.quality.best': 'Máxima',
   'opt.shot.png': 'PNG (sem perdas)',
   'opt.shot.jpg': 'JPG (alta qualidade)',

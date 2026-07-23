@@ -164,6 +164,18 @@ let lastPosWrite = 0
 let lastDuration = 0
 let lastVolume = 100
 let pendingResumeToast = '' // show the "Resumed from …" toast only once playback starts
+let lastSeekable = true // mpv 'seekable'; false = a live stream (no meaningful position)
+
+/** Can the current target carry a resume position? Live TV can't: its `time-pos` is
+ *  just how long you've been watching, not a place in the material. Without this,
+ *  watching a channel for 5s wrote its URL into positions.json, and switching back to
+ *  it later seeked "into" the live edge and announced "Resumed from 3:20".
+ *  Gated on the source being IPTV (deterministic, independent of when 'seekable'
+ *  lands) and on seekability (catches a live URL opened on its own). Defaults to
+ *  allowing resume, so nothing that works today stops working. */
+function canResume(): boolean {
+  return sourceType !== 'iptv' && lastSeekable !== false
+}
 // Shuffle is a persistent mode (not a one-shot reorder): the list keeps its
 // display order, but auto-advance / next picks randomly. `shuffleBag` holds the
 // not-yet-played indices this cycle (no repeats until it drains); `shuffleHistory`
@@ -1326,6 +1338,13 @@ function videoHdrLabel(t: Record<string, unknown>): string {
   return ''
 }
 
+// An i/p badge was tried here and removed: mpv's `video-frame-info.interlaced` is a
+// PER-FRAME flag, and with hardware decoding (and broadcast streams that splice
+// differently-encoded segments) it reads inconsistently — the badge flickered between
+// 1080i and 1080p on one channel. A confident-looking badge over an unreliable signal
+// is worse than not claiming anything, which is why the letter is now only printed
+// where it's certain. The deinterlace setting stays; the picture is the ground truth.
+
 /** Parse MediaInfo's --Output=JSON: per-audio-track metadata (keyed by ff-index)
  *  plus the video HDR flavour. */
 function parseMediaInfo(json: string): { audio: Record<number, ProbeStream>; hdr: string } {
@@ -2296,6 +2315,7 @@ function applyMpvSettings(): void {
   if (!mpv) return
   const s = getSettings()
   mpv.setProperty('hwdec', s.hwdec)
+  mpv.setProperty('deinterlace', s.deinterlace)
   mpv.setProperty('alang', s.audioLang) // '' = mpv default (file's own order)
   mpv.setProperty('slang', s.subLang)
   mpv.setProperty('sub-visibility', s.subsDefaultOn)
@@ -2426,7 +2446,7 @@ function persistState(): void {
   if (s.rememberWindow && win && !win.isDestroyed() && !preFsBounds) {
     setSetting('windowBounds', preMaxBounds ?? win.getBounds())
   }
-  if (s.resumePlayback && resumePath) {
+  if (s.resumePlayback && resumePath && canResume()) {
     const nearEnd = lastDuration > 0 && resumePos > lastDuration - 10
     if (resumePos > 5 && !nearEnd) savePosition(resumePath, resumePos)
     else clearPosition(resumePath) // watched to the end → don't resume next time
@@ -2543,10 +2563,12 @@ function startMpv(): void {
       lastDuration = data
     } else if (name === 'volume' && typeof data === 'number') {
       lastVolume = data
+    } else if (name === 'seekable' && typeof data === 'boolean') {
+      lastSeekable = data // false = live → no resume position (see canResume)
     } else if (name === 'time-pos' && typeof data === 'number') {
       resumePos = data
       // throttled resume-position save; clear it once we're near the end (watched)
-      if (getSettings().resumePlayback && resumePath && Date.now() - lastPosWrite > 5000) {
+      if (getSettings().resumePlayback && resumePath && canResume() && Date.now() - lastPosWrite > 5000) {
         lastPosWrite = Date.now()
         const nearEnd = lastDuration > 0 && data > lastDuration - 10
         if (data > 5 && !nearEnd) savePosition(resumePath, data)
@@ -2580,12 +2602,14 @@ function startMpv(): void {
     // buffers at the right spot); the toast waits for playback-restart above
     if (event === 'file-loaded') {
       pendingResumeToast = '' // clear any stale pending toast from a failed load
-      if (getSettings().resumePlayback && resumePath) {
+      if (getSettings().resumePlayback && resumePath && canResume()) {
         const pos = getPosition(resumePath)
         if (typeof pos === 'number' && pos > 5) {
           mpv?.command(['seek', pos, 'absolute']).catch(() => {})
           pendingResumeToast = mmss(pos)
         }
+      } else if (resumePath && !canResume()) {
+        clearPosition(resumePath) // self-heal: drop channel URLs written before this guard
       }
     }
   })
@@ -2924,6 +2948,7 @@ function registerIpc(): void {
     // live-apply just the changed mpv property (languages take effect next file load)
     if (mpv) {
       if (key === 'hwdec') mpv.setProperty('hwdec', value)
+      else if (key === 'deinterlace') mpv.setProperty('deinterlace', value)
       else if (key === 'audioLang') mpv.setProperty('alang', value)
       else if (key === 'subLang') mpv.setProperty('slang', value)
       else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)
