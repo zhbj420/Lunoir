@@ -61,6 +61,13 @@ interface Settings {
 
 type Opt = { value: string; label: string }
 
+// The panel had grown to eleven sections and ~33 rows in one scroll — long enough that
+// finding anything meant a hunt. Grouped into four tabs by what you'd be trying to do.
+// Subtitles gets its own: it's the one group you come back to and fiddle with, and its
+// settings were split across two sections (languages/auto-load sat under "Audio & subs",
+// the styling under its own header) so tuning subs meant visiting two places.
+type Tab = 'playback' | 'subs' | 'interface' | 'general'
+
 // Option lists that carry prose are built from `t` at render time so they follow a
 // language change like everything else. Format, codec, browser and font-family
 // names are NOT translated — they read the same in every language.
@@ -339,6 +346,20 @@ function Row({
 // the main process; changes apply immediately.
 export default function SettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useT()
+  const [tab, setTab] = useState<Tab>('playback')
+  // The tab strip scrolls sideways when the labels don't fit (Russian's
+  // "Воспроизведение" won't, at any tracking we'd accept). Two things make that
+  // usable: a wheel over it scrolls horizontally — a vertical wheel does nothing to a
+  // horizontal container by default — and the edges fade where there's more to see,
+  // since the scrollbar is hidden and a half-cut word otherwise just looks broken.
+  const tabsRef = useRef<HTMLDivElement>(null)
+  const [tabEdges, setTabEdges] = useState({ left: false, right: false })
+  const syncTabEdges = (): void => {
+    const el = tabsRef.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    setTabEdges({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 })
+  }
   const [s, setS] = useState<Settings | null>(null)
   const [pathEdit, setPathEdit] = useState<string | null>(null) // non-null while typing the folder
   const [recPathEdit, setRecPathEdit] = useState<string | null>(null) // same, for the recording folder
@@ -347,6 +368,8 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
   const [version, setVersion] = useState('')
   const [checkState, setCheckState] = useState<'idle' | 'checking' | 'latest' | 'found' | 'error'>('idle')
   const [found, setFound] = useState<{ latest: string; url: string } | null>(null)
+  // yt-dlp manual refresh (it also self-refreshes every 14 days)
+  const [ytdlState, setYtdlState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
 
   useEffect(() => {
     window.mmp.getSettings().then(setS)
@@ -354,6 +377,12 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
   }, [])
   useEffect(() => {
     window.mmp.getVersion().then(setVersion)
+  }, [])
+  // re-measure when the labels change width (language switch) or the panel is resized
+  useLayoutEffect(syncTabEdges, [t])
+  useEffect(() => {
+    window.addEventListener('resize', syncTabEdges)
+    return () => window.removeEventListener('resize', syncTabEdges)
   }, [])
 
   const doCheck = async (): Promise<void> => {
@@ -365,6 +394,11 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
       setFound({ latest: info.latest, url: info.url })
       setCheckState('found')
     } else setCheckState('latest')
+  }
+
+  const doRefreshYtdl = async (): Promise<void> => {
+    setYtdlState('working')
+    setYtdlState((await window.mmp.refreshYtdl()) ? 'done' : 'error')
   }
 
   // optimistic local update + persist to main
@@ -407,6 +441,12 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
       )
     : t('update.current', { version: `v${version}` })
 
+  const ytdlStatus: ReactNode =
+    ytdlState === 'working' ? t('set.ytdl.working')
+    : ytdlState === 'done' ? t('set.ytdl.done')
+    : ytdlState === 'error' ? t('set.ytdl.failed')
+    : multiline(t('set.ytdl.desc'))
+
   return (
     <div
       className={`panel left ${open ? 'open' : ''}`}
@@ -414,7 +454,35 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
       onWheel={e => e.stopPropagation()}
     >
       <div className="panel-tabs">
-        <button className="panel-tab active">{t('common.settings')}</button>
+        {/* only the tabs scroll — the collapse button has to stay reachable */}
+        <div
+          ref={tabsRef}
+          className={`set-tabs${tabEdges.left ? ' fade-l' : ''}${tabEdges.right ? ' fade-r' : ''}`}
+          onScroll={syncTabEdges}
+          onWheel={e => {
+            const el = tabsRef.current
+            if (!el || el.scrollWidth <= el.clientWidth) return
+            e.stopPropagation()
+            el.scrollLeft += e.deltaY || e.deltaX
+          }}
+        >
+          {(
+            [
+              ['playback', 'set.tab.playback'],
+              ['subs', 'set.tab.subs'],
+              ['interface', 'set.tab.interface'],
+              ['general', 'set.tab.general']
+            ] as const
+          ).map(([id, key]) => (
+            <button
+              key={id}
+              className={`panel-tab ${tab === id ? 'active' : ''}`}
+              onClick={() => setTab(id)}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
         <span className="panel-tabs-spacer" />
         <button className="panel-collapse" title={t('common.collapse')} onClick={onClose}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -425,6 +493,7 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
 
       {s && (
         <div className="panel-body settings-body">
+          {tab === 'interface' && (<>
           <div className="set-sec">{t('set.sec.interface')}</div>
           <Row label={t('set.uiLang.label')} desc={t('set.uiLang.desc')}>
             <Select
@@ -460,6 +529,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </Row>
 
+          </>)}
+
+          {tab === 'playback' && (<>
           <div className="set-sec">{t('set.sec.playlist')}</div>
           <Row label={t('set.scanFolder.label')} desc={t('set.scanFolder.desc')}>
             <Toggle on={s.scanFolderIntoPlaylist} onChange={v => set('scanFolderIntoPlaylist', v)} />
@@ -471,7 +543,7 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             <Toggle on={s.resumePlaylistItem} onChange={v => set('resumePlaylistItem', v)} />
           </Row>
 
-          <div className="set-sec">{t('set.sec.audioSubs')}</div>
+          <div className="set-sec">{t('set.sec.audio')}</div>
           <Row label={t('set.keepPitch.label')} desc={t('set.keepPitch.desc')}>
             <Toggle on={s.keepPitch} onChange={v => set('keepPitch', v)} />
           </Row>
@@ -490,6 +562,10 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label={t('set.audioLang.label')} desc={multiline(t('set.audioLang.desc'))}>
             <Select value={s.audioLang} options={langOpts(t)} onChange={v => set('audioLang', v)} />
           </Row>
+          </>)}
+
+          {tab === 'subs' && (<>
+          <div className="set-sec">{t('set.sec.subtitles')}</div>
           <Row label={t('set.subLang.label')} desc={multiline(t('set.subLang.desc'))}>
             <Select value={s.subLang} options={langOpts(t)} onChange={v => set('subLang', v)} />
           </Row>
@@ -578,6 +654,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </Row>
 
+          </>)}
+
+          {tab === 'playback' && (<>
           <div className="set-sec">{t('set.sec.video')}</div>
           <Row label={t('set.hwdec.label')} desc={hwdecDesc(t)[s.hwdec]}>
             <Select value={s.hwdec} options={hwdecOpts(t)} onChange={v => set('hwdec', v as Settings['hwdec'])} />
@@ -601,6 +680,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </Row>
           )}
 
+          </>)}
+
+          {tab === 'general' && (<>
           <div className="set-sec">{t('set.sec.screenshots')}</div>
           <Row label={t('set.shotSubs.label')} desc={t('set.shotSubs.desc')}>
             <Toggle on={s.screenshotSubs} onChange={v => set('screenshotSubs', v)} />
@@ -673,6 +755,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             </div>
           </div>
 
+          </>)}
+
+          {tab === 'interface' && (<>
           <div className="set-sec">{t('set.sec.controls')}</div>
           <Row
             label={t('set.oscDelay.label')}
@@ -706,6 +791,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
             <Toggle on={s.rememberVolume} onChange={v => set('rememberVolume', v)} />
           </Row>
 
+          </>)}
+
+          {tab === 'general' && (<>
           <div className="set-sec">{t('set.sec.experimental')}</div>
           <Row label={t('set.timeline.label')} desc={multiline(t('set.timeline.desc'))}>
             <Toggle on={s.experimentalTimeline} onChange={v => set('experimentalTimeline', v)} />
@@ -729,6 +817,14 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label={t('set.autoUpdate.label')} desc={t('set.autoUpdate.desc')}>
             <Toggle on={s.checkForUpdates} onChange={v => set('checkForUpdates', v)} />
           </Row>
+          {/* yt-dlp refreshes itself every couple of weeks; this is for when a site
+              breaks it mid-cycle and waiting isn't an option */}
+          <Row label={t('set.ytdl.label')} desc={ytdlStatus}>
+            <button className="set-check-btn" disabled={ytdlState === 'working'} onClick={doRefreshYtdl}>
+              {t('set.ytdl.update')}
+            </button>
+          </Row>
+          </>)}
         </div>
       )}
     </div>

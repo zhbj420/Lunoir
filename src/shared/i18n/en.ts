@@ -65,7 +65,12 @@ export const en = {
   'set.sec.interface': 'Interface',
   'set.sec.appearance': 'Appearance',
   'set.sec.playlist': 'Playlist',
-  'set.sec.audioSubs': 'Audio & subtitles',
+  'set.sec.audio': 'Audio',
+  'set.sec.subtitles': 'Subtitles',
+  'set.tab.playback': 'Playback',
+  'set.tab.subs': 'Subtitles',
+  'set.tab.interface': 'Interface',
+  'set.tab.general': 'General',
   'set.sec.subAppearance': 'Subtitle appearance',
   'set.sec.video': 'Video',
   'set.sec.screenshots': 'Screenshots',
@@ -165,6 +170,14 @@ export const en = {
 
   'set.update.label': 'Version',
   'set.update.check': 'Check for updates',
+  'set.ytdl.label': 'Online video support',
+  'set.ytdl.desc':
+    'Online video is resolved by yt-dlp, which Lunoir refreshes on its own every couple of weeks.\nUpdate it by hand if a site stops playing — they change often, and an older yt-dlp is the usual reason.',
+  'set.ytdl.update': 'Update now',
+  'set.ytdl.working': 'Downloading…',
+  'set.ytdl.done': 'Updated to the latest version',
+  'set.ytdl.failed': 'Couldn’t update — check your connection',
+  'main.ytdlUpdated': 'Online video support updated — try again',
   'set.autoUpdate.label': 'Check on startup',
   'set.autoUpdate.desc': 'Silently check for a newer version when Lunoir starts.',
 

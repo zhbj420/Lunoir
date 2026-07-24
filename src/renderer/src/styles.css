@@ -1824,6 +1824,68 @@ body.library-win.library-shown .library {
   }
 }
 
+/* Four tabs in a panel that can be as narrow as 300px, across nine languages —
+   "Wiedergabe", "Воспроизведение" and friends will not all fit. Let the strip scroll
+   sideways rather than shrink the type: below 12px hanzi stop rendering evenly, and
+   that floor is not negotiable (see the CJK notes).
+   This scrolls the TABS only. Putting overflow on the whole row took the collapse
+   button with it, scrolled off the right edge and unreachable. */
+.set-tabs {
+  display: flex;
+  align-items: stretch;
+  min-width: 0; /* let it shrink inside the flex row instead of pushing siblings out */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.set-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fade whichever edge still has tabs beyond it. The scrollbar is hidden, so without
+   this a clipped label reads as a rendering bug instead of as "there's more" — and a
+   wheel over the strip scrolls it (see onWheel; a vertical wheel won't move a
+   horizontal container on its own). */
+.set-tabs.fade-r {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+}
+
+.set-tabs.fade-l {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 22px), transparent);
+}
+
+.set-tabs.fade-l.fade-r {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+}
+
+/* Tighter than the right panel's tabs, which only ever hold three short words. Four
+   labels at that tracking and gap overflowed even in English — "GENERAL" came out as
+   "GENERA" — and a clipped word reads as a bug rather than as "scroll me". Trimming the
+   gap and tracking (NOT the size — 12px is the hanzi floor) gets all four in at typical
+   widths; the scroll above still catches the long-word languages. */
+.set-tabs .panel-tab {
+  flex: none;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+  margin-right: 18px;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+
+.set-tabs .panel-tab:last-child {
+  margin-right: 6px;
+}
+
+/* CJK labels are two characters each and fit with room to spare, so they keep the
+   right panel's full tracking — no reason to make them look cramped. */
+:root[data-cjk] .set-tabs .panel-tab {
+  letter-spacing: 0.16em;
+  margin-right: 20px;
+}
+
 .panel-body {
   flex: 1;
   overflow-y: auto;
