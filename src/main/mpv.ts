@@ -86,6 +86,10 @@ export class MpvController extends EventEmitter {
       // tone-mapping; plain --vo=gpu shows DV Profile 5 with a green/washed cast
       '--vo=gpu-next',
       '--hwdec=auto',
+      // our volume slider / wheel / keyboard all go to 150, but mpv's own --volume-max
+      // defaults to 130 — without this the control silently dead-ends short of its max
+      // (it looks like the wheel "sticks" partway up).
+      '--volume-max=150',
       '--input-default-bindings=yes',
       '--input-vo-keyboard=yes',
       `--input-ipc-server=${this.pipePath}`
