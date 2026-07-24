@@ -75,6 +75,7 @@ export default function OverlayView() {
   const volToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cursorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
+  const lastPos = useRef({ x: -1, y: -1 })
   const lastY = useRef(-1)
   const downAccum = useRef(0)
   const entering = useRef(false)
@@ -141,12 +142,31 @@ export default function OverlayView() {
   // Reveal the UI only when the pointer heads toward the controls — moving down
   // a bit, or near the top (title) / bottom (OSC) edges — not on every twitch.
   const onMove = (e: React.MouseEvent) => {
+    // Ignore a mousemove that didn't actually move. Windows re-sends one at the SAME
+    // point whenever the window under the pointer appears/disappears/moves — and the OSC
+    // is exactly that: a separate window that fades and slides in the bottom band. Left
+    // resting there, the pointer used to self-lock: OSC auto-hides → synthetic move →
+    // this handler refreshes cursor-active (so the cursor could never hide) and re-reveals
+    // the OSC (bottomCentre below) → which hides again → repeat. Hence "sometimes the
+    // cursor won't hide in fullscreen": it depended on where you left the pointer.
+    // (<=1px, not just ==, so main's 1px cursor nudge is absorbed here too — it has to
+    // shift by a pixel because Chromium drops a mousemove that doesn't actually move.)
+    if (
+      Math.abs(e.clientX - lastPos.current.x) <= 1 &&
+      Math.abs(e.clientY - lastPos.current.y) <= 1
+    ) {
+      return // real drift accumulates: lastPos isn't updated, so 2px total still counts
+    }
+    lastPos.current = { x: e.clientX, y: e.clientY }
     // Any pointer movement brings the cursor back immediately (decoupled from the
     // OSC, which still reveals only on an intent gesture below). Without this the
     // cursor stayed hidden — cursor:none only lifted when the OSC itself revealed.
     document.body.classList.add('cursor-active')
     if (cursorTimer.current) clearTimeout(cursorTimer.current)
-    cursorTimer.current = setTimeout(() => document.body.classList.remove('cursor-active'), 2200)
+    cursorTimer.current = setTimeout(() => {
+      document.body.classList.remove('cursor-active')
+      window.mmp.cursorIdle() // dropping the class can enable cursor:none — see nudgeCursor
+    }, 2200)
     const x = e.clientX
     const y = e.clientY
     const h = window.innerHeight

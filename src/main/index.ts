@@ -1815,6 +1815,22 @@ function setPanelAnim(side: 'right' | 'left', t: NodeJS.Timeout | null): void {
  * closed we leave it at rest (opacity 0) but click-through, so it neither pops
  * Windows' scale animation (never hidden) nor blocks clicks on the video beneath.
  */
+/**
+ * Shrink an idle overlay window to 1x1 in the corner. These windows are deliberately left
+ * SHOWN at opacity 0 rather than hidden, so the first real open doesn't replay Windows'
+ * zoom-in — but a shown window still owns the mouse CURSOR over its rectangle, and
+ * setIgnoreMouseEvents() only passes clicks through, not the cursor. Idle full-size overlays
+ * (the 收藏 window and the context menu both cover most of the screen) therefore kept the
+ * pointer visible in fullscreen no matter what the main window's `cursor: none` said —
+ * whether it hid came down to which rectangle you happened to park the pointer in. Parking
+ * them at 1x1 keeps the warm-up and frees the screen. Every open sets real bounds first.
+ */
+function parkOverlay(w: BrowserWindow | null): void {
+  if (!w || w.isDestroyed()) return
+  const o = win && !win.isDestroyed() ? win.getBounds() : { x: 0, y: 0 }
+  w.setBounds({ x: o.x, y: o.y, width: 1, height: 1 })
+}
+
 function animatePanel(side: 'right' | 'left', reveal: boolean): void {
   const pw = panelWinOf(side)
   if (!win || !pw || win.isDestroyed() || pw.isDestroyed()) return
@@ -1848,7 +1864,10 @@ function animatePanel(side: 'right' | 'left', reveal: boolean): void {
     if (p >= 1) {
       clearInterval(timer)
       setPanelAnim(side, null)
-      if (!reveal && !pw.isDestroyed()) pw.setIgnoreMouseEvents(true) // closed → don't block the video
+      if (!reveal && !pw.isDestroyed()) {
+        pw.setIgnoreMouseEvents(true) // closed → don't block the video
+        parkOverlay(pw) // …and stop owning the cursor over its old strip
+      }
     }
   }, 16)
   setPanelAnim(side, timer)
@@ -1958,7 +1977,10 @@ function animateLibrary(reveal: boolean): void {
     if (p >= 1) {
       if (libraryAnim) clearInterval(libraryAnim)
       libraryAnim = null
-      if (!reveal && !lw.isDestroyed()) lw.setIgnoreMouseEvents(true) // closed → let clicks reach the video
+      if (!reveal && !lw.isDestroyed()) {
+        lw.setIgnoreMouseEvents(true) // closed → let clicks reach the video
+        parkOverlay(lw) // …and stop owning the cursor over the whole centre
+      }
     }
   }, 16)
 }
@@ -2026,12 +2048,47 @@ function makeLibraryWindow(): BrowserWindow {
       setWinOpacity(lw, 0)
       lw.setIgnoreMouseEvents(true)
       lw.showInactive() // pre-warm so the first real open is a clean fade, no zoom
+      parkOverlay(lw) // warm, but not covering the screen — see parkOverlay
     }
   })
   lw.on('closed', () => {
     libraryWin = null
   })
   return lw
+}
+
+/** Is the pointer REALLY over the OSC right now? Same trick the mini player uses: compare
+ *  the OS cursor against the window rectangle instead of trusting a DOM hover flag, which
+ *  the OSC's sliding breaks (see the note in revealUi's hide timer). */
+function cursorOverOsc(): boolean {
+  if (!oscWin || oscWin.isDestroyed() || !oscShown) return false
+  const c = screen.getCursorScreenPoint()
+  const b = oscWin.getBounds()
+  return c.x >= b.x && c.x < b.x + b.width && c.y >= b.y && c.y < b.y + b.height
+}
+
+/**
+ * Chromium only re-evaluates the CSS cursor while it is processing a mouse event. Fullscreen's
+ * `cursor: none` switches on via a class change with the pointer sitting perfectly still, so
+ * nothing makes it re-run hit-testing: the computed style is already `none` (measured — the
+ * element under the pointer was .video-surface with computed cursor `none`) while the old
+ * arrow stays on screen. Any real event repairs it, which is why clicking, or bouncing out of
+ * fullscreen and back, appeared to "fix" it by hand. So synthesise a move at the pointer's
+ * real position and let Chromium apply what it already decided. OverlayView ignores a move
+ * that didn't change coordinates, so this can't wake the UI we just finished hiding.
+ */
+function nudgeCursor(): void {
+  if (!win || win.isDestroyed()) return
+  const c = screen.getCursorScreenPoint()
+  const b = win.getContentBounds()
+  const x = c.x - b.x
+  const y = c.y - b.y
+  if (x < 0 || y < 0 || x >= b.width || y >= b.height) return // pointer isn't over us
+  // Shift by a pixel: Chromium discards a mousemove that lands on the same point, which
+  // would defeat the whole purpose. OverlayView treats a <=1px move as no movement, so
+  // this re-runs hit-testing (applying cursor:none) without waking the UI back up.
+  const nx = x + 1 < b.width ? x + 1 : x - 1
+  win.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(nx), y: Math.round(y) })
 }
 
 function revealUi(): void {
@@ -2044,10 +2101,21 @@ function revealUi(): void {
   if (hasMedia && !oscShown) animateOsc(true)
   if (hideTimer) clearTimeout(hideTimer)
   const delayMs = Math.max(1, getSettings().oscHideDelay) * 1000
-  hideTimer = setTimeout(() => {
-    if (oscHovered) return // pointer is over the OSC — keep it up (no flicker)
+  hideTimer = setTimeout(function tick() {
+    // `oscHovered` comes from the OSC's own DOM enter/leave, and goes STALE when the OSC
+    // slides out from under a stationary pointer — opening or closing either side panel
+    // calls slideOscToRest(), and Windows sends no leave to a window that moves away. A
+    // stale `true` pinned the OSC up forever, and with it the pointer: fullscreen's
+    // cursor:none only applies while the UI is hidden. So verify the flag against the real
+    // cursor, and re-arm while it's genuinely hovered — a lost leave can't wedge us again.
+    if (oscHovered && cursorOverOsc()) {
+      hideTimer = setTimeout(tick, delayMs)
+      return
+    }
+    oscHovered = false
     if (trimClip >= 0 && getSettings().pinOscInTrim) return // keep the in/out handles reachable while trimming
     broadcast('ui:hide')
+    nudgeCursor() // .ui-hidden just enabled cursor:none — make Chromium actually apply it
     animateOsc(false) // slide down + fade out
   }, delayMs)
 }
@@ -2343,6 +2411,7 @@ function makePanelWindow(kind: 'playlist' | 'settings'): BrowserWindow {
       setWinOpacity(pw, 0)
       pw.setIgnoreMouseEvents(true)
       pw.showInactive()
+      parkOverlay(pw)
     }
   })
   pw.on('closed', () => {
@@ -2380,6 +2449,7 @@ function makeMenuWindow(): BrowserWindow {
     setWinOpacity(mw, 0)
     mw.setIgnoreMouseEvents(true)
     mw.showInactive()
+    parkOverlay(mw)
   })
   mw.on('blur', () => hideMenu()) // clicking anywhere else dismisses
   mw.on('closed', () => {
@@ -2463,6 +2533,7 @@ function hideMenu(): void {
   if (menuWin && !menuWin.isDestroyed()) {
     setWinOpacity(menuWin, 0)
     menuWin.setIgnoreMouseEvents(true)
+    parkOverlay(menuWin)
   }
 }
 
@@ -3262,13 +3333,16 @@ function registerIpc(): void {
     // showing/hiding the strip moves everything that sits below it
     if (key === 'hideTitleBar') {
       updateVideoMargin()
-      if (rightPanelWin && !rightPanelWin.isDestroyed() && rightPanelWin.isVisible()) {
+      // gate on the OPEN flags, not isVisible(): an idle overlay is still "visible" (shown
+      // at opacity 0 for the warm-up) but parked at 1x1, and re-laying it out here would
+      // spread it back over the screen — see parkOverlay.
+      if (panelOpen && rightPanelWin && !rightPanelWin.isDestroyed()) {
         rightPanelWin.setBounds(panelBounds('right'))
       }
-      if (leftPanelWin && !leftPanelWin.isDestroyed() && leftPanelWin.isVisible()) {
+      if (leftPanelOpen && leftPanelWin && !leftPanelWin.isDestroyed()) {
         leftPanelWin.setBounds(panelBounds('left'))
       }
-      if (libraryWin && !libraryWin.isDestroyed() && libraryWin.isVisible()) {
+      if (libraryOpen && libraryWin && !libraryWin.isDestroyed()) {
         libraryWin.setBounds(libraryBounds())
       }
       layoutOsc()
@@ -3357,6 +3431,9 @@ function registerIpc(): void {
   })
   ipcMain.on('win:close', () => win?.close())
   ipcMain.on('win:toggle-fullscreen', () => toggleFullscreen())
+  // the renderer dropped .cursor-active (pointer idle) — that can be the change that
+  // enables cursor:none, and it happens with no mouse event behind it. See nudgeCursor.
+  ipcMain.on('ui:cursor-idle', () => nudgeCursor())
   // a panel window's resize grips resize the MAIN window (they sit over its edge).
   // The grip computes the target rect (which corner is anchored depends on the
   // docked side), main just clamps to the min size and applies it.

@@ -350,6 +350,8 @@ const api = {
   toggleMaximize: (): void => ipcRenderer.send('win:toggle-maximize'),
   close: (): void => ipcRenderer.send('win:close'),
   toggleFullscreen: (): void => ipcRenderer.send('win:toggle-fullscreen'),
+  // pointer went idle → ask main to re-apply the cursor (Chromium needs an event)
+  cursorIdle: (): void => ipcRenderer.send('ui:cursor-idle'),
   // panel-window resize grips → resize the main window
   getWinBounds: (): Promise<{ x: number; y: number; width: number; height: number } | null> =>
     ipcRenderer.invoke('win:get-bounds'),
