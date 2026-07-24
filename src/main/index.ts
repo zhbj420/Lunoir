@@ -293,6 +293,48 @@ async function downloadYtdl(): Promise<string | null> {
   }
 }
 
+// yt-dlp reports why it refused a URL — members-only, DRM, region-locked, unavailable,
+// or its own extractor being out of date — but it says so on mpv's log, which we
+// otherwise discard. Keep the last such line so end-file can show the real reason
+// instead of a bare "couldn't load", which tells you nothing about what to do next.
+let lastYtdlError = ''
+const YTDL_ERROR_RE = /^\[ytdl_hook\].*\bERROR:\s*(.+)$/i
+// Sites break yt-dlp regularly; when it says so, that's the one failure we can fix
+// ourselves rather than just report.
+const YTDL_OUTDATED_RE = /out.?of.?date|outdated|update (yt-dlp|to the latest)|nightly/i
+
+function noteYtdlError(line: string): void {
+  const m = YTDL_ERROR_RE.exec(line.trim())
+  if (!m) return
+  // strip yt-dlp's boilerplate tail so the toast stays one readable sentence
+  lastYtdlError = m[1]
+    .replace(/\s*;\s*please report this issue.*/i, '')
+    .replace(/\s*You might want to use.*/i, '')
+    .trim()
+    .slice(0, 200)
+}
+
+/** Take (and clear) the last yt-dlp error — one load failure, one report. */
+function takeYtdlError(): string {
+  const e = lastYtdlError
+  lastYtdlError = ''
+  return e
+}
+
+/** Re-download yt-dlp now, regardless of age. Used by the Settings button and
+ *  automatically when yt-dlp itself says it's out of date. */
+async function refreshYtdl(): Promise<boolean> {
+  if (ytdlDownloading) return (await ytdlDownloading) != null
+  ytdlDownloading = downloadYtdl().finally(() => (ytdlDownloading = null))
+  const path = await ytdlDownloading
+  if (path) {
+    // point mpv at the new binary right away, so a retry uses it without a restart
+    mpv?.setProperty('script-opts', `ytdl_hook-ytdl_path=${path.replace(/\\/g, '/')}`)
+    broadcast('ui:toast', tr('main.ytdlUpdated'))
+  }
+  return path != null
+}
+
 /** Ensure yt-dlp is available: use the existing copy at once (refreshing a stale
  *  one in the background); download first if it's missing. Returns its path/null. */
 async function ensureYtdl(): Promise<string | null> {
@@ -2784,8 +2826,16 @@ function startMpv(): void {
     if (event === 'end-file') {
       broadcast('ui:loading', false)
       // mpv gave up loading this item (dead stream / unreadable file) — the missing
-      // LOCAL file case is already caught in playCurrent, so this covers URLs/streams
-      if (msg?.reason === 'error') broadcast('ui:toast', tr('main.loadFailed'))
+      // LOCAL file case is already caught in playCurrent, so this covers URLs/streams.
+      // Prefer yt-dlp's own words: "members-only", "DRM protected", "video unavailable"
+      // all land here as a bare "couldn't load" otherwise, which tells you nothing about
+      // whether to retry, sign in, or give up.
+      if (msg?.reason === 'error') {
+        const why = takeYtdlError()
+        broadcast('ui:toast', why || tr('main.loadFailed'))
+        // an out-of-date extractor is the one cause we can actually fix, so refresh it
+        if (why && YTDL_OUTDATED_RE.test(why)) refreshYtdl()
+      }
     }
     if (event === 'playback-restart') {
       broadcast('ui:loading', false) // first frame is up (after any buffering)
@@ -2811,7 +2861,10 @@ function startMpv(): void {
       }
     }
   })
-  mpv.on('log', (line: string) => isDev && process.stdout.write(`[mpv] ${line}`))
+  mpv.on('log', (line: string) => {
+    if (isDev) process.stdout.write(`[mpv] ${line}`)
+    noteYtdlError(line) // keep yt-dlp's own words for the end-file toast
+  })
   mpv.on('connected', () => {
     broadcast('mpv:connected')
     updateVideoMargin() // reserve the title strip from the start
@@ -3219,6 +3272,10 @@ function registerIpc(): void {
       height: dragAnchor.height
     })
   })
+  // Settings › About: force a yt-dlp refresh now. The 14-day auto-refresh in
+  // ensureYtdl() covers the normal case, but a site can break yt-dlp mid-cycle and
+  // then there's nothing to do but wait — this is the escape hatch.
+  ipcMain.handle('app:refresh-ytdl', async () => refreshYtdl())
   ipcMain.on('ui:toggle-mini', () => toggleMini())
   ipcMain.on('ui:go-home', () => {
     if (isMini()) toggleMini() // Home has no video to float — leave the mini player

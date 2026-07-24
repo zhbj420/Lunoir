@@ -167,6 +167,9 @@ const api = {
   // userAgent: optional, from the URL box's Advanced strip — belongs to this source
   loadFile: (path: string, userAgent = ''): void =>
     ipcRenderer.send('mpv:loadfile', path, userAgent),
+  // re-download yt-dlp now (it also refreshes itself every 14 days). Resolves to
+  // whether it succeeded.
+  refreshYtdl: (): Promise<boolean> => ipcRenderer.invoke('app:refresh-ytdl'),
   // stop playback and clear the queue — back to the Home screen
   goHome: (): void => ipcRenderer.send('ui:go-home'),
   // mini player (PiP): the window shrunk into a corner, on top, with its own overlay
