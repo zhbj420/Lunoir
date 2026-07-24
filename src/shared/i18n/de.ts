@@ -104,10 +104,11 @@ export const de: Partial<Record<Key, string>> = {
     'Standard-Ruheposition. „Anpassen ▸ Untertitelposition“ im rechten Panel verschiebt das aktuelle Video, ohne diesen Wert zu ändern.',
 
   'set.hwdec.label': 'Hardware-Dekodierung',
-  'set.hwdec.auto': 'GPU-Dekodierung. Am effizientesten, da Bilder im Videospeicher bleiben.',
+  'set.hwdec.auto': 'GPU-Dekodierung. Am effizientesten und fast immer die richtige Wahl.',
   'set.hwdec.autoCopy':
-    'GPU-Dekodierung mit Rückkopie in den Systemspeicher. Nötig für CPU-Filter wie SVP.',
-  'set.hwdec.off': 'Software-Dekodierung auf der CPU. Am kompatibelsten, aber aufwendiger.',
+    'Dekodiert weiterhin auf der GPU, kopiert aber jedes Bild zurück in den Systemspeicher. Nur einen Versuch wert, wenn das Bild fehlerhaft ist – zerrissen, klotzig oder farblich falsch –, das Dekodieren ansonsten aber funktioniert.',
+  'set.hwdec.off':
+    'Auf der CPU dekodieren. Die kompatibelste Option und die letzte, die man probiert; bei 4K teuer.',
   'set.deint.label': 'Deinterlacing',
   'set.deint.desc':
     'Broadcast-Video (1080i, 576i – die meisten Live-Sender, DVDs und TV-Aufnahmen) speichert jedes Bild als zwei halbhohe Halbbilder, die Sekundenbruchteile auseinander aufgenommen wurden. Auf modernen Displays zeigen sich dadurch kammartige Zacken an bewegten Kanten.\nAuto greift nur ein, wenn die Quelle sich als interlaced meldet; progressives Video bleibt unangetastet. Bei falsch gekennzeichneten Sendern erzwingen.',

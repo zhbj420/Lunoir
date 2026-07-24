@@ -104,10 +104,11 @@ export const es: Partial<Record<Key, string>> = {
     'Posición de reposo predeterminada. «Ajustar ▸ posición de subtítulos» en el panel derecho desplaza el vídeo actual sin cambiar este valor.',
 
   'set.hwdec.label': 'Decodificación por hardware',
-  'set.hwdec.auto': 'Decodificación por GPU. La más eficiente: los fotogramas quedan en memoria de vídeo.',
+  'set.hwdec.auto': 'Decodificación por GPU. La más eficiente y la opción correcta casi siempre.',
   'set.hwdec.autoCopy':
-    'Decodificación por GPU con copia de vuelta a la memoria del sistema. La requieren filtros de CPU como SVP.',
-  'set.hwdec.off': 'Decodificación por software en la CPU. La más compatible, pero más exigente.',
+    'Sigue decodificando en la GPU, pero copia cada fotograma de vuelta a la memoria del sistema. Solo merece la pena probarla si la imagen sale mal —rasgada, con bloques o de colores extraños— mientras que la decodificación funciona por lo demás.',
+  'set.hwdec.off':
+    'Decodificar en la CPU. La opción más compatible y la última que hay que probar; costosa en 4K.',
   'set.deint.label': 'Desentrelazado',
   'set.deint.desc':
     'El vídeo de difusión (1080i, 576i: la mayoría de canales en directo, DVD y grabaciones de TV) guarda cada fotograma como dos campos de media altura captados con una fracción de segundo de diferencia. En una pantalla moderna aparecen como dientes de peine en los bordes en movimiento.\nAuto solo actúa si la fuente se declara entrelazada; el vídeo progresivo no se toca. Fuérzalo si un canal está mal etiquetado.',

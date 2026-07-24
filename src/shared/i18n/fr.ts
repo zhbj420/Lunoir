@@ -104,10 +104,11 @@ export const fr: Partial<Record<Key, string>> = {
     'Position de repos par défaut. Ajuster ▸ position des sous-titres dans le panneau de droite décale la vidéo en cours sans modifier cette valeur.',
 
   'set.hwdec.label': 'Décodage matériel',
-  'set.hwdec.auto': 'Décodage GPU. Le plus efficace : les images restent en mémoire vidéo.',
+  'set.hwdec.auto': 'Décodage GPU. Le plus efficace, et le bon choix dans presque tous les cas.',
   'set.hwdec.autoCopy':
-    'Décodage GPU avec recopie des images en mémoire système. Requis par les filtres CPU comme SVP.',
-  'set.hwdec.off': 'Décodage logiciel sur le CPU. Le plus compatible, mais plus exigeant.',
+    'Décode toujours sur le GPU, mais recopie chaque image en mémoire système. À essayer uniquement si l’image est fautive — déchirée, en blocs ou aux couleurs étranges — alors que le décodage fonctionne par ailleurs.',
+  'set.hwdec.off':
+    'Décoder sur le CPU. L’option la plus compatible et la dernière à essayer ; coûteuse en 4K.',
   'set.deint.label': 'Désentrelacement',
   'set.deint.desc':
     'La vidéo de diffusion (1080i, 576i — la plupart des chaînes en direct, DVD et enregistrements TV) stocke chaque image en deux trames de demi-hauteur captées à une fraction de seconde d’intervalle. Sur un écran moderne, cela donne des dents de peigne le long des contours en mouvement.\nAuto n’intervient que si la source se déclare entrelacée ; la vidéo progressive n’est jamais touchée. Forcez-le si une chaîne est mal étiquetée.',

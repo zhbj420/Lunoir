@@ -128,10 +128,11 @@ export const en = {
     'The default resting position. Adjust ▸ subtitle position in the right panel offsets the current video without changing this value.',
 
   'set.hwdec.label': 'Hardware decoding',
-  'set.hwdec.auto': 'GPU decoding. Most efficient, as frames stay in video memory.',
+  'set.hwdec.auto': 'GPU decoding. Most efficient, and the right choice almost always.',
   'set.hwdec.autoCopy':
-    'GPU decoding with frames copied back to system memory. Required by CPU filters such as SVP.',
-  'set.hwdec.off': 'Software decoding on the CPU. Most compatible, but more demanding.',
+    'Still decodes on the GPU, but copies every frame back to system memory. Only worth trying if the picture is wrong — torn, blocky or oddly coloured — while decoding otherwise works.',
+  'set.hwdec.off':
+    'Decode on the CPU. The most compatible option and the last thing to try; costly at 4K.',
   'set.deint.label': 'Deinterlacing',
   'set.deint.desc':
     'Broadcast video (1080i, 576i — most live TV, DVDs and TV recordings) stores each frame as two half-height fields captured a fraction of a second apart. On a modern display they show as comb-like teeth along moving edges.\nAuto only steps in when the source says it’s interlaced, so progressive video is left untouched. Force it on if a channel is mislabelled.',

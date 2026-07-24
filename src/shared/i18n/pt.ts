@@ -104,10 +104,11 @@ export const pt: Partial<Record<Key, string>> = {
     'Posição de repouso predefinida. «Ajustar ▸ posição das legendas» no painel direito desloca o vídeo atual sem alterar este valor.',
 
   'set.hwdec.label': 'Descodificação por hardware',
-  'set.hwdec.auto': 'Descodificação por GPU. A mais eficiente: os fotogramas ficam na memória de vídeo.',
+  'set.hwdec.auto': 'Descodificação por GPU. A mais eficiente e a escolha certa quase sempre.',
   'set.hwdec.autoCopy':
-    'Descodificação por GPU com cópia de volta para a memória do sistema. Necessária para filtros de CPU como o SVP.',
-  'set.hwdec.off': 'Descodificação por software na CPU. A mais compatível, mas mais exigente.',
+    'Continua a descodificar na GPU, mas copia cada fotograma de volta para a memória do sistema. Só vale a pena experimentar se a imagem sair errada — rasgada, aos blocos ou com cores estranhas — enquanto a descodificação funciona de resto.',
+  'set.hwdec.off':
+    'Descodificar na CPU. A opção mais compatível e a última a experimentar; dispendiosa em 4K.',
   'set.deint.label': 'Desentrelaçamento',
   'set.deint.desc':
     'O vídeo de difusão (1080i, 576i — a maioria dos canais em direto, DVD e gravações de TV) guarda cada imagem como dois campos de meia altura captados com uma fração de segundo de diferença. Num ecrã moderno surgem como dentes de pente nos contornos em movimento.\nO modo automático só atua se a fonte se declarar entrelaçada; o vídeo progressivo nunca é tocado. Force-o se um canal estiver mal identificado.',
