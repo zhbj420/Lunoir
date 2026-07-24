@@ -59,6 +59,10 @@ Open source (MIT), no telemetry, no ads, no bundleware.
   group by their `group-title` into collapsible, searchable sections. Live streams
   show a `● LIVE` badge with one-tap “go live”, and can be **recorded** to MKV
   (stream-copy, no re-encode)
+- **Picture enhancement for rough sources** *(opt-in, off by default)* — deblock and
+  denoise the compression artefacts that plague live TV and IPTV, a sharpen pass, plus
+  optional neural reconstruction of luma (ArtCNN) and colour (CfL). **Watching something
+  good? Leave it off** — on a clean, high-quality source it only softens real detail
 
 **Interface**
 - Floating IINA-style OSC that frosts the video (real Win11 acrylic window)
