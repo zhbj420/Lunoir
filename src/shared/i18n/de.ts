@@ -56,6 +56,28 @@ export const de: Partial<Record<Key, string>> = {
   'set.tab.general': 'Allgemein',
   'set.sec.subAppearance': 'Untertitel-Darstellung',
   'set.sec.video': 'Video',
+  'set.sec.enhance': 'Verbesserung',
+  'set.enhance.label': 'Bild verbessern',
+  'set.enhance.desc':
+    'Hauptschalter für die Werkzeuge unten. Bei guten Quellen ausgeschaltet lassen — es hilft nur bei minderwertigem TV und IPTV und macht ein sauberes Bild weicher.\nBeim Ausschalten bleiben deine Einstellungen erhalten, du kannst es jederzeit wieder einschalten.',
+  'set.deblock.label': 'Deblocking',
+  'set.deblock.desc':
+    'Entfernt Blockartefakte und Moskitorauschen stark komprimierter Videos – die meisten Live-Sender und IPTV.\nHöhere Stufen säubern mehr, kosten aber mehr CPU. Bei guten Quellen aus: es weicht sauberes Video auf.',
+  'opt.deblock.off': 'Aus',
+  'opt.deblock.low': 'Niedrig',
+  'opt.deblock.mid': 'Mittel',
+  'opt.deblock.high': 'Hoch',
+  'set.nr.label': 'Rauschreduktion',
+  'set.nr.desc':
+    'Glättet Kompressionsrauschen und Korn, das die Deblock-Stufe übrig lässt. Nur räumlich, also nie Schlieren bei Bewegung — kann aber feine Details weichzeichnen.\nFür körniges, verrauschtes TV; bei sauberen Quellen aus.',
+  'set.sharpen.label': 'Schärfen',
+  'set.sharpen.desc': 'Macht weiches Video geringer Qualität knackiger. Wenig reicht – zu viel holt das Rauschen zurück.',
+  'set.artcnn.label': 'Detail (ArtCNN)',
+  'set.artcnn.desc':
+    'Neuronale 2×-Rekonstruktion des Luma-Details (Helligkeit) bei niedrig aufgelösten Quellen — der größte Sprung für weiches, niedrig aufgelöstes Video. Bei nativer Auflösung inaktiv.\nBelastet die GPU; am besten bei sauberem, aber niedrig aufgelöstem Material, nicht bei verrauschten Streams.',
+  'set.cfl.label': 'Farbe (CfL)',
+  'set.cfl.desc':
+    'Rekonstruiert Farbdetails aus dem Luma-Kanal (Chroma-from-Luma) — sauberere Farbkanten, weniger Ausbluten bei 4:2:0-Video.\nSubtil; hilft vor allem an gesättigten Kanten und farbigem Text.',
   'set.sec.screenshots': 'Screenshots',
   'set.sec.controls': 'Steuerung',
   'set.sec.window': 'Fenster',

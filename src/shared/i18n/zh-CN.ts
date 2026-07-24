@@ -58,6 +58,28 @@ export const zhCN: Partial<Record<Key, string>> = {
   'set.tab.general': '通用',
   'set.sec.subAppearance': '字幕外观',
   'set.sec.video': '视频',
+  'set.sec.enhance': '画质增强',
+  'set.enhance.label': '增强画质',
+  'set.enhance.desc':
+    '下方各项的总开关。片源清晰就别开——它只对低质量的电视和 IPTV 有用，反而会让干净的画面发虚。\n关掉后会保留你的设置，随时能再打开。',
+  'set.deblock.label': '去块',
+  'set.deblock.desc':
+    '清理高压缩视频的方块和蚊状噪点 —— 多数直播电视和 IPTV 都有。\n档位越高清理越彻底,但更吃 CPU。画质好的源请关闭,它会让干净画面发软。',
+  'opt.deblock.off': '关闭',
+  'opt.deblock.low': '低',
+  'opt.deblock.mid': '中',
+  'opt.deblock.high': '高',
+  'set.nr.label': '降噪',
+  'set.nr.desc':
+    '抹平去块之后残留的压缩噪点和颗粒。纯空间处理,运动画面不会拖影——但可能磨掉一些细节。\n给噪点多的电视用;干净源关掉。',
+  'set.sharpen.label': '锐化',
+  'set.sharpen.desc': '让发软的低画质更清晰。一点点就够 —— 过头会把噪点带回来。',
+  'set.artcnn.label': '细节超分 (ArtCNN)',
+  'set.artcnn.desc':
+    '用神经网络对亮度做 2× 重建,低分辨率源提升最明显——软、糊的低清画面靠它上台阶。原生分辨率下不工作。\n吃 GPU;适合干净但低分的内容,别用在噪点多的流上。',
+  'set.cfl.label': '色度重建 (CfL)',
+  'set.cfl.desc':
+    '用亮度通道反推、重建色彩细节(chroma-from-luma)——4:2:0 视频的彩色边缘更干净、更少溢色。\n效果细腻;在鲜艳边缘和彩色文字上最明显。',
   'set.sec.screenshots': '截图',
   'set.sec.controls': '控制栏',
   'set.sec.window': '窗口',

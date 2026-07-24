@@ -56,6 +56,28 @@ export const es: Partial<Record<Key, string>> = {
   'set.tab.general': 'General',
   'set.sec.subAppearance': 'Apariencia de subtítulos',
   'set.sec.video': 'Vídeo',
+  'set.sec.enhance': 'Mejora',
+  'set.enhance.label': 'Mejorar imagen',
+  'set.enhance.desc':
+    'Interruptor principal de las herramientas de abajo. Déjalo apagado para buenas fuentes: solo ayuda con TV e IPTV de baja calidad y suaviza una imagen nítida.\nApagarlo conserva tus ajustes, puedes volver a activarlo cuando quieras.',
+  'set.deblock.label': 'Desbloqueo',
+  'set.deblock.desc':
+    'Limpia los bloques y el ruido de mosquito del vídeo muy comprimido: la mayoría de canales en directo e IPTV.\nCuanto más alto, más limpia pero más CPU consume. Desactívalo con buenas fuentes: ablanda el vídeo limpio.',
+  'opt.deblock.off': 'Desactivado',
+  'opt.deblock.low': 'Bajo',
+  'opt.deblock.mid': 'Medio',
+  'opt.deblock.high': 'Alto',
+  'set.nr.label': 'Reducción de ruido',
+  'set.nr.desc':
+    'Suaviza el ruido de compresión y el grano que deja el desbloqueo. Solo espacial, así que nunca deja estelas en movimiento, pero puede suavizar el detalle fino.\nPara TV con ruido; desactívalo en fuentes limpias.',
+  'set.sharpen.label': 'Nitidez',
+  'set.sharpen.desc': 'Da nitidez al vídeo blando de baja calidad. Con poco basta: pasarse trae de vuelta el ruido.',
+  'set.artcnn.label': 'Detalle (ArtCNN)',
+  'set.artcnn.desc':
+    'Reconstrucción neuronal 2× del detalle de luma (brillo) en fuentes de baja resolución: la mayor mejora para vídeo suave y de baja definición. Inactivo a resolución nativa.\nCarga la GPU; mejor en contenido limpio pero de baja resolución, no en transmisiones con ruido.',
+  'set.cfl.label': 'Color (CfL)',
+  'set.cfl.desc':
+    'Reconstruye el detalle de color a partir del canal de luma (croma desde luma): bordes de color más limpios y menos sangrado en vídeo 4:2:0.\nSutil; ayuda sobre todo en bordes saturados y texto de color.',
   'set.sec.screenshots': 'Capturas',
   'set.sec.controls': 'Controles',
   'set.sec.window': 'Ventana',

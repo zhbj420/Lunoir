@@ -43,6 +43,12 @@ interface Settings {
   streamQuality: 'best' | '2160' | '1080' | '720' | '480'
   useCookies: boolean
   cookiesBrowser: string
+  enhance: boolean
+  deblock: number
+  nr: number
+  sharpen: number
+  artcnn: boolean
+  cfl: boolean
   timeFormat: 'time' | 'timecode' | 'frame'
   timecodeOverlay: boolean
   screenshotSubs: boolean
@@ -91,6 +97,19 @@ const deinterlaceOpts = (t: T): Opt[] => [
   { value: 'auto', label: t('opt.deint.auto') },
   { value: 'yes', label: t('opt.deint.on') },
   { value: 'no', label: t('opt.deint.off') }
+]
+// Deblock strength = uspp quality. Off, then low/mid/high (2/3/4). Heavier = cleaner but
+// costlier; uspp re-encodes internally to find artefacts.
+const deblockOpts = (t: T): Opt[] => [
+  { value: '0', label: t('opt.deblock.off') },
+  { value: '2', label: t('opt.deblock.low') },
+  { value: '3', label: t('opt.deblock.mid') },
+  { value: '4', label: t('opt.deblock.high') }
+]
+const nrOpts = (t: T): Opt[] => [
+  { value: '0', label: t('opt.deblock.off') },
+  { value: '1', label: t('opt.deblock.low') },
+  { value: '2', label: t('opt.deblock.high') }
 ]
 const qualityOpts = (t: T): Opt[] => [
   { value: 'best', label: t('opt.quality.best') },
@@ -679,6 +698,50 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
               <Select value={s.cookiesBrowser} options={BROWSER_OPTS} onChange={v => set('cookiesBrowser', v)} />
             </Row>
           )}
+
+          <div className="set-sec">{t('set.sec.enhance')}</div>
+          <Row label={t('set.enhance.label')} desc={multiline(t('set.enhance.desc'))}>
+            <Toggle on={s.enhance} onChange={v => set('enhance', v)} />
+          </Row>
+          <Row label={t('set.deblock.label')} desc={multiline(t('set.deblock.desc'))}>
+            <div className={s.enhance ? '' : 'set-ctl-off'}>
+              <Select
+                value={String(s.deblock)}
+                options={deblockOpts(t)}
+                onChange={v => set('deblock', Number(v))}
+              />
+            </div>
+          </Row>
+          <Row label={t('set.nr.label')} desc={multiline(t('set.nr.desc'))}>
+            <div className={s.enhance ? '' : 'set-ctl-off'}>
+              <Select value={String(s.nr)} options={nrOpts(t)} onChange={v => set('nr', Number(v))} />
+            </div>
+          </Row>
+          <Row label={t('set.sharpen.label')} desc={multiline(t('set.sharpen.desc'))}>
+            <div className={`set-slider ${!s.enhance ? 'disabled' : ''}`}>
+              <input
+                type="range"
+                className="set-range"
+                min={0}
+                max={2}
+                step={0.05}
+                disabled={!s.enhance}
+                value={Math.min(2, Math.max(0, s.sharpen))}
+                onChange={e => set('sharpen', Number(e.target.value))}
+              />
+              <span className="set-num-static">{s.sharpen.toFixed(2)}</span>
+            </div>
+          </Row>
+          <Row label={t('set.artcnn.label')} desc={multiline(t('set.artcnn.desc'))}>
+            <div className={s.enhance ? '' : 'set-ctl-off'}>
+              <Toggle on={s.artcnn} onChange={v => set('artcnn', v)} />
+            </div>
+          </Row>
+          <Row label={t('set.cfl.label')} desc={multiline(t('set.cfl.desc'))}>
+            <div className={s.enhance ? '' : 'set-ctl-off'}>
+              <Toggle on={s.cfl} onChange={v => set('cfl', v)} />
+            </div>
+          </Row>
 
           </>)}
 

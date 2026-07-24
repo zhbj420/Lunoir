@@ -56,6 +56,28 @@ export const fr: Partial<Record<Key, string>> = {
   'set.tab.general': 'Général',
   'set.sec.subAppearance': 'Apparence des sous-titres',
   'set.sec.video': 'Vidéo',
+  'set.sec.enhance': 'Amélioration',
+  'set.enhance.label': 'Améliorer l’image',
+  'set.enhance.desc':
+    'Interrupteur principal des outils ci-dessous. Laissez-le désactivé pour les bonnes sources — il n’aide que la TV et l’IPTV de faible qualité, et adoucit une image nette.\nLe désactiver conserve vos réglages, vous pouvez le réactiver à tout moment.',
+  'set.deblock.label': 'Anti-blocs',
+  'set.deblock.desc':
+    'Nettoie les blocs et le bruit de moustique des vidéos très compressées — la plupart des chaînes en direct et de l’IPTV.\nPlus le réglage est élevé, plus c’est propre mais plus ça coûte de CPU. À couper sur les bonnes sources : ça ramollit une vidéo propre.',
+  'opt.deblock.off': 'Désactivé',
+  'opt.deblock.low': 'Faible',
+  'opt.deblock.mid': 'Moyen',
+  'opt.deblock.high': 'Élevé',
+  'set.nr.label': 'Débruitage',
+  'set.nr.desc':
+    'Lisse le bruit de compression et le grain que le déblocage laisse. Uniquement spatial, donc jamais de traînées sur le mouvement — mais peut adoucir les fins détails.\nPour la TV bruitée ; à désactiver sur les sources propres.',
+  'set.sharpen.label': 'Netteté',
+  'set.sharpen.desc': 'Rend plus nette une vidéo molle de basse qualité. Un peu suffit — trop fait revenir le bruit.',
+  'set.artcnn.label': 'Détail (ArtCNN)',
+  'set.artcnn.desc':
+    'Reconstruction neuronale 2× du détail de luminance sur les sources basse résolution — le plus grand gain pour la vidéo douce et peu définie. Inactif à la résolution native.\nCharge le GPU ; idéal sur du contenu propre mais peu défini, pas sur les flux bruités.',
+  'set.cfl.label': 'Couleur (CfL)',
+  'set.cfl.desc':
+    'Reconstruit le détail de couleur à partir de la luminance (chroma-from-luma) — bords colorés plus nets, moins de bavures sur la vidéo 4:2:0.\nSubtil ; surtout utile sur les bords saturés et le texte coloré.',
   'set.sec.screenshots': 'Captures d’écran',
   'set.sec.controls': 'Commandes',
   'set.sec.window': 'Fenêtre',

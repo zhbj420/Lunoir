@@ -1450,6 +1450,71 @@ let lastTracks: Array<Record<string, unknown>> = []
 let lastAid: number | false = false
 let lastProbe: Record<number, ProbeStream> = {}
 
+/** Path to a bundled mpv shader (resources/shaders/…), dev or packaged. */
+function resolveShaderPath(name: string): string | null {
+  const candidates = app.isPackaged
+    ? [join(process.resourcesPath, 'shaders', name)]
+    : [
+        join(app.getAppPath(), 'resources', 'shaders', name),
+        join(process.cwd(), 'resources', 'shaders', name)
+      ]
+  return candidates.find(existsSync) ?? null
+}
+
+/**
+ * Picture enhancement for low-quality TV/IPTV — compression-artefact cleanup plus optional
+ * reconstruction, tuned live with Yao (see the memory note). All off by default; it would
+ * smear a clean source.
+ *
+ * Deblock (uspp), denoise (hqdn3d, spatial-only — temporal off so it never ghosts on motion)
+ * and sharpen (unsharp) are decode-side CPU `vf`s: they can't read GPU-decoded frames, so
+ * with hwdec=auto (d3d11) mpv would silently disable them. The fix is auto-copy — decode on
+ * the GPU, copy frames back — borrowed while any is on, released otherwise. (Sharpen is plain
+ * unsharp, not adaptive-sharpen: the latter's overshoot clamp made its strength slider feel
+ * binary — invisible until a threshold, then maxed, no usable middle.)
+ *
+ * ArtCNN (LUMA, neural 2x reconstruction) and CfL (CHROMA, chroma-from-luma) are render-side
+ * glsl shaders (no hwdec cost), composed as a list. ArtCNN is the luma upscaler when on, so
+ * scale drops from ewa_lanczossharp to a neutral lanczos to avoid double-sharpening; CfL is
+ * chroma-only and leaves scale alone (rule B, agreed with Yao).
+ */
+function applyEnhance(): void {
+  if (!mpv) return
+  const s = getSettings()
+  // master off → nothing applies; hand hwdec back and clear the filters/shader so a
+  // clean source plays untouched. lanczos is a neutral, standard scaler.
+  if (!s.enhance) {
+    mpv.setProperty('hwdec', s.hwdec)
+    mpv.setProperty('vf', '')
+    mpv.setProperty('glsl-shaders', '')
+    mpv.setProperty('scale', 'lanczos')
+    return
+  }
+  // deblock + denoise + sharpen are the CPU vf's; borrow auto-copy while any is on, else hand
+  // hwdec back. hqdn3d temporal is pinned to 0 (…:0:0) — no motion ghosting, ever. Order:
+  // clean up (deblock, denoise) first, then sharpen the result.
+  const vf: string[] = []
+  if (s.deblock > 0) vf.push(`uspp=quality=${s.deblock}`)
+  if (s.nr > 0) vf.push(s.nr === 1 ? 'hqdn3d=4:3:0:0' : 'hqdn3d=8:6:0:0')
+  if (s.sharpen > 0) vf.push(`unsharp=luma_msize_x=5:luma_msize_y=5:luma_amount=${s.sharpen}`)
+  mpv.setProperty('hwdec', vf.length ? 'auto-copy' : s.hwdec)
+  mpv.setProperty('vf', vf.length ? `lavfi=[${vf.join(',')}]` : '')
+
+  const shaders: string[] = []
+  if (s.artcnn) {
+    const p = resolveShaderPath('ArtCNN_C4F16.glsl')
+    if (p) shaders.push(p.replace(/\\/g, '/'))
+  }
+  if (s.cfl) {
+    const p = resolveShaderPath('CfL_Prediction.glsl')
+    if (p) shaders.push(p.replace(/\\/g, '/'))
+  }
+  mpv.setProperty('glsl-shaders', shaders.length ? shaders : '')
+  // ArtCNN owns luma upscaling when on → neutral lanczos so ewa's own sharpening doesn't
+  // stack on the 2x reconstruction; otherwise ewa is the main sharp scaler. CfL is chroma.
+  mpv.setProperty('scale', s.artcnn ? 'lanczos' : 'ewa_lanczossharp')
+}
+
 function resolveMediaInfoPath(): string | null {
   const candidates = app.isPackaged
     ? [join(process.resourcesPath, 'mediainfo', 'MediaInfo.exe')]
@@ -2550,8 +2615,8 @@ function subFontChain(font: string): string {
 function applyMpvSettings(): void {
   if (!mpv) return
   const s = getSettings()
-  mpv.setProperty('hwdec', s.hwdec)
   mpv.setProperty('deinterlace', s.deinterlace)
+  applyEnhance() // sets hwdec too — auto-copy while a CPU filter is on, else s.hwdec
   mpv.setProperty('alang', s.audioLang) // '' = mpv default (file's own order)
   mpv.setProperty('slang', s.subLang)
   mpv.setProperty('sub-visibility', s.subsDefaultOn)
@@ -3214,8 +3279,11 @@ function registerIpc(): void {
     }
     // live-apply just the changed mpv property (languages take effect next file load)
     if (mpv) {
-      if (key === 'hwdec') mpv.setProperty('hwdec', value)
+      // hwdec routes through applyEnhance: while enhancement borrows auto-copy the new
+      // choice is stored and takes effect once it's turned off (no fighting over hwdec)
+      if (key === 'hwdec') applyEnhance()
       else if (key === 'deinterlace') mpv.setProperty('deinterlace', value)
+      else if (key === 'enhance' || key === 'deblock' || key === 'nr' || key === 'sharpen' || key === 'artcnn' || key === 'cfl') applyEnhance()
       else if (key === 'audioLang') mpv.setProperty('alang', value)
       else if (key === 'subLang') mpv.setProperty('slang', value)
       else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)

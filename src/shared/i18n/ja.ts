@@ -58,6 +58,28 @@ export const ja: Partial<Record<Key, string>> = {
   'set.tab.general': '全般',
   'set.sec.subAppearance': '字幕の外観',
   'set.sec.video': '映像',
+  'set.sec.enhance': '画質補正',
+  'set.enhance.label': '画質を補正',
+  'set.enhance.desc':
+    '下の各項目のメイン スイッチです。高画質のソースではオフのままに——低品質のテレビや IPTV にのみ有効で、きれいな映像はかえって甘くなります。\nオフにしても設定は保持されるので、いつでも再びオンにできます。',
+  'set.deblock.label': 'ブロックノイズ除去',
+  'set.deblock.desc':
+    '高圧縮映像のブロックノイズ・モスキートノイズを除去します。多くの生放送チャンネルや IPTV が該当します。\n強くするほどきれいになりますが CPU 負荷も上がります。良質なソースではオフに ── きれいな映像を眠くします。',
+  'opt.deblock.off': 'オフ',
+  'opt.deblock.low': '弱',
+  'opt.deblock.mid': '中',
+  'opt.deblock.high': '強',
+  'set.nr.label': 'ノイズ除去',
+  'set.nr.desc':
+    'デブロック後に残る圧縮ノイズや粒状感をなめらかにします。空間のみなので動きに残像は出ませんが、細部が甘くなることがあります。\nノイズの多いテレビ向け。きれいなソースではオフに。',
+  'set.sharpen.label': 'シャープ',
+  'set.sharpen.desc': '眠い低画質をくっきりさせます。少しで十分 ── かけすぎるとノイズが戻ります。',
+  'set.artcnn.label': 'ディテール (ArtCNN)',
+  'set.artcnn.desc':
+    '低解像度ソースの輝度ディテールをニューラルネットで 2× 再構成——ソフトで低精細な映像に最も効きます。ネイティブ解像度では動作しません。\nGPU 負荷あり。ノイズの多い配信より、きれいだが低解像度の素材向き。',
+  'set.cfl.label': '色再構成 (CfL)',
+  'set.cfl.desc':
+    '輝度チャンネルから色ディテールを再構成(chroma-from-luma)——4:2:0 映像で色のエッジがきれいになり、にじみが減ります。\n控えめな効果。鮮やかなエッジや色付き文字で最も効きます。',
   'set.sec.screenshots': 'スクリーンショット',
   'set.sec.controls': 'コントロール',
   'set.sec.window': 'ウィンドウ',

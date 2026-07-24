@@ -26,6 +26,13 @@ extraResources:
     to: mediainfo
     filter:
       - '**/*'
+  # bundled mpv shaders for the picture-enhancement feature (SSimSuperRes). Tiny and
+  # checked into the repo — NOT fetched at runtime: every upstream shader URL we tried
+  # had 404'd (repos move, gists relocate), which would rot the feature silently.
+  - from: resources/shaders
+    to: shaders
+    filter:
+      - '**/*'
 # Registering these only makes Lunoir *appear* in "Open with" and in Windows'
 # Default apps list — Windows hasn't let an installer seize existing defaults since
 # Win8, so nothing is taken over behind the user's back. Portable builds can't

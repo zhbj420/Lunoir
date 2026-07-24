@@ -23,6 +23,16 @@ const DEFAULTS: Settings = {
   frostStrength: 50, // 0..100, higher = more see-through; 50 ≈ the default alpha 0.40
   subHdrPeak: 120, // dimmer than mpv's ~SDR-white default so HDR subs aren't harsh
   hwdec: 'auto',
+  // Picture enhancement (compression-artefact cleanup + reconstruction for low-quality
+  // TV/IPTV). `enhance` is the master switch — off = nothing applies, so a clean Blu-ray is
+  // untouched; the values below are the remembered config that kicks in when it's on.
+  // deblock + sharpen clean up compression; artcnn (luma) + cfl (chroma) reconstruct detail.
+  enhance: false,
+  deblock: 3, // uspp quality (2/3/4); a decode-side CPU vf, so it forces hwdec=auto-copy
+  nr: 0, // hqdn3d spatial denoise (0 off / 1 low / 2 high); CPU vf like deblock; temporal off (no motion ghosting)
+  sharpen: 0.2, // unsharp luma_amount (0..2); a light default; a decode-side CPU vf, shares deblock's auto-copy
+  artcnn: false, // ArtCNN luma 2x reconstruction (render-side); when on, scale drops ewa
+  cfl: false, // CfL chroma-from-luma reconstruction (render-side); doesn't affect scale
   // OFF by default, matching mpv's own default. 'auto' was tried and reverted: on real
   // IPTV it made the picture judder badly. Deinterlacing is only as good as the
   // deinterlacer and the metadata, and both are unreliable here — with hwdec on, mpv

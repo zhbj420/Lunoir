@@ -73,6 +73,28 @@ export const en = {
   'set.tab.general': 'General',
   'set.sec.subAppearance': 'Subtitle appearance',
   'set.sec.video': 'Video',
+  'set.sec.enhance': 'Enhancement',
+  'set.enhance.label': 'Enhance picture',
+  'set.enhance.desc':
+    'Master switch for the tools below. Leave it off for good sources — it only helps low-quality TV and IPTV, and softens a clean picture.\nTurning it off keeps your settings, so you can flip it back on anytime.',
+  'set.deblock.label': 'Deblock',
+  'set.deblock.desc':
+    'Cleans up the blocking and mosquito noise of heavily compressed video — most live TV and IPTV.\nHigher settings clean more but cost more CPU. Off for good sources; it softens clean video.',
+  'opt.deblock.off': 'Off',
+  'opt.deblock.low': 'Low',
+  'opt.deblock.mid': 'Medium',
+  'opt.deblock.high': 'High',
+  'set.nr.label': 'Denoise',
+  'set.nr.desc':
+    'Smooths compression noise and grain that deblock leaves behind. Spatial only, so it never trails on motion — but it can soften fine detail.\nFor grainy, noisy TV; leave off for clean sources.',
+  'set.sharpen.label': 'Sharpen',
+  'set.sharpen.desc': 'Crispens soft, low-quality video. A little goes a long way — too much brings noise back.',
+  'set.artcnn.label': 'Upscale detail (ArtCNN)',
+  'set.artcnn.desc':
+    'Neural 2× reconstruction of luma (brightness) detail on low-resolution sources — the biggest step-up for soft, low-res video. Idle at native resolution.\nAdds GPU load; best on clean but low-res content, not noisy streams.',
+  'set.cfl.label': 'Colour reconstruction (CfL)',
+  'set.cfl.desc':
+    'Rebuilds colour detail from the luma channel (chroma-from-luma) — cleaner colour edges and less bleeding on 4:2:0 video.\nSubtle; helps most on saturated edges and coloured text.',
   'set.sec.screenshots': 'Screenshots',
   'set.sec.controls': 'Controls',
   'set.sec.window': 'Window',

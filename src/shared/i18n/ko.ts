@@ -58,6 +58,28 @@ export const ko: Partial<Record<Key, string>> = {
   'set.tab.general': '일반',
   'set.sec.subAppearance': '자막 모양',
   'set.sec.video': '비디오',
+  'set.sec.enhance': '화질 향상',
+  'set.enhance.label': '화질 향상 사용',
+  'set.enhance.desc':
+    '아래 도구들의 메인 스위치입니다. 좋은 소스에서는 꺼 두세요 — 저품질 TV와 IPTV에만 도움이 되고, 깨끗한 화면은 오히려 부드러워집니다.\n꺼도 설정은 유지되므로 언제든 다시 켤 수 있습니다.',
+  'set.deblock.label': '블록 제거',
+  'set.deblock.desc':
+    '고압축 영상의 블록 노이즈와 모스키토 노이즈를 정리합니다. 대부분의 실시간 채널과 IPTV가 해당합니다.\n높을수록 더 깨끗하지만 CPU를 더 씁니다. 좋은 소스에서는 끄세요 — 깨끗한 영상을 뭉갭니다.',
+  'opt.deblock.off': '끄기',
+  'opt.deblock.low': '낮음',
+  'opt.deblock.mid': '중간',
+  'opt.deblock.high': '높음',
+  'set.nr.label': '노이즈 제거',
+  'set.nr.desc':
+    '디블록 후 남는 압축 노이즈와 그레인을 매끄럽게 합니다. 공간 처리만 하므로 움직임에 잔상이 생기지 않지만, 미세한 디테일이 뭉개질 수 있습니다.\n노이즈 많은 TV용. 깨끗한 소스에서는 끄세요.',
+  'set.sharpen.label': '샤픈',
+  'set.sharpen.desc': '흐릿한 저화질을 또렷하게 합니다. 조금이면 충분 — 과하면 노이즈가 돌아옵니다.',
+  'set.artcnn.label': '디테일 (ArtCNN)',
+  'set.artcnn.desc':
+    '저해상도 소스의 휘도 디테일을 신경망으로 2× 재구성 — 부드럽고 저해상도인 영상에 가장 큰 향상. 원본 해상도에서는 동작하지 않습니다.\nGPU 부하가 있으며, 노이즈 많은 스트림보다 깨끗하지만 저해상도인 콘텐츠에 적합합니다.',
+  'set.cfl.label': '색 재구성 (CfL)',
+  'set.cfl.desc':
+    '휘도 채널로부터 색 디테일을 재구성(chroma-from-luma) — 4:2:0 영상에서 색 경계가 깨끗해지고 번짐이 줄어듭니다.\n효과는 미묘하며, 채도 높은 경계와 색이 있는 텍스트에서 가장 잘 보입니다.',
   'set.sec.screenshots': '스크린샷',
   'set.sec.controls': '컨트롤',
   'set.sec.window': '창',

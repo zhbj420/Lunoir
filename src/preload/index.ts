@@ -33,6 +33,12 @@ export interface Settings {
   subHdrPeak: number // peak nits for subtitles over HDR video (mpv sub-hdr-peak)
   hwdec: Hwdec
   deinterlace: Deinterlace
+  enhance: boolean // master switch for the three below — off = nothing applies
+  deblock: number // uspp quality (2 low / 3 mid / 4 high) — compression-artefact cleanup
+  nr: number // hqdn3d spatial denoise (0 off / 1 low / 2 high); CPU vf like deblock, temporal off
+  sharpen: number // unsharp luma_amount (0..2); a decode-side vf, shares deblock's auto-copy
+  artcnn: boolean // ArtCNN luma 2x reconstruction; when on, scale drops the sharp ewa scaler
+  cfl: boolean // CfL chroma-from-luma reconstruction (colour-edge detail on 4:2:0)
   streamQuality: StreamQuality // online (yt-dlp) max quality
   useCookies: boolean // read browser cookies for member/age-restricted/Premium content
   cookiesBrowser: string // which browser to read cookies from (yt-dlp cookies-from-browser)

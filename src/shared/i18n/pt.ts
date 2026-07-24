@@ -56,6 +56,28 @@ export const pt: Partial<Record<Key, string>> = {
   'set.tab.general': 'Geral',
   'set.sec.subAppearance': 'Aspeto das legendas',
   'set.sec.video': 'Vídeo',
+  'set.sec.enhance': 'Melhoria',
+  'set.enhance.label': 'Melhorar imagem',
+  'set.enhance.desc':
+    'Interruptor principal das ferramentas abaixo. Deixe desligado para boas fontes — só ajuda TV e IPTV de baixa qualidade e suaviza uma imagem nítida.\nDesligá-lo mantém suas configurações, você pode reativá-lo a qualquer momento.',
+  'set.deblock.label': 'Desbloqueio',
+  'set.deblock.desc':
+    'Limpa os blocos e o ruído de mosquito de vídeo muito comprimido — a maioria dos canais em direto e IPTV.\nQuanto mais alto, mais limpo mas mais CPU consome. Desligado em boas fontes: amolece vídeo limpo.',
+  'opt.deblock.off': 'Desligado',
+  'opt.deblock.low': 'Baixo',
+  'opt.deblock.mid': 'Médio',
+  'opt.deblock.high': 'Alto',
+  'set.nr.label': 'Redução de ruído',
+  'set.nr.desc':
+    'Suaviza o ruído de compressão e o granulado que o desbloqueio deixa. Apenas espacial, por isso nunca deixa rastos em movimento — mas pode suavizar o detalhe fino.\nPara TV com ruído; desligue em fontes limpas.',
+  'set.sharpen.label': 'Nitidez',
+  'set.sharpen.desc': 'Dá nitidez a vídeo mole de baixa qualidade. Pouco já chega — demais traz o ruído de volta.',
+  'set.artcnn.label': 'Detalhe (ArtCNN)',
+  'set.artcnn.desc':
+    'Reconstrução neural 2× do detalhe de luma (brilho) em fontes de baixa resolução — o maior ganho para vídeo suave e de baixa definição. Inativo na resolução nativa.\nExige GPU; melhor em conteúdo limpo mas de baixa resolução, não em transmissões com ruído.',
+  'set.cfl.label': 'Cor (CfL)',
+  'set.cfl.desc':
+    'Reconstrói o detalhe de cor a partir do canal de luma (chroma-from-luma) — bordas de cor mais limpas e menos vazamento em vídeo 4:2:0.\nSutil; ajuda sobretudo em bordas saturadas e texto colorido.',
   'set.sec.screenshots': 'Capturas de ecrã',
   'set.sec.controls': 'Controlos',
   'set.sec.window': 'Janela',

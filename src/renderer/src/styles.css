@@ -1729,6 +1729,22 @@ body.library-win.library-shown .library {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
+/* a control that's superseded by another setting (sharpen while Detail reconstruction
+   is on): dim the whole row and show it can't be used, since a native disabled range
+   doesn't grey out on its own with our custom thumb/track. */
+.set-slider.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* a sub-control switched off by the Enhancement master toggle: greyed and inert,
+   but its remembered value stays put (we don't zero it) so flipping the master
+   back on restores the tuned combo. */
+.set-ctl-off {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .set-num-input {
   width: 42px;
   height: 24px;
@@ -1745,6 +1761,16 @@ body.library-win.library-shown .library {
 
 .set-num-input:focus {
   border-color: rgba(255, 255, 255, 0.34);
+}
+
+/* read-only value next to a slider (e.g. Sharpen shows 0.50, which NumInput's integer
+   field can't) — same width/metrics as .set-num-input, just not editable */
+.set-num-static {
+  width: 42px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .panel-tabs {
