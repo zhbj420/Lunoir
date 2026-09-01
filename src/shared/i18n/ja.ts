@@ -349,4 +349,20 @@ export const ja: Partial<Record<Key, string>> = {
   // ---- trim ----
   'set.pinOscTrim.label': 'トリミング中はコントロールを表示したままにする',
   'set.pinOscTrim.desc': 'クリップのイン点／アウト点を設定している間は、画面上のコントロールを自動的に隠さず、ハンドルを操作しやすいままにします。',
+
+  'info.title': 'ファイル情報',
+  'info.video': '映像',
+  'info.audio': '音声',
+  'info.codec': 'コーデック',
+  'info.resolution': '解像度',
+  'info.frameRate': 'フレームレート',
+  'info.overallBitRate': '全体ビットレート',
+  'info.fileSize': 'ファイルサイズ',
+  'info.bitRate': '映像ビットレート',
+  'info.bitDepth': 'ビット深度',
+  'info.colorSpace': '色空間',
+  'info.hdr': 'HDR',
+  'info.container': 'コンテナ',
+  'info.duration': '時間',
+  'info.noData': 'メディア情報がありません'
 }

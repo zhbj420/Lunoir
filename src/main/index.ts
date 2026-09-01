@@ -1653,6 +1653,30 @@ interface ProbeStream {
   features?: string // 'LC', 'XLL' (codec sub-profile)
   bitRate?: number // bps
 }
+
+interface VideoInfo {
+  codec?: string        // 'HEVC', 'AVC', 'AV1', …
+  width?: number
+  height?: number
+  frameRate?: string    // e.g. '23.976'
+  bitRate?: number      // bps — video stream
+  overallBitRate?: number // bps — container overall
+  fileSize?: number     // bytes
+  bitDepth?: number     // 8 / 10 / 12
+  colorSpace?: string   // 'BT.2020', 'BT.709', …
+  hdr?: string          // 'Dolby Vision', 'HDR10+', 'HDR10', ''
+  container?: string    // 'Matroska', 'MPEG-4', …
+  duration?: number     // seconds
+  audioTracks?: Array<{
+    index: number       // stream order
+    commercial?: string // 'Dolby TrueHD Atmos', 'DTS-HD MA', …
+    format?: string     // 'AC-3', 'MLP FBA', …
+    channels?: number   // channel count
+    bitRate?: number    // bps
+    lang?: string       // ISO 639-2 language code
+  }>
+}
+let lastVideoInfo: VideoInfo | null = null
 let miProc: ChildProcess | null = null // in-flight MediaInfo process
 let probeTarget = '' // path of the file currently being probed (guards stale results)
 // Latest track-list / selected audio id / probe results — the OSC's audio badge
@@ -1756,15 +1780,37 @@ function videoHdrLabel(t: Record<string, unknown>): string {
 // where it's certain. The deinterlace setting stays; the picture is the ground truth.
 
 /** Parse MediaInfo's --Output=JSON: per-audio-track metadata (keyed by ff-index)
- *  plus the video HDR flavour. */
-function parseMediaInfo(json: string): { audio: Record<number, ProbeStream>; hdr: string } {
+ *  plus the video HDR flavour and a VideoInfo snapshot for the info overlay. */
+function parseMediaInfo(json: string): { audio: Record<number, ProbeStream>; hdr: string; video: VideoInfo } {
   const audio: Record<number, ProbeStream> = {}
   let hdr = ''
+  const video: VideoInfo = {}
   const tracks = JSON.parse(json)?.media?.track
-  if (!Array.isArray(tracks)) return { audio, hdr }
+  if (!Array.isArray(tracks)) return { audio, hdr, video }
   for (const t of tracks) {
-    if (t['@type'] === 'Video' && !hdr) {
+    if (t['@type'] === 'General' && !video.container) {
+      video.container = t.Format || undefined
+      const dur = parseFloat(t.Duration)
+      if (Number.isFinite(dur) && dur > 0) video.duration = dur
+      const fs = parseInt(t.FileSize, 10)
+      if (Number.isFinite(fs) && fs > 0) video.fileSize = fs
+      const obr = parseInt(t.OverallBitRate ?? t.OverallBitRate_Nominal, 10)
+      if (Number.isFinite(obr) && obr > 0) video.overallBitRate = obr
+    }
+    if (t['@type'] === 'Video' && !video.codec) {
       hdr = videoHdrLabel(t)
+      video.hdr = hdr
+      video.codec = t.Format || undefined
+      const w = parseInt(t.Width, 10)
+      const h = parseInt(t.Height, 10)
+      if (Number.isFinite(w) && w > 0) video.width = w
+      if (Number.isFinite(h) && h > 0) video.height = h
+      video.frameRate = t.FrameRate || t.FrameRate_Nominal || undefined
+      const vbr = parseInt(t.BitRate ?? t.BitRate_Nominal, 10)
+      if (Number.isFinite(vbr) && vbr > 0) video.bitRate = vbr
+      const bd = parseInt(t.BitDepth, 10)
+      if (Number.isFinite(bd) && bd > 0) video.bitDepth = bd
+      video.colorSpace = t.colour_primaries || t.ColorSpace || undefined
       continue
     }
     if (t['@type'] !== 'Audio') continue
@@ -1777,8 +1823,19 @@ function parseMediaInfo(json: string): { audio: Record<number, ProbeStream>; hdr
       features: t.Format_AdditionalFeatures || undefined,
       bitRate: Number.isFinite(br) && br > 0 ? br : undefined
     }
+    // also collect into the info overlay's audioTracks list
+    if (!video.audioTracks) video.audioTracks = []
+    const ch = parseInt(t.Channels ?? t.Channel_s_, 10)
+    video.audioTracks.push({
+      index: idx,
+      commercial: t.Format_Commercial_IfAny || undefined,
+      format: t.Format || undefined,
+      channels: Number.isFinite(ch) && ch > 0 ? ch : undefined,
+      bitRate: Number.isFinite(br) && br > 0 ? br : undefined,
+      lang: t.Language || undefined
+    })
   }
-  return { audio, hdr }
+  return { audio, hdr, video }
 }
 
 /** Probe a freshly-loaded file and broadcast per-track audio metadata. */
@@ -1803,14 +1860,18 @@ function runProbe(file: string): void {
     if (probeTarget !== file) return // a newer file superseded this probe
     let streams: Record<number, ProbeStream> = {}
     let hdr = ''
+    let video: VideoInfo = {}
     try {
       const parsed = parseMediaInfo(out)
       streams = parsed.audio
       hdr = parsed.hdr
+      video = parsed.video
     } catch { /* leave empty */ }
     lastProbe = streams
+    lastVideoInfo = Object.keys(video).length > 0 ? video : null
     broadcast('media:probe', { path: file, streams })
     broadcast('video:hdr', hdr) // Dolby Vision / HDR10+ / HDR10 / '' for the OSC badge
+    if (lastVideoInfo) broadcast('video:info', lastVideoInfo)
     broadcastActiveAudio() // the active track now has a commercial name
   })
 }

@@ -151,6 +151,30 @@ export interface ProbeData {
   streams: Record<number, ProbeStream>
 }
 
+// Video track metadata from MediaInfo, for the file-info overlay.
+export interface VideoInfo {
+  codec?: string
+  width?: number
+  height?: number
+  frameRate?: string
+  bitRate?: number
+  overallBitRate?: number
+  fileSize?: number
+  bitDepth?: number
+  colorSpace?: string
+  hdr?: string
+  container?: string
+  duration?: number
+  audioTracks?: Array<{
+    index: number
+    commercial?: string
+    format?: string
+    channels?: number
+    bitRate?: number
+    lang?: string
+  }>
+}
+
 // The active audio track's MediaInfo fields (for the OSC's commercial-name badge).
 export interface ActiveAudio {
   commercial: string
@@ -210,6 +234,8 @@ const api = {
   // per-track audio metadata (bitrate + commercial format) probed by MediaInfo
   onProbe: (cb: (p: ProbeData) => void): Unsubscribe =>
     subscribe('media:probe', (p: ProbeData) => cb(p)),
+  onVideoInfo: (cb: (info: VideoInfo) => void): Unsubscribe =>
+    subscribe('video:info', (info: VideoInfo) => cb(info)),
   // the active audio track's commercial format, resolved in main (for the OSC badge)
   onActiveAudio: (cb: (a: ActiveAudio) => void): Unsubscribe =>
     subscribe('audio:active', (a: ActiveAudio) => cb(a)),

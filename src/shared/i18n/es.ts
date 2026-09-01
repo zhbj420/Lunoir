@@ -348,4 +348,20 @@ export const es: Partial<Record<Key, string>> = {
   // ---- trim ----
   'set.pinOscTrim.label': 'Mantener los controles visibles al recortar',
   'set.pinOscTrim.desc': 'Al definir los puntos de entrada/salida de un clip, no ocultar automáticamente los controles en pantalla, para que los tiradores sigan siendo accesibles.',
+
+  'info.title': 'Información del archivo',
+  'info.video': 'Vídeo',
+  'info.audio': 'Audio',
+  'info.codec': 'Códec',
+  'info.resolution': 'Resolución',
+  'info.frameRate': 'Fotogramas/s',
+  'info.overallBitRate': 'Tasa de bits global',
+  'info.fileSize': 'Tamaño del archivo',
+  'info.bitRate': 'Tasa de bits de video',
+  'info.bitDepth': 'Profundidad de bits',
+  'info.colorSpace': 'Espacio de color',
+  'info.hdr': 'HDR',
+  'info.container': 'Contenedor',
+  'info.duration': 'Duración',
+  'info.noData': 'No hay información de medios disponible'
 }

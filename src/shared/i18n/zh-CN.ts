@@ -343,5 +343,22 @@ export const zhCN: Partial<Record<Key, string>> = {
   'set.timeline.desc':
     '将播放列表中的本地文件拼接成一段连续视频，共用一条时间线和进度条 —— 适合把一个文件夹里的片段从头看到尾。\n不同格式的片段在衔接处可能有短暂顿挫。开启后，播放列表面板中会出现开关。',
   'set.pinOscTrim.label': '修剪时保持控制栏常驻',
-  'set.pinOscTrim.desc': '设置片段 in/out 时不自动隐藏控制栏，手柄始终可用。'
+  'set.pinOscTrim.desc': '设置片段 in/out 时不自动隐藏控制栏，手柄始终可用。',
+
+  // ---- 文件信息浮层（i 键）----
+  'info.title': '文件信息',
+  'info.video': '视频',
+  'info.audio': '音频',
+  'info.codec': '编码',
+  'info.resolution': '分辨率',
+  'info.frameRate': '帧率',
+  'info.bitRate': '视频码率',
+  'info.overallBitRate': '整体码率',
+  'info.fileSize': '文件大小',
+  'info.bitDepth': '色深',
+  'info.colorSpace': '色彩空间',
+  'info.hdr': 'HDR',
+  'info.container': '容器格式',
+  'info.duration': '时长',
+  'info.noData': '暂无媒体信息'
 }

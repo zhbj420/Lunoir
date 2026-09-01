@@ -348,4 +348,20 @@ export const de: Partial<Record<Key, string>> = {
   // ---- trim ----
   'set.pinOscTrim.label': 'Bedienelemente beim Zuschneiden eingeblendet lassen',
   'set.pinOscTrim.desc': 'Beim Festlegen der Ein-/Ausstiegspunkte eines Clips die Bildschirmsteuerung nicht automatisch ausblenden, damit die Griffe erreichbar bleiben.',
+
+  'info.title': 'Dateiinfo',
+  'info.video': 'Video',
+  'info.audio': 'Audio',
+  'info.codec': 'Codec',
+  'info.resolution': 'Auflösung',
+  'info.frameRate': 'Bildrate',
+  'info.overallBitRate': 'Gesamtbitrate',
+  'info.fileSize': 'Dateigröße',
+  'info.bitRate': 'Video-Bitrate',
+  'info.bitDepth': 'Bittiefe',
+  'info.colorSpace': 'Farbraum',
+  'info.hdr': 'HDR',
+  'info.container': 'Container',
+  'info.duration': 'Dauer',
+  'info.noData': 'Keine Medieninformationen verfügbar'
 }

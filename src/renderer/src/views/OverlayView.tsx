@@ -40,6 +40,34 @@ function fmtTc(frame: number, fps: number): string {
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
+function formatDuration(secs: number): string {
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
+  const s = Math.floor(secs % 60)
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}
+
+function formatBitrate(bps: number): string {
+  if (bps >= 1_000_000) return `${(bps / 1_000_000).toFixed(1)} Mbps`
+  if (bps >= 1_000) return `${(bps / 1_000).toFixed(0)} kbps`
+  return `${bps} bps`
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(2)} GB`
+  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(1)} MB`
+  if (bytes >= 1_024) return `${(bytes / 1_024).toFixed(0)} KB`
+  return `${bytes} B`
+}
+
+// Map MediaInfo's total channel count to the conventional surround label.
+// Covers the common cases; anything else falls back to "N ch".
+function formatChannels(n: number): string {
+  const map: Record<number, string> = { 1: '1.0', 2: '2.0', 3: '2.1', 4: '4.0', 5: '4.1', 6: '5.1', 7: '6.1', 8: '7.1', 10: '9.1', 12: '11.1' }
+  return map[n] ?? `${n} ch`
+}
+
 // Aspect submenu. Picking a ratio centre-cuts the picture into that frame (main does
 // the maths — the crop is in pixels of the current file); Stretch is the one option
 // that really does distort.
@@ -72,9 +100,66 @@ export default function OverlayView() {
   const [loading, setLoading] = useState(false)
   const [recording, setRecording] = useState(false)
   const [currentFav, setCurrentFav] = useState(false) // is what's playing in 收藏?
+  const [infoOpen, setInfoOpen] = useState(false)
+  const [videoInfo, setVideoInfo] = useState<import('../../../preload/index').VideoInfo | null>(null)
   const [volToast, setVolToast] = useState<number | null>(null)
+  const [zoomToast, setZoomToast] = useState<number | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const volToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const zoomToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const videoZoom = useRef(0) // log2 zoom level (0 = 100 %)
+  const videoPan = useRef({ x: 0, y: 0 }) // current pan in mpv video-pan units
+  const panOrigin = useRef<{ px: number; py: number; panX: number; panY: number } | null>(null)
+  const panWasPlaying = useRef(false) // whether to resume after pan ends
+  const panRaf = useRef<number | null>(null) // pending rAF for throttled pan IPC
+  const panJustEnded = useRef(false) // suppress the click that fires after pointerup
+  // pan drag: active only when zoomed in (video-zoom > 0). video-pan-x/y are in units
+  // of half the video's display size, so 1px of cursor movement = 1 / (displayPx * zoom).
+  const onPanPointerDown = (e: React.PointerEvent): void => {
+    if (videoZoom.current <= 0) return
+    e.stopPropagation()
+    panWasPlaying.current = !p.state.pause
+    if (panWasPlaying.current) window.mmp.set('pause', true)
+    panOrigin.current = { px: e.clientX, py: e.clientY, panX: videoPan.current.x, panY: videoPan.current.y }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const onPanPointerMove = (e: React.PointerEvent): void => {
+    const o = panOrigin.current
+    if (!o) return
+    e.stopPropagation() // prevent onMove from triggering UI-reveal logic during pan
+    const scale = Math.pow(2, videoZoom.current)
+    const hw = e.currentTarget.clientWidth / 2
+    const hh = e.currentTarget.clientHeight / 2
+    const nx = o.panX + (e.clientX - o.px) / (hw * scale)
+    const ny = o.panY + (e.clientY - o.py) / (hh * scale)
+    videoPan.current = { x: nx, y: ny }
+    // throttle to one IPC per animation frame so mpv's queue never backs up
+    if (panRaf.current !== null) return
+    panRaf.current = requestAnimationFrame(() => {
+      panRaf.current = null
+      window.mmp.set('video-pan-x', videoPan.current.x)
+      window.mmp.set('video-pan-y', videoPan.current.y)
+    })
+  }
+  const onPanPointerUp = (e: React.PointerEvent): void => {
+    if (panWasPlaying.current && panOrigin.current) {
+      panJustEnded.current = true // suppress the click that fires after this pointerup
+      window.mmp.set('pause', false)
+    }
+    panOrigin.current = null
+    panWasPlaying.current = false
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
+  }
+  const resetZoom = (): void => {
+    videoZoom.current = 0
+    videoPan.current = { x: 0, y: 0 }
+    window.mmp.set('video-zoom', 0)
+    window.mmp.set('video-pan-x', 0)
+    window.mmp.set('video-pan-y', 0)
+    setZoomToast(100)
+    if (zoomToastTimer.current) clearTimeout(zoomToastTimer.current)
+    zoomToastTimer.current = setTimeout(() => setZoomToast(null), 800)
+  }
   const cursorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const urlInputRef = useRef<HTMLInputElement>(null)
   const lastPos = useRef({ x: -1, y: -1 })
@@ -132,12 +217,14 @@ export default function OverlayView() {
     window.mmp.getRecording().then(r => setRecording(r.recording))
     const offR = window.mmp.onRecordingState(r => setRecording(r.recording))
     const offF = window.mmp.onCurrentFav(setCurrentFav)
+    const offI = window.mmp.onVideoInfo(setVideoInfo)
     return () => {
       offS()
       offT()
       offL()
       offR()
       offF()
+      offI()
     }
   }, [])
 
@@ -229,7 +316,8 @@ export default function OverlayView() {
     openFile: p.openFile,
     next: () => window.mmp.playNext(),
     prev: () => window.mmp.playPrev(),
-    onActivity: p.reveal
+    onActivity: p.reveal,
+    toggleInfo: () => setInfoOpen(o => !o)
   })
 
   // (both side panels are now their own acrylic windows, owned + toggled by main)
@@ -256,6 +344,15 @@ export default function OverlayView() {
   useEffect(() => {
     document.body.classList.toggle('has-media', p.state.hasMedia)
   }, [p.state.hasMedia])
+
+  // reset zoom when a new file loads so the next video always starts at 1×
+  useEffect(() => {
+    if (!p.state.hasMedia) return
+    videoZoom.current = 0
+    window.mmp.set('video-zoom', 0)
+    window.mmp.set('video-pan-x', 0)
+    window.mmp.set('video-pan-y', 0)
+  }, [p.state.title])
 
   // mini player: main owns the mode (bounds / topmost / aspect); we just dress the window
   useEffect(() => window.mmp.onMini(setMini), [])
@@ -541,6 +638,25 @@ export default function OverlayView() {
         if (e.relatedTarget === null) setDragging(false)
       }}
       onWheel={e => {
+        if (e.ctrlKey) {
+          // Ctrl+wheel: zoom in / out without disturbing volume. Each tick steps
+          // by 0.1 in log2 space (≈ 7 %), clamped to roughly 0.25× – 8×.
+          const next = Math.min(3, Math.max(-2, videoZoom.current + (e.deltaY < 0 ? 0.1 : -0.1)))
+          videoZoom.current = next
+          window.mmp.set('video-zoom', next)
+          // reset pan when returning to 1× so the picture re-centres cleanly
+          if (Math.abs(next) < 0.01) {
+            videoZoom.current = 0
+            window.mmp.set('video-zoom', 0)
+            window.mmp.set('video-pan-x', 0)
+            window.mmp.set('video-pan-y', 0)
+          }
+          const pct = Math.round(Math.pow(2, videoZoom.current) * 100)
+          setZoomToast(pct)
+          if (zoomToastTimer.current) clearTimeout(zoomToastTimer.current)
+          zoomToastTimer.current = setTimeout(() => setZoomToast(null), 1000)
+          return
+        }
         // adjust volume without popping the OSC. When the OSC is hidden, show a
         // volume toast; when it's already up, its own number shows instead.
         const v = Math.round(Math.min(150, Math.max(0, p.state.volume + (e.deltaY < 0 ? 5 : -5))))
@@ -554,12 +670,18 @@ export default function OverlayView() {
         // In the mini player the picture is the drag handle, so a press moves the window
         // rather than pausing — that's why the play button is large. Double-click is left
         // alone there too; exit is the button, the menu, or Esc.
-        onClick={mini ? undefined : () => !dismissesMenu() && p.togglePause()}
-        onDoubleClick={mini ? undefined : () => !dismissesMenu() && p.fullscreen()}
-        onPointerDown={mini ? onMiniPointerDown : undefined}
-        onPointerMove={mini ? onMiniPointerMove : undefined}
-        onPointerUp={mini ? onMiniPointerUp : undefined}
-        onPointerCancel={mini ? onMiniPointerUp : undefined}
+        onClick={mini ? undefined : () => {
+          if (panJustEnded.current) { panJustEnded.current = false; return }
+          !dismissesMenu() && p.togglePause()
+        }}
+        onDoubleClick={mini ? undefined : (e) => {
+          if (e.ctrlKey) { resetZoom(); return }
+          !dismissesMenu() && p.fullscreen()
+        }}
+        onPointerDown={mini ? onMiniPointerDown : onPanPointerDown}
+        onPointerMove={mini ? onMiniPointerMove : onPanPointerMove}
+        onPointerUp={mini ? onMiniPointerUp : onPanPointerUp}
+        onPointerCancel={mini ? onMiniPointerUp : onPanPointerUp}
         onContextMenu={e => {
           // right-click menu only during playback (empty state keeps its URL shortcut)
           if (!p.state.hasMedia) return
@@ -641,6 +763,20 @@ export default function OverlayView() {
 
       {toast && <div className="toast">{toast}</div>}
 
+      {zoomToast !== null && (
+        <div className="zoom-toast">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20 L16.5 16.5" />
+            {zoomToast > 100
+              ? <path d="M8 11 H14 M11 8 V14" />
+              : <path d="M8 11 H14" />
+            }
+          </svg>
+          <span className="zoom-toast-num">{zoomToast}%</span>
+        </div>
+      )}
+
       {volToast !== null && (
         <div className="vol-toast">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -665,6 +801,74 @@ export default function OverlayView() {
       )}
 
       <div className="drop-hint" />
+
+      {infoOpen && p.state.hasMedia && (
+        <div className="info-overlay" onMouseDown={() => setInfoOpen(false)}>
+          <div className="info-panel" onMouseDown={e => e.stopPropagation()}>
+            <div className="info-header">
+              <span className="info-title">{t('info.title')}</span>
+              <button className="info-close" onClick={() => setInfoOpen(false)} aria-label="Close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M18 6 L6 18 M6 6 L18 18" />
+                </svg>
+              </button>
+            </div>
+            {videoInfo ? (
+              <div className="info-body">
+                {videoInfo.container && (
+                  <div className="info-row"><span className="info-label">{t('info.container')}</span><span className="info-value">{videoInfo.container}</span></div>
+                )}
+                {videoInfo.duration != null && (
+                  <div className="info-row"><span className="info-label">{t('info.duration')}</span><span className="info-value">{formatDuration(videoInfo.duration)}</span></div>
+                )}
+                {videoInfo.fileSize != null && (
+                  <div className="info-row"><span className="info-label">{t('info.fileSize')}</span><span className="info-value">{formatFileSize(videoInfo.fileSize)}</span></div>
+                )}
+                {videoInfo.overallBitRate != null && (
+                  <div className="info-row"><span className="info-label">{t('info.overallBitRate')}</span><span className="info-value">{formatBitrate(videoInfo.overallBitRate)}</span></div>
+                )}
+                {(videoInfo.width || videoInfo.height) && (
+                  <div className="info-section">{t('info.video')}</div>
+                )}
+                {videoInfo.codec && (
+                  <div className="info-row"><span className="info-label">{t('info.codec')}</span><span className="info-value">{videoInfo.codec}</span></div>
+                )}
+                {(videoInfo.width && videoInfo.height) && (
+                  <div className="info-row"><span className="info-label">{t('info.resolution')}</span><span className="info-value">{videoInfo.width} × {videoInfo.height}</span></div>
+                )}
+                {videoInfo.frameRate && (
+                  <div className="info-row"><span className="info-label">{t('info.frameRate')}</span><span className="info-value">{videoInfo.frameRate} fps</span></div>
+                )}
+                {videoInfo.bitRate != null && (
+                  <div className="info-row"><span className="info-label">{t('info.bitRate')}</span><span className="info-value">{formatBitrate(videoInfo.bitRate)}</span></div>
+                )}
+                {videoInfo.bitDepth != null && (
+                  <div className="info-row"><span className="info-label">{t('info.bitDepth')}</span><span className="info-value">{videoInfo.bitDepth}-bit</span></div>
+                )}
+                {videoInfo.colorSpace && (
+                  <div className="info-row"><span className="info-label">{t('info.colorSpace')}</span><span className="info-value">{videoInfo.colorSpace}</span></div>
+                )}
+                {videoInfo.hdr && (
+                  <div className="info-row"><span className="info-label">{t('info.hdr')}</span><span className="info-value">{videoInfo.hdr}</span></div>
+                )}
+                {videoInfo.audioTracks && videoInfo.audioTracks.length > 0 && (
+                  <div className="info-section">{t('info.audio')}</div>
+                )}
+                {videoInfo.audioTracks?.map((at, i) => (
+                  <div key={i} className="info-audio-track">
+                    <span className="info-audio-name">
+                      {at.commercial || at.format || 'Audio'}{at.channels ? ` ${formatChannels(at.channels)}` : ''}{at.lang ? ` · ${at.lang}` : ''}
+                    </span>
+                    {at.bitRate != null && <span className="info-audio-br">{formatBitrate(at.bitRate)}</span>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="info-empty">{t('info.noData')}</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

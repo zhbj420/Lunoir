@@ -349,4 +349,20 @@ export const ko: Partial<Record<Key, string>> = {
   // ---- trim ----
   'set.pinOscTrim.label': '자르는 동안 컨트롤 표시 유지',
   'set.pinOscTrim.desc': '클립의 시작/끝 지점을 설정하는 동안 화면 컨트롤을 자동으로 숨기지 않아 핸들에 계속 접근할 수 있게 합니다.',
+
+  'info.title': '파일 정보',
+  'info.video': '비디오',
+  'info.audio': '오디오',
+  'info.codec': '코덱',
+  'info.resolution': '해상도',
+  'info.frameRate': '프레임 레이트',
+  'info.overallBitRate': '전체 비트레이트',
+  'info.fileSize': '파일 크기',
+  'info.bitRate': '동영상 비트레이트',
+  'info.bitDepth': '비트 심도',
+  'info.colorSpace': '색 공간',
+  'info.hdr': 'HDR',
+  'info.container': '컨테이너',
+  'info.duration': '재생 시간',
+  'info.noData': '미디어 정보 없음'
 }

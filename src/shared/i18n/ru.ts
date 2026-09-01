@@ -349,4 +349,20 @@ export const ru: Partial<Record<Key, string>> = {
   // ---- trim ----
   'set.pinOscTrim.label': 'Показывать элементы управления при обрезке',
   'set.pinOscTrim.desc': 'При установке точек входа/выхода фрагмента не скрывать автоматически экранные элементы управления, чтобы маркеры оставались доступными.',
+
+  'info.title': 'Информация о файле',
+  'info.video': 'Видео',
+  'info.audio': 'Аудио',
+  'info.codec': 'Кодек',
+  'info.resolution': 'Разрешение',
+  'info.frameRate': 'Частота кадров',
+  'info.overallBitRate': 'Общий битрейт',
+  'info.fileSize': 'Размер файла',
+  'info.bitRate': 'Битрейт видео',
+  'info.bitDepth': 'Битовая глубина',
+  'info.colorSpace': 'Цветовое пространство',
+  'info.hdr': 'HDR',
+  'info.container': 'Контейнер',
+  'info.duration': 'Продолжительность',
+  'info.noData': 'Нет данных о медиафайле'
 }

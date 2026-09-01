@@ -348,4 +348,21 @@ export const fr: Partial<Record<Key, string>> = {
   // ---- trim ----
   'set.pinOscTrim.label': 'Garder les commandes visibles pendant le rognage',
   'set.pinOscTrim.desc': 'Lors de la définition des points d’entrée/sortie d’un extrait, ne masque pas automatiquement les commandes à l’écran, pour que les poignées restent accessibles.',
+
+  // ---- file info overlay (i key) ----
+  'info.title': 'Infos fichier',
+  'info.video': 'Video',
+  'info.audio': 'Audio',
+  'info.codec': 'Codec',
+  'info.resolution': 'Resolution',
+  'info.frameRate': 'Images/s',
+  'info.bitRate': 'Debit video',
+  'info.overallBitRate': 'Debit global',
+  'info.fileSize': 'Taille du fichier',
+  'info.bitDepth': 'Profondeur',
+  'info.colorSpace': 'Espace colorimetrique',
+  'info.hdr': 'HDR',
+  'info.container': 'Conteneur',
+  'info.duration': 'Duree',
+  'info.noData': 'Aucune information disponible'
 }

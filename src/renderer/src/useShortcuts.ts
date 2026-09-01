@@ -21,6 +21,7 @@ interface Handlers {
   next: () => void
   prev: () => void
   onActivity: () => void
+  toggleInfo: () => void
 }
 
 /** Global keyboard shortcuts, attached in whichever window has focus. */
@@ -77,6 +78,10 @@ export function useShortcuts(h: Handlers) {
         case 'M':
           h.toggleMute()
           break
+        case 'i':
+        case 'I':
+          h.toggleInfo()
+          return // don't pop the OSC
         case 'o':
         case 'O':
           if (e.ctrlKey) h.openFile()

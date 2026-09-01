@@ -372,7 +372,24 @@ export const en = {
   'appmenu.file': 'File',
   'appmenu.open': 'Open…',
   'appmenu.openFolder': 'Open Folder…',
-  'appmenu.view': 'View'
+  'appmenu.view': 'View',
+
+  // ---- file info overlay (i key) ----
+  'info.title': 'File Info',
+  'info.video': 'Video',
+  'info.audio': 'Audio',
+  'info.codec': 'Codec',
+  'info.resolution': 'Resolution',
+  'info.frameRate': 'Frame rate',
+  'info.bitRate': 'Video bit rate',
+  'info.overallBitRate': 'Overall bit rate',
+  'info.fileSize': 'File size',
+  'info.bitDepth': 'Bit depth',
+  'info.colorSpace': 'Color space',
+  'info.hdr': 'HDR',
+  'info.container': 'Container',
+  'info.duration': 'Duration',
+  'info.noData': 'No media info available'
 }
 
 export type Key = keyof typeof en
