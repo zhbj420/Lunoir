@@ -182,6 +182,53 @@ export function saveAudioSelection(path: string, selection: AudioSelection): voi
   }
 }
 
+// ---- per-file selected subtitle track ----
+// Like audio, the choice survives finishing a video. No entry means mpv's usual
+// automatic selection; 'none' means the viewer explicitly turned subtitles off.
+export type SubtitleSelection =
+  | { type: 'none' }
+  | { type: 'embedded'; id: number }
+  | { type: 'external'; path: string }
+
+type SubtitleSelections = Record<string, SubtitleSelection>
+let subCache: SubtitleSelections | null = null
+const subFile = (): string => join(app.getPath('userData'), 'subtitle-selections.json')
+
+function subtitleSelections(): SubtitleSelections {
+  if (subCache) return subCache
+  try {
+    const parsed = JSON.parse(readFileSync(subFile(), 'utf8')) as Record<string, unknown>
+    subCache = Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, SubtitleSelection] => {
+        const value = entry[1]
+        if (!value || typeof value !== 'object') return false
+        const selection = value as Record<string, unknown>
+        return (
+          selection.type === 'none' ||
+          (selection.type === 'embedded' && Number.isInteger(selection.id) && Number(selection.id) > 0) ||
+          (selection.type === 'external' && typeof selection.path === 'string' && !!selection.path)
+        )
+      })
+    )
+  } catch {
+    subCache = {}
+  }
+  return subCache!
+}
+
+export function getSubtitleSelection(path: string): SubtitleSelection | undefined {
+  return subtitleSelections()[path]
+}
+
+export function saveSubtitleSelection(path: string, selection: SubtitleSelection): void {
+  subtitleSelections()[path] = selection
+  try {
+    writeFileSync(subFile(), JSON.stringify(subtitleSelections()))
+  } catch {
+    /* ignore */
+  }
+}
+
 // ---- per-playlist "last item" (which video in a playlist you got to) ----
 // Keyed by a stable playlist id (e.g. local path or YouTube's list=…), value = the item.
 // Combined with the per-file positions above, reopening a playlist resumes both

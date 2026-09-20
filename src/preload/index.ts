@@ -306,6 +306,7 @@ const api = {
   cycleRepeat: (): void => ipcRenderer.send('playlist:repeat-cycle'),
   selectAudio: (id: number): void => ipcRenderer.send('audio:select', id),
   addAudio: (): void => ipcRenderer.send('audio:add'),
+  selectSubtitle: (id: number | 'no'): void => ipcRenderer.send('sub:select', id),
   addSubtitle: (): void => ipcRenderer.send('sub:add'),
   onPlaylistChanged: (cb: (p: Playlist) => void): Unsubscribe =>
     subscribe('playlist:changed', (p: Playlist) => cb(p)),
