@@ -190,7 +190,7 @@ export type SubtitleSelection =
   | { type: 'embedded'; id: number }
   | { type: 'external'; path: string }
 
-type SubtitleSelections = Record<string, SubtitleSelection>
+type SubtitleSelections = Record<string, SubtitleSelection & { externalPaths?: string[] }>
 let subCache: SubtitleSelections | null = null
 const subFile = (): string => join(app.getPath('userData'), 'subtitle-selections.json')
 
@@ -220,8 +220,22 @@ export function getSubtitleSelection(path: string): SubtitleSelection | undefine
   return subtitleSelections()[path]
 }
 
+export function getSubtitleFiles(path: string): string[] {
+  const sub = subtitleSelections()[path]
+  const files = Array.isArray(sub?.externalPaths)
+    ? sub.externalPaths.filter(p => typeof p === 'string' && !!p)
+    : []
+  // Older records only stored the selected file. Keep it when switching to None
+  // or an embedded track, even before that record has been written in the new format.
+  if (sub?.type === 'external') files.push(sub.path)
+  return [...new Set(files)]
+}
+
 export function saveSubtitleSelection(path: string, selection: SubtitleSelection): void {
-  subtitleSelections()[path] = selection
+  // Attached files belong to the video, independently of which track is selected.
+  const externalPaths = getSubtitleFiles(path)
+  if (selection.type === 'external') externalPaths.push(selection.path)
+  subtitleSelections()[path] = { ...selection, externalPaths: [...new Set(externalPaths)] }
   try {
     writeFileSync(subFile(), JSON.stringify(subtitleSelections()))
   } catch {

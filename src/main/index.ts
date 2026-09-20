@@ -17,6 +17,7 @@ import {
   getAudioSelection,
   saveAudioSelection,
   getSubtitleSelection,
+  getSubtitleFiles,
   saveSubtitleSelection,
   getPlaylistItem,
   savePlaylistItem,
@@ -1178,17 +1179,36 @@ async function restoreSubtitleSelection(): Promise<void> {
     // Query the current file: the observed track-list may still describe the last one.
     const tracks = await mpv.command(['get_property', 'track-list'])
     if (revision !== subtitleRevision || key !== resumePath) return
-    const list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    let list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    let added = false
+    for (const path of getSubtitleFiles(key)) {
+      if (revision !== subtitleRevision || key !== resumePath) return
+      if (!isUrl(path) && !existsSync(path)) continue
+      if (list.some(t => t.type === 'sub' && t.external && t['external-filename'] === path)) continue
+      try {
+        // Restore the list first without selecting a track. None and embedded
+        // choices must still leave previously attached files available in the panel.
+        await mpv.command(['sub-add', path, 'auto'])
+        added = true
+      } catch {
+        /* one unreadable file must not prevent restoring the remaining tracks */
+      }
+    }
+    if (revision !== subtitleRevision || key !== resumePath) return
+    if (added) {
+      const tracks = await mpv.command(['get_property', 'track-list'])
+      if (revision !== subtitleRevision || key !== resumePath) return
+      list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    }
     const sub = restorableSubtitle(list)
     if (sub?.type === 'none') {
       mpv.setProperty('sid', 'no')
     } else if (sub?.type === 'embedded') {
       mpv.setProperty('sid', sub.id)
     } else if (sub?.type === 'external') {
-      // Auto-loading may already have attached this file. Reuse its current id.
+      // Use the current id, which can change with the order external tracks load in.
       const track = list.find(t => t.type === 'sub' && t.external && t['external-filename'] === sub.path)
       if (track) mpv.setProperty('sid', track.id)
-      else await mpv.command(['sub-add', sub.path, 'select'])
     }
   } catch {
     /* missing/unreadable subtitle or a file switch — keep mpv's default choice */
