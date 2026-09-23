@@ -114,6 +114,9 @@ export const ja: Partial<Record<Key, string>> = {
   'set.subLang.desc':
     'ファイルを開いたとき、この言語の字幕を自動選択します。\n既定はファイル本来のトラック順です。',
   'set.subsDefault.label': '既定で字幕を表示',
+  'set.subCodepage.label': '字幕の文字コード',
+  'set.subCodepage.desc':
+    '外部テキスト字幕に適用します。UTF-8 は常に優先して認識されます。\n読み込み済みの字幕に適用するには、動画を開き直してください。',
   'set.autoLoadSubs.label': '外部字幕を自動読み込み',
   'set.autoLoadSubs.desc':
     '動画のそばにある同名の .srt / .ass ファイルを読み込みます。',
@@ -190,6 +193,7 @@ export const ja: Partial<Record<Key, string>> = {
   'opt.oscStyle.docked': '下端にドッキング',
   'opt.shot.png': 'PNG（無劣化）',
   'opt.shot.jpg': 'JPG（高品質）',
+  'opt.subCodepage.auto': '自動判定',
   'opt.subFont.system': 'システム既定（sans-serif）',
   'opt.lang.english': '英語',
   'opt.lang.chinese': '中国語',

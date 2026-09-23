@@ -137,6 +137,9 @@ export const en = {
   'set.subLang.desc':
     "Select this language automatically when a file is opened.\nDefault uses the file's own track order.",
   'set.subsDefault.label': 'Subtitles on by default',
+  'set.subCodepage.label': 'Subtitle encoding',
+  'set.subCodepage.desc':
+    'For external text subtitles; UTF-8 is always recognized first.\nReopen the video to apply changes to loaded subtitles.',
   'set.autoLoadSubs.label': 'Auto-load external subtitles',
   'set.autoLoadSubs.desc': 'Load matching .srt and .ass files found alongside the video.',
   'set.hdrSubPeak.label': 'HDR subtitle brightness',
@@ -245,6 +248,7 @@ export const en = {
   'opt.oscStyle.docked': 'Docked',
   'opt.shot.png': 'PNG (lossless)',
   'opt.shot.jpg': 'JPG (high quality)',
+  'opt.subCodepage.auto': 'Auto-detect',
   'opt.subFont.system': 'System default (sans-serif)',
   'opt.lang.english': 'English',
   'opt.lang.chinese': 'Chinese',

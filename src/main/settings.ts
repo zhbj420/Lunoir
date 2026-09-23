@@ -17,6 +17,7 @@ const DEFAULTS: Settings = {
   subLang: '',
   subsDefaultOn: true,
   autoLoadSubs: true,
+  subCodepage: 'auto',
   audioPassthrough: false,
   passthroughCodecs: 'ac3,eac3,truehd,dts,dts-hd',
   oscHideDelay: 5, // seconds the OSC lingers after activity before auto-hiding

@@ -112,6 +112,9 @@ export const fr: Partial<Record<Key, string>> = {
   'set.subLang.desc':
     'Sélectionner automatiquement cette langue à l’ouverture d’un fichier.\nPar défaut, suit l’ordre des pistes du fichier.',
   'set.subsDefault.label': 'Sous-titres activés par défaut',
+  'set.subCodepage.label': 'Encodage des sous-titres',
+  'set.subCodepage.desc':
+    'Pour les sous-titres externes au format texte ; UTF-8 est toujours reconnu en priorité.\nRouvrez la vidéo pour appliquer les modifications aux sous-titres déjà chargés.',
   'set.autoLoadSubs.label': 'Charger les sous-titres externes',
   'set.autoLoadSubs.desc':
     'Charger les fichiers .srt et .ass correspondants placés à côté de la vidéo.',
@@ -189,6 +192,7 @@ export const fr: Partial<Record<Key, string>> = {
   'opt.oscStyle.docked': 'Ancré en bas',
   'opt.shot.png': 'PNG (sans perte)',
   'opt.shot.jpg': 'JPG (haute qualité)',
+  'opt.subCodepage.auto': 'Détection automatique',
   'opt.subFont.system': 'Police système (sans-serif)',
   'opt.lang.english': 'Anglais',
   'opt.lang.chinese': 'Chinois',

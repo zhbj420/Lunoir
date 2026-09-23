@@ -113,6 +113,9 @@ export const ru: Partial<Record<Key, string>> = {
   'set.subLang.desc':
     'Автоматически выбирать этот язык при открытии файла.\nПо умолчанию — порядок дорожек в файле.',
   'set.subsDefault.label': 'Субтитры включены по умолчанию',
+  'set.subCodepage.label': 'Кодировка субтитров',
+  'set.subCodepage.desc':
+    'Для внешних текстовых субтитров; UTF-8 распознаётся в первую очередь.\nОткройте видео заново, чтобы применить изменения к загруженным субтитрам.',
   'set.autoLoadSubs.label': 'Автозагрузка внешних субтитров',
   'set.autoLoadSubs.desc':
     'Загружать подходящие файлы .srt и .ass рядом с видео.',
@@ -189,6 +192,7 @@ export const ru: Partial<Record<Key, string>> = {
   'opt.oscStyle.docked': 'Закреплённые внизу',
   'opt.shot.png': 'PNG (без потерь)',
   'opt.shot.jpg': 'JPG (высокое качество)',
+  'opt.subCodepage.auto': 'Автоопределение',
   'opt.subFont.system': 'Системный по умолчанию (sans-serif)',
   'opt.lang.english': 'Английский',
   'opt.lang.chinese': 'Китайский',

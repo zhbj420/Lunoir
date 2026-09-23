@@ -107,6 +107,9 @@ export const zhCN: Partial<Record<Key, string>> = {
   'set.audioLang.desc': '打开文件时自动选择该语言的音轨。\n默认按文件内嵌的音轨排序。',
   'set.subLang.desc': '打开文件时自动选择该语言的字幕。\n默认按文件内嵌的字幕排序。',
   'set.subsDefault.label': '默认显示字幕',
+  'set.subCodepage.label': '字幕编码',
+  'set.subCodepage.desc':
+    '适用于外挂文本字幕；始终优先识别 UTF-8。\n重新打开视频后，设置才会应用于已加载的字幕。',
   'set.autoLoadSubs.label': '自动加载外挂字幕',
   'set.autoLoadSubs.desc': '加载视频同一路径下的同名 .srt 与 .ass 字幕。',
   'set.hdrSubPeak.label': 'HDR 字幕亮度',
@@ -176,6 +179,7 @@ export const zhCN: Partial<Record<Key, string>> = {
   'opt.oscStyle.docked': '底部停靠',
   'opt.shot.png': 'PNG（无损）',
   'opt.shot.jpg': 'JPG（高质量）',
+  'opt.subCodepage.auto': '自动检测',
   'opt.subFont.system': '系统默认（sans-serif）',
   'opt.lang.english': '英语',
   'opt.lang.chinese': '中文',

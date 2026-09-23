@@ -114,6 +114,9 @@ export const ko: Partial<Record<Key, string>> = {
   'set.subLang.desc':
     '파일을 열 때 이 언어의 자막을 자동 선택합니다.\n기본값은 파일 자체의 트랙 순서입니다.',
   'set.subsDefault.label': '기본적으로 자막 표시',
+  'set.subCodepage.label': '자막 인코딩',
+  'set.subCodepage.desc':
+    '외부 텍스트 자막에 적용되며 UTF-8이 항상 먼저 인식됩니다.\n이미 불러온 자막에 변경 사항을 적용하려면 동영상을 다시 여세요.',
   'set.autoLoadSubs.label': '외부 자막 자동 로드',
   'set.autoLoadSubs.desc':
     '동영상 옆에 있는 같은 이름의 .srt 및 .ass 파일을 로드합니다.',
@@ -190,6 +193,7 @@ export const ko: Partial<Record<Key, string>> = {
   'opt.oscStyle.docked': '아래쪽 고정',
   'opt.shot.png': 'PNG(무손실)',
   'opt.shot.jpg': 'JPG(고품질)',
+  'opt.subCodepage.auto': '자동 감지',
   'opt.subFont.system': '시스템 기본(sans-serif)',
   'opt.lang.english': '영어',
   'opt.lang.chinese': '중국어',

@@ -112,6 +112,9 @@ export const pt: Partial<Record<Key, string>> = {
   'set.subLang.desc':
     'Selecionar este idioma automaticamente ao abrir um ficheiro.\nPor predefinição segue a ordem de faixas do ficheiro.',
   'set.subsDefault.label': 'Legendas ativas por predefinição',
+  'set.subCodepage.label': 'Codificação das legendas',
+  'set.subCodepage.desc':
+    'Para legendas externas de texto; UTF-8 é sempre reconhecido primeiro.\nReabra o vídeo para aplicar as alterações às legendas carregadas.',
   'set.autoLoadSubs.label': 'Carregar legendas externas',
   'set.autoLoadSubs.desc':
     'Carregar os ficheiros .srt e .ass correspondentes junto ao vídeo.',
@@ -189,6 +192,7 @@ export const pt: Partial<Record<Key, string>> = {
   'opt.oscStyle.docked': 'Fixa em baixo',
   'opt.shot.png': 'PNG (sem perdas)',
   'opt.shot.jpg': 'JPG (alta qualidade)',
+  'opt.subCodepage.auto': 'Deteção automática',
   'opt.subFont.system': 'Predefinição do sistema (sans-serif)',
   'opt.lang.english': 'Inglês',
   'opt.lang.chinese': 'Chinês',
