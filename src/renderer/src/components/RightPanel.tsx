@@ -958,7 +958,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
             <div className="track-sec">{t('panel.sec.subtitles')}</div>
             <div
               className={`pl-item ${sid === false ? 'active' : ''}`}
-              onClick={() => window.mmp.set('sid', 'no')}
+              onClick={() => window.mmp.selectSubtitle('no')}
             >
               <span className="pl-mark">{sid === false ? <Check /> : null}</span>
               <span className="pl-name">{t('panel.subNone')}</span>
@@ -967,7 +967,7 @@ export default function RightPanel({ open, onClose }: { open: boolean; onClose: 
               <div
                 key={`s${tk.id}`}
                 className={`pl-item ${tk.id === sid ? 'active' : ''}`}
-                onClick={() => window.mmp.set('sid', tk.id)}
+                onClick={() => window.mmp.selectSubtitle(tk.id)}
               >
                 <span className="pl-mark">{tk.id === sid ? <Check /> : null}</span>
                 <span className="pl-name" onMouseEnter={e => clipTitle(e.currentTarget)}>

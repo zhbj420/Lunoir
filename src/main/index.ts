@@ -16,6 +16,9 @@ import {
   clearPosition,
   getAudioSelection,
   saveAudioSelection,
+  getSubtitleSelection,
+  getSubtitleFiles,
+  saveSubtitleSelection,
   getPlaylistItem,
   savePlaylistItem,
   addRecent,
@@ -32,6 +35,7 @@ import {
   removeFavouriteItem,
   updateFavouriteChannels,
   type Settings,
+  type SubtitleSelection,
   type MediaKind,
   type Channel,
   type FavEntry
@@ -1156,6 +1160,60 @@ function langMatches(pref: string, lang: string): boolean {
 // file is open, and the lookup is async, so whichever lands second does the work
 let pendingSubs: { target: string; subs: ExternalSub[] } | null = null
 let loadedTarget = '' // what mpv most recently reported as loaded
+let subtitleRevision = 0 // invalidate async restores/dialogs when the file or choice changes
+
+function restorableSubtitle(tracks: Array<Record<string, unknown>>): SubtitleSelection | undefined {
+  const sub = resumePath ? getSubtitleSelection(resumePath) : undefined
+  if (sub?.type === 'external' && !isUrl(sub.path) && !existsSync(sub.path)) return undefined
+  if (sub?.type === 'embedded' && !tracks.some(t => t.type === 'sub' && !t.external && t.id === sub.id)) {
+    return undefined // a replaced video may no longer contain the saved track
+  }
+  return sub
+}
+
+async function restoreSubtitleSelection(): Promise<void> {
+  const revision = subtitleRevision
+  const key = resumePath
+  if (!mpv || !key || !getSubtitleSelection(key)) return
+  try {
+    // Query the current file: the observed track-list may still describe the last one.
+    const tracks = await mpv.command(['get_property', 'track-list'])
+    if (revision !== subtitleRevision || key !== resumePath) return
+    let list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    let added = false
+    for (const path of getSubtitleFiles(key)) {
+      if (revision !== subtitleRevision || key !== resumePath) return
+      if (!isUrl(path) && !existsSync(path)) continue
+      if (list.some(t => t.type === 'sub' && t.external && t['external-filename'] === path)) continue
+      try {
+        // Restore the list first without selecting a track. None and embedded
+        // choices must still leave previously attached files available in the panel.
+        await mpv.command(['sub-add', path, 'auto'])
+        added = true
+      } catch {
+        /* one unreadable file must not prevent restoring the remaining tracks */
+      }
+    }
+    if (revision !== subtitleRevision || key !== resumePath) return
+    if (added) {
+      const tracks = await mpv.command(['get_property', 'track-list'])
+      if (revision !== subtitleRevision || key !== resumePath) return
+      list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    }
+    const sub = restorableSubtitle(list)
+    if (sub?.type === 'none') {
+      mpv.setProperty('sid', 'no')
+    } else if (sub?.type === 'embedded') {
+      mpv.setProperty('sid', sub.id)
+    } else if (sub?.type === 'external') {
+      // Use the current id, which can change with the order external tracks load in.
+      const track = list.find(t => t.type === 'sub' && t.external && t['external-filename'] === sub.path)
+      if (track) mpv.setProperty('sid', track.id)
+    }
+  } catch {
+    /* missing/unreadable subtitle or a file switch — keep mpv's default choice */
+  }
+}
 
 function addExternalSubs(subs: ExternalSub[]): void {
   if (!mpv || !subs.length || !getSettings().autoLoadSubs) return
@@ -1164,8 +1222,10 @@ function addExternalSubs(subs: ExternalSub[]): void {
   // without selecting) would leave a preference unhonoured. Select the first match
   // ourselves; with no preference set, nothing is forced, exactly like a local file.
   let selected = false
+  const saved = restorableSubtitle(lastTracks)
   for (const s of subs) {
-    const pick = !selected && langMatches(pref, s.lang)
+    // Late Emby subtitles must not override an explicit per-video choice, including None.
+    const pick = !selected && !saved && langMatches(pref, s.lang)
     if (pick) selected = true
     mpv.command(['sub-add', s.url, pick ? 'select' : 'auto', s.title, s.lang]).catch(() => {})
   }
@@ -3642,6 +3702,7 @@ function startMpv(): void {
     }
   })
   mpv.on('mpv-event', (event: string, msg?: { reason?: string }) => {
+    if (event === 'start-file' || event === 'end-file') subtitleRevision++
     broadcast('mpv:event', event)
     if (event === 'end-file') {
       broadcast('ui:loading', false)
@@ -3672,6 +3733,7 @@ function startMpv(): void {
       pendingResumeToast = '' // clear any stale pending toast from a failed load
       loadedTarget = playlist[plIndex] || ''
       flushPendingSubs(loadedTarget) // Emby's sidecar subs, if the lookup beat the load
+      void restoreSubtitleSelection()
       // Restore the viewer's per-file audio choice before seeking. An external
       // track joins mpv's current timeline, so the following resume seek moves
       // picture and both audio kinds to the same saved position.
@@ -3922,7 +3984,25 @@ function registerIpc(): void {
       }
     }
   })
+  ipcMain.on('sub:select', (_e, id: number | 'no') => {
+    if (!mpv || !resumePath || (id !== 'no' && !Number.isInteger(id))) return
+    const track = lastTracks.find(t => t.type === 'sub' && t.id === id)
+    if (id !== 'no' && !track) return
+    subtitleRevision++
+    mpv.setProperty('sid', id)
+    if (id === 'no') {
+      saveSubtitleSelection(resumePath, { type: 'none' })
+    } else if (track?.external) {
+      const path = track['external-filename']
+      if (typeof path === 'string' && path) saveSubtitleSelection(resumePath, { type: 'external', path })
+    } else {
+      saveSubtitleSelection(resumePath, { type: 'embedded', id })
+    }
+  })
   ipcMain.on('sub:add', async () => {
+    const key = resumePath
+    const revision = subtitleRevision
+    if (!mpv || !key) return
     const res = await dialog.showOpenDialog(win!, {
       title: tr('dlg.addSubtitle'),
       properties: ['openFile'],
@@ -3931,9 +4011,13 @@ function registerIpc(): void {
         { name: tr('dlg.filter.allFiles'), extensions: ['*'] }
       ]
     })
-    if (!res.canceled && res.filePaths[0]) {
+    if (!res.canceled && res.filePaths[0] && key === resumePath && revision === subtitleRevision) {
+      const selectionRevision = ++subtitleRevision
       try {
-        await mpv?.command(['sub-add', res.filePaths[0], 'select'])
+        await mpv.command(['sub-add', res.filePaths[0], 'select'])
+        if (key === resumePath && selectionRevision === subtitleRevision) {
+          saveSubtitleSelection(key, { type: 'external', path: res.filePaths[0] })
+        }
       } catch {
         /* ignore */
       }
