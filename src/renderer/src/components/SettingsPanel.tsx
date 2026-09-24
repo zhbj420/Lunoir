@@ -27,6 +27,7 @@ interface Settings {
   subLang: string
   subsDefaultOn: boolean
   autoLoadSubs: boolean
+  subCodepage: string
   subFont: string
   subFontSize: number
   subSpacing: number
@@ -132,6 +133,21 @@ const subFontOpts = (t: T): Opt[] => [
   { value: 'Yu Gothic UI', label: '游ゴシック (Yu Gothic)' },
   { value: 'Segoe UI', label: 'Segoe UI' },
   { value: 'sans-serif', label: t('opt.subFont.system') }
+]
+
+// No '+' prefix: valid UTF-8 must still work when a legacy codepage is selected.
+const subCodepageOpts = (t: T): Opt[] => [
+  { value: 'auto', label: t('opt.subCodepage.auto') },
+  { value: 'utf-8', label: 'UTF-8' },
+  { value: 'cp1251', label: 'Windows-1251' },
+  { value: 'cp1252', label: 'Windows-1252' },
+  { value: 'cp1250', label: 'Windows-1250' },
+  { value: 'koi8-r', label: 'KOI8-R' },
+  { value: 'cp866', label: 'CP866' },
+  { value: 'gb18030', label: 'GB18030' },
+  { value: 'big5', label: 'Big5' },
+  { value: 'shift_jis', label: 'Shift_JIS' },
+  { value: 'cp949', label: 'Windows-949' }
 ]
 
 const screenshotFmtOpts = (t: T): Opt[] => [
@@ -599,6 +615,9 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           </Row>
           <Row label={t('set.autoLoadSubs.label')} desc={t('set.autoLoadSubs.desc')}>
             <Toggle on={s.autoLoadSubs} onChange={v => set('autoLoadSubs', v)} />
+          </Row>
+          <Row label={t('set.subCodepage.label')} desc={multiline(t('set.subCodepage.desc'))}>
+            <Select value={s.subCodepage} options={subCodepageOpts(t)} onChange={v => set('subCodepage', v)} />
           </Row>
           <Row label={t('set.hdrSubPeak.label')} desc={multiline(t('set.hdrSubPeak.desc'))}>
             <div className="set-slider">

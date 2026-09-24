@@ -3402,6 +3402,7 @@ function applyMpvSettings(): void {
   mpv.setProperty('slang', s.subLang)
   mpv.setProperty('sub-visibility', s.subsDefaultOn)
   mpv.setProperty('sub-auto', s.autoLoadSubs ? 'fuzzy' : 'no') // auto-pick external subs
+  mpv.setProperty('sub-codepage', s.subCodepage)
   // SRT carries no styling, so the font is entirely ours to pick. mpv's default
   // 'sans-serif' resolves to whatever the system fancies, which on a Japanese
   // release often lacks Simplified-only glyphs (们/吗) — libass then substitutes
@@ -4222,6 +4223,8 @@ function registerIpc(): void {
       else if (key === 'subLang') mpv.setProperty('slang', value)
       else if (key === 'subsDefaultOn') mpv.setProperty('sub-visibility', value)
       else if (key === 'autoLoadSubs') mpv.setProperty('sub-auto', value ? 'fuzzy' : 'no')
+      // Like language preferences, decoding changes apply when subtitles are loaded.
+      else if (key === 'subCodepage') mpv.setProperty('sub-codepage', value)
       else if (key === 'subFont') mpv.setProperty('sub-font', subFontChain(String(value)))
       else if (key === 'subFontSize') mpv.setProperty('sub-font-size', value)
       else if (key === 'subSpacing') mpv.setProperty('sub-spacing', value)

@@ -23,6 +23,7 @@ export interface Settings {
   subLang: string
   subsDefaultOn: boolean
   autoLoadSubs: boolean // auto-load matching external subtitle files (mpv sub-auto)
+  subCodepage: string // external text subtitle encoding (mpv sub-codepage); UTF-8 takes priority
   subFont: string // mpv sub-font. '' = mpv's own 'sans-serif' default
   subFontSize: number // mpv sub-font-size
   subSpacing: number // mpv sub-spacing, -10..10
