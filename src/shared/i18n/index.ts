@@ -10,13 +10,14 @@ import { pt } from './pt'
 import { ru } from './ru'
 import { ja } from './ja'
 import { ko } from './ko'
+import { tr } from './tr'
 
 export type { Key }
 
 /** Locales with an actual translation. Latin/Cyrillic ones (fr/de/es/pt/ru) render
  *  with the same Segoe UI stack as English. ja/ko are CJK but use the system Yu
  *  Gothic UI / Malgun Gothic (styles.css), not the SC subset bundled for zh. */
-export type Locale = 'en' | 'zh-CN' | 'fr' | 'de' | 'es' | 'pt' | 'ru' | 'ja' | 'ko'
+export type Locale = 'en' | 'zh-CN' | 'fr' | 'de' | 'es' | 'pt' | 'ru' | 'ja' | 'ko' | 'tr'
 /** What the setting stores — 'system' follows the OS. */
 export type LangSetting = 'system' | Locale
 
@@ -29,7 +30,8 @@ const DICTS: Record<Locale, Partial<Record<Key, string>>> = {
   pt,
   ru,
   ja,
-  ko
+  ko,
+  tr
 }
 
 /** Options for the interface-language dropdown. Each label is in its own
@@ -45,7 +47,8 @@ export const LANG_OPTIONS: { value: LangSetting; label: string }[] = [
   { value: 'pt', label: 'Português' },
   { value: 'ru', label: 'Русский' },
   { value: 'ja', label: '日本語' },
-  { value: 'ko', label: '한국어' }
+  { value: 'ko', label: '한국어' },
+  { value: 'tr', label: 'Türkçe' }
 ]
 
 /** Map an OS locale tag ('zh-Hans-CN', 'de-AT', 'pt-BR'…) to what we ship. Matches
@@ -55,7 +58,7 @@ export const LANG_OPTIONS: { value: LangSetting; label: string }[] = [
 export function resolveSystemLocale(tag: string): Locale {
   if (/^zh(-|_)?(hans|cn|sg)?$/i.test(tag) || /^zh-hans/i.test(tag)) return 'zh-CN'
   const base = tag.slice(0, 2).toLowerCase()
-  if (['fr', 'de', 'es', 'pt', 'ru', 'ja', 'ko'].includes(base)) return base as Locale
+  if (['fr', 'de', 'es', 'pt', 'ru', 'ja', 'ko', 'tr'].includes(base)) return base as Locale
   return 'en'
 }
 

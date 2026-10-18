@@ -1,3 +1,7 @@
+<p align="right">
+  <a href="README.tr.md">🇹🇷 Türkçe</a> | <strong>🇬🇧 English</strong>
+</p>
+
 <p align="center">
   <img src="assets/logo.png" alt="Lunoir player" width="30%">
 </p>
@@ -12,7 +16,7 @@ care about frame accuracy and colour fidelity. Electron + React wrapping an
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Languages](https://img.shields.io/badge/languages-9-blueviolet)
+![Languages](https://img.shields.io/badge/languages-10-blueviolet)
 [![Latest release](https://img.shields.io/github/v/release/zhbj420/Lunoir?label=download&color=blueviolet)](https://github.com/zhbj420/Lunoir/releases/latest)
 
 ## ⬇️ Download
@@ -73,7 +77,7 @@ Open source (MIT), no telemetry, no ads, no bundleware.
   plus saved files, URLs, playlists, and IPTV sources — each renamable and
   deletable. Save the current queue as a playlist or the current channel list as a
   source, right from the panel
-- **9 interface languages** — English, 简体中文, Français, Deutsch, Español,
+- **10 interface languages** — English, Türkçe, 简体中文, Français, Deutsch, Español,
   Português, Русский, 日本語, 한국어 (auto-detects your Windows language)
 - Frameless, drag-and-drop, opens files straight from Explorer (file associations)
 - Right-click context menu, remembers window size & volume
