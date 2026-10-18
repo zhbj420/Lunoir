@@ -29,7 +29,7 @@ const TOKEN: Record<string, string> = {
   spa: 'es', es: 'es', ita: 'it', it: 'it', rus: 'ru', ru: 'ru',
   por: 'pt', pt: 'pt', dut: 'nl', nld: 'nl', nl: 'nl', pol: 'pl', pl: 'pl',
   tha: 'th', th: 'th', vie: 'vi', vi: 'vi', ara: 'ar', ar: 'ar',
-  hin: 'hi', hi: 'hi', ind: 'id', id: 'id', tur: 'tr', tr: 'tr',
+  hin: 'hi', hi: 'hi', ind: 'id', id: 'id', tur: 'tr', tr: 'tr', turkish: 'tr',
   swe: 'sv', sv: 'sv', dan: 'da', da: 'da', nor: 'no', no: 'no',
   fin: 'fi', fi: 'fi', ces: 'cs', cze: 'cs', cs: 'cs',
   ell: 'el', gre: 'el', el: 'el', heb: 'he', he: 'he',
