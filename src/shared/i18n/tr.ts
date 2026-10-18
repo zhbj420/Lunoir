@@ -258,8 +258,7 @@ export const tr = {
   'opt.lang.spanish': 'İspanyolca',
   'opt.lang.italian': 'İtalyanca',
   'opt.lang.russian': 'Rusça',
-  'opt.lang.portuguese': 'Portekizce'
-  'opt.lang.turkishh': 'Türkçe'
+  'opt.lang.portuguese': 'Portekizce',
   'opt.uiLang.system': 'Sistem',
   'opt.clipFps.original': 'Özgün kare hızı',
 
