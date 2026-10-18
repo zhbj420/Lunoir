@@ -260,6 +260,7 @@ export const en = {
   'opt.lang.italian': 'Italian',
   'opt.lang.russian': 'Russian',
   'opt.lang.portuguese': 'Portuguese',
+  'opt.lang.turkish': 'Turkish',
   'opt.uiLang.system': 'System',
   'opt.clipFps.original': 'Original frame rate',
 
