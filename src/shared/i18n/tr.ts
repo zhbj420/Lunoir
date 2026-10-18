@@ -259,6 +259,7 @@ export const tr = {
   'opt.lang.italian': 'İtalyanca',
   'opt.lang.russian': 'Rusça',
   'opt.lang.portuguese': 'Portekizce',
+  'opt.lang.turkish': 'Türkçe',
   'opt.uiLang.system': 'Sistem',
   'opt.clipFps.original': 'Özgün kare hızı',
 
