@@ -132,6 +132,10 @@ export const pt: Partial<Record<Key, string>> = {
   'set.subOutline.desc':
     'Espessura do bordo escuro que mantém as legendas legíveis sobre cenas claras.',
   'set.subBold.label': 'Negrito',
+  'set.subBackground.label': 'Fundo das legendas',
+  'set.subBackground.desc':
+    'Adiciona um fundo preto às legendas de texto sem estilo próprio. ASS/SSA mantém os seus estilos; as legendas em imagem não são alteradas.',
+  'set.subBackgroundOpacity.label': 'Opacidade do fundo',
   'set.subMargin.label': 'Distância ao fundo',
   'set.subMargin.desc':
     'Posição de repouso predefinida. «Ajustar ▸ posição das legendas» no painel direito desloca o vídeo atual sem alterar este valor.',

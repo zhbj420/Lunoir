@@ -57,6 +57,8 @@ const DEFAULTS: Settings = {
   subSpacing: 0,
   subBold: false,
   subOutline: 3,
+  subBackground: false,
+  subBackgroundOpacity: 65,
   subMarginY: 34,
   timeFormat: 'time',
   timecodeOverlay: false,

@@ -134,6 +134,10 @@ export const ja: Partial<Record<Key, string>> = {
   'set.subOutline.desc':
     '明るい場面でも字幕を読みやすく保つ、暗い縁取りの太さ。',
   'set.subBold.label': '太字',
+  'set.subBackground.label': '字幕の背景',
+  'set.subBackground.desc':
+    '独自のスタイルを持たないテキスト字幕に黒い背景を付けます。ASS/SSA のスタイルは維持され、画像字幕には影響しません。',
+  'set.subBackgroundOpacity.label': '背景の不透明度',
   'set.subMargin.label': '下からの距離',
   'set.subMargin.desc':
     '既定の位置です。右パネルの「調整 ▸ 字幕位置」は現在の動画だけをずらし、この値は変えません。',

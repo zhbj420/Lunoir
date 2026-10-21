@@ -156,6 +156,10 @@ export const en = {
   'set.subOutline.desc':
     'Thickness of the dark border that keeps subtitles legible over bright scenes.',
   'set.subBold.label': 'Bold',
+  'set.subBackground.label': 'Subtitle background',
+  'set.subBackground.desc':
+    'Add a black background to unstyled text subtitles. ASS/SSA keep their own styles; image subtitles are unaffected.',
+  'set.subBackgroundOpacity.label': 'Background opacity',
   'set.subMargin.label': 'Distance from bottom',
   'set.subMargin.desc':
     'The default resting position. Adjust ▸ subtitle position in the right panel offsets the current video without changing this value.',

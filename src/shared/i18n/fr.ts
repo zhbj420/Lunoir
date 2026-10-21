@@ -132,6 +132,10 @@ export const fr: Partial<Record<Key, string>> = {
   'set.subOutline.desc':
     'Épaisseur du bord sombre qui garde les sous-titres lisibles sur les scènes claires.',
   'set.subBold.label': 'Gras',
+  'set.subBackground.label': 'Fond des sous-titres',
+  'set.subBackground.desc':
+    'Ajoute un fond noir aux sous-titres texte sans style propre. Les styles ASS/SSA sont conservés ; les sous-titres bitmap restent inchangés.',
+  'set.subBackgroundOpacity.label': 'Opacité du fond',
   'set.subMargin.label': 'Distance depuis le bas',
   'set.subMargin.desc':
     'Position de repos par défaut. Ajuster ▸ position des sous-titres dans le panneau de droite décale la vidéo en cours sans modifier cette valeur.',

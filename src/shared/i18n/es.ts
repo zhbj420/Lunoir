@@ -132,6 +132,10 @@ export const es: Partial<Record<Key, string>> = {
   'set.subOutline.desc':
     'Grosor del borde oscuro que mantiene legibles los subtítulos sobre escenas claras.',
   'set.subBold.label': 'Negrita',
+  'set.subBackground.label': 'Fondo de los subtítulos',
+  'set.subBackground.desc':
+    'Añade un fondo negro a los subtítulos de texto sin estilo propio. ASS/SSA conserva sus estilos; los subtítulos de imagen no cambian.',
+  'set.subBackgroundOpacity.label': 'Opacidad del fondo',
   'set.subMargin.label': 'Distancia desde abajo',
   'set.subMargin.desc':
     'Posición de reposo predeterminada. «Ajustar ▸ posición de subtítulos» en el panel derecho desplaza el vídeo actual sin cambiar este valor.',

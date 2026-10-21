@@ -132,6 +132,10 @@ export const de: Partial<Record<Key, string>> = {
   'set.subOutline.desc':
     'Dicke des dunklen Rands, der Untertitel über hellen Szenen lesbar hält.',
   'set.subBold.label': 'Fett',
+  'set.subBackground.label': 'Untertitelhintergrund',
+  'set.subBackground.desc':
+    'Schwarzer Hintergrund für Textuntertitel ohne eigene Gestaltung. ASS/SSA behalten ihre Stile; Bilduntertitel bleiben unverändert.',
+  'set.subBackgroundOpacity.label': 'Deckkraft des Hintergrunds',
   'set.subMargin.label': 'Abstand vom unteren Rand',
   'set.subMargin.desc':
     'Standard-Ruheposition. „Anpassen ▸ Untertitelposition“ im rechten Panel verschiebt das aktuelle Video, ohne diesen Wert zu ändern.',

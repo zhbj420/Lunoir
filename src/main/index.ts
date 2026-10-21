@@ -3438,6 +3438,18 @@ function subFontChain(font: string): string {
   return f === SUB_FONT_FALLBACK ? f : `${f},${SUB_FONT_FALLBACK}`
 }
 
+/** Background for unstyled text subtitles. ASS/SSA keep their own styles. */
+function applySubtitleBackground(): void {
+  if (!mpv) return
+  const s = getSettings()
+  const opacity = Math.min(100, Math.max(0, s.subBackgroundOpacity)) / 100
+  mpv.setProperty('sub-border-style', s.subBackground ? 'background-box' : 'outline-and-shadow')
+  mpv.setProperty('sub-back-color', s.subBackground ? `0/0/0/${opacity}` : '#AF000000')
+  // In background-box mode the shadow offset is padding around the whole block.
+  // Turning it off restores mpv's default shadow color and zero offset.
+  mpv.setProperty('sub-shadow-offset', s.subBackground ? 4 : 0)
+}
+
 /** Push settings mpv cares about: hwdec, preferred track languages, sub visibility. */
 function applyMpvSettings(): void {
   if (!mpv) return
@@ -3458,6 +3470,7 @@ function applyMpvSettings(): void {
   mpv.setProperty('sub-spacing', s.subSpacing)
   mpv.setProperty('sub-bold', s.subBold)
   mpv.setProperty('sub-outline-size', s.subOutline)
+  applySubtitleBackground()
   // resting position; the right panel's Adjust nudges sub-pos on top of this
   mpv.setProperty('sub-margin-y', s.subMarginY)
   // HDR subtitle brightness (nits); ignored for SDR. Two separate mpv props:
@@ -4277,6 +4290,7 @@ function registerIpc(): void {
       else if (key === 'subSpacing') mpv.setProperty('sub-spacing', value)
       else if (key === 'subBold') mpv.setProperty('sub-bold', value)
       else if (key === 'subOutline') mpv.setProperty('sub-outline-size', value)
+      else if (key === 'subBackground' || key === 'subBackgroundOpacity') applySubtitleBackground()
       else if (key === 'subMarginY') mpv.setProperty('sub-margin-y', value)
       else if (key === 'subHdrPeak') {
         mpv.setProperty('sub-hdr-peak', value)

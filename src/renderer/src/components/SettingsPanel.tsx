@@ -33,6 +33,8 @@ interface Settings {
   subSpacing: number
   subBold: boolean
   subOutline: number
+  subBackground: boolean
+  subBackgroundOpacity: number
   subMarginY: number
   audioPassthrough: boolean
   passthroughCodecs: string
@@ -683,6 +685,28 @@ export default function SettingsPanel({ open, onClose }: { open: boolean; onClos
           <Row label={t('set.subBold.label')}>
             <Toggle on={s.subBold} onChange={v => set('subBold', v)} />
           </Row>
+          <Row label={t('set.subBackground.label')} desc={t('set.subBackground.desc')}>
+            <Toggle on={s.subBackground} onChange={v => set('subBackground', v)} />
+          </Row>
+          {s.subBackground && (
+            <div className="set-suboptions">
+              <Row label={t('set.subBackgroundOpacity.label')}>
+                <div className="set-slider">
+                  <input
+                    type="range"
+                    className="set-range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.min(100, Math.max(0, s.subBackgroundOpacity))}
+                    onChange={e => set('subBackgroundOpacity', Number(e.target.value))}
+                  />
+                  <NumInput value={s.subBackgroundOpacity} min={0} max={100} onChange={v => set('subBackgroundOpacity', v)} />
+                  <span>%</span>
+                </div>
+              </Row>
+            </div>
+          )}
           <Row label={t('set.subMargin.label')} desc={t('set.subMargin.desc')}>
             <div className="set-slider">
               <input
