@@ -36,6 +36,14 @@ export function useShortcuts(h: Handlers) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
+      const target = e.target
+      if (target instanceof HTMLElement) {
+        // Playback sliders opt in to player shortcuts. Settings and text fields
+        // keep their native keyboard controls, including arrow-key adjustments.
+        if (target.isContentEditable) return
+        if (target.matches('input, textarea, select') && !target.hasAttribute('data-player-shortcuts')) return
+      }
       switch (e.key) {
         case ' ':
         case 'k':
@@ -45,6 +53,7 @@ export function useShortcuts(h: Handlers) {
         // paused: step one frame ("盯帧"), without popping the OSC; playing: seek ∓5s
         case 'ArrowLeft':
         case 'ArrowRight': {
+          e.preventDefault() // don't let a focused playback slider also take a native step
           const forward = e.key === 'ArrowRight'
           if (!e.repeat || arrowMode.current === null) {
             arrowMode.current = h.paused ? 'step' : 'seek'
@@ -62,9 +71,11 @@ export function useShortcuts(h: Handlers) {
           break
         }
         case 'ArrowUp':
+          e.preventDefault()
           h.bumpVolume(5)
           break
         case 'ArrowDown':
+          e.preventDefault()
           h.bumpVolume(-5)
           break
         case 'f':
