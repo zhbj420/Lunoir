@@ -295,6 +295,7 @@ export default function Controls(props: Props) {
         {volShow && <span className="vol-num">{Math.round(state.volume)}</span>}
         <input
           className="rng volume"
+          data-player-shortcuts
           type="range"
           min={0}
           max={150}
@@ -411,6 +412,7 @@ export default function Controls(props: Props) {
       >
         <input
           className="rng seek"
+          data-player-shortcuts
           type="range"
           min={0}
           max={state.duration || 0}
