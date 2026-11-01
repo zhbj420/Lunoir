@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 // Min gap between frame steps while an arrow key is *held*. Single taps are never
 // throttled. frame-back-step is expensive in mpv (it seeks + re-decodes), so
 // letting the ~30/s key auto-repeat through unthrottled makes it crawl.
-const FRAME_STEP_MS = 25
+const FRAME_STEP_MS = 80
 
 interface Handlers {
   togglePause: () => void
@@ -118,11 +118,11 @@ export function useShortcuts(h: Handlers) {
     const onKeyUp = (e: KeyboardEvent) => clearArrow(e)
     const onBlur = () => clearArrow()
 
-    window.addEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', onBlur)
     return () => {
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', onBlur)
     }

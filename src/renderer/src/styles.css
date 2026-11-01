@@ -281,7 +281,9 @@ body.fullscreen .titlebar {
   display: flex;
   align-items: center;
   justify-content: center;
-  -webkit-app-region: drag;
+  /* Not -webkit-app-region: drag — Windows treats that as a caption, so a
+     double-click OS-maximizes (full monitor, taskbar covered) and we have to
+     bounce to the work area. Same reason the mini player drags by hand. */
   padding: 0 130px;
 }
 

@@ -108,6 +108,11 @@ let fsWasMaximized = false // restore the maximized state when leaving fullscree
 // We never use the OS maximize — see fakeMaximize().
 let preMaxBounds: Electron.Rectangle | null = null
 const isMaxed = (): boolean => preMaxBounds != null
+// Last windowed bounds, updated on move/resize. Title-bar double-click / Win+Up
+// fire 'maximize' *after* Windows has already resized us, so getBounds() there is
+// the work area — we need this snapshot to restore, and to fake-maximize from.
+let lastNormalBounds: Electron.Rectangle | null = null
+let bouncingOsMax = false // OS maximize → wait for unmaximize, then fakeMaximize
 let lastAspect = 0 // last video aspect the window was fitted to (avoid re-jumping)
 
 // Aspect submenu. Picking a ratio CENTRE-CUTS the picture into that frame — 4:3 into
@@ -2819,12 +2824,38 @@ function syncFsTopmost(): void {
  * whole screen and keep its frost, so the size was never the problem; the maximized
  * *state* is. Same escape as native fullscreen → borderless fullscreen.
  */
-function fakeMaximize(): void {
-  if (!win || win.isDestroyed() || preMaxBounds) return
-  preMaxBounds = win.getBounds()
-  win.setBounds(screen.getDisplayMatching(preMaxBounds).workArea) // workArea = keeps the taskbar
+function fakeMaximize(from?: Electron.Rectangle | null): void {
+  if (!win || win.isDestroyed()) return
+  const bounds = from ?? lastNormalBounds ?? win.getBounds()
+  if (!preMaxBounds) preMaxBounds = { ...bounds }
+  const wa = screen.getDisplayMatching(preMaxBounds).workArea
+  win.setBounds(wa)
   win.webContents.send('win:maximized', true)
   pushOscGrips() // maximized → nothing to resize, drop the docked bar's grips
+}
+
+function rememberNormalBounds(): void {
+  if (!win || win.isDestroyed() || isMaxed() || bouncingOsMax) return
+  if (win.isMaximized() || win.isFullScreen()) return
+  const b = win.getBounds()
+  const wa = screen.getDisplayMatching(b).workArea
+  // OS maximize resizes us to the work area *before* the 'maximize' event. Don't
+  // let that clobber the real windowed rect we restore from.
+  if (Math.abs(b.width - wa.width) <= 2 && Math.abs(b.height - wa.height) <= 2) return
+  lastNormalBounds = { ...b }
+}
+
+function afterOsUnmaximize(fn: () => void): void {
+  let n = 0
+  const tick = (): void => {
+    if (!win || win.isDestroyed()) return
+    if (win.isMaximized() && n++ < 20) {
+      setTimeout(tick, 16)
+      return
+    }
+    fn()
+  }
+  setTimeout(tick, 0)
 }
 
 function unfakeMaximize(): void {
@@ -3362,12 +3393,14 @@ function createWindows(): void {
 
   // keep the OSC + panels + overlay glued to the main window
   win.on('move', () => {
+    rememberNormalBounds()
     layoutOsc()
     layoutPanel('right')
     layoutPanel('left')
     layoutLibrary()
   })
   win.on('resize', () => {
+    rememberNormalBounds()
     layoutOsc()
     updateVideoMargin() // keep the reserved title strip proportional as height changes
     pushPanelWidth() // panel width tracks the window width
@@ -3394,17 +3427,29 @@ function createWindows(): void {
 
   win.once('ready-to-show', () => {
     win?.show()
-    if (win) removeBorderLine(win) // drop the Win11 hairline border (visible in fullscreen)
+    if (win) {
+      removeBorderLine(win) // drop the Win11 hairline border (visible in fullscreen)
+      lastNormalBounds = win.getBounds()
+    }
     startMpv()
   })
   // save volume / bounds / resume position while the window still exists
-  // Aero Snap, Win+Up and a title-bar double-click can still reach the real OS
-  // maximize, which is the thing that kills the acrylic for good. Bounce straight
-  // back out of it and apply ours instead. (unmaximize() here fires 'unmaximize',
-  // which we deliberately don't listen for — we own that transition.)
+  // Aero Snap, Win+Up and a title-bar double-click still hit the real OS maximize
+  // (kills acrylic). Bounce out, then cover the work area ourselves. The restore
+  // rect is applied *after* 'unmaximize', so setBounds in that handler gets
+  // overwritten — wait until isMaximized() is actually false. #9.
   win.on('maximize', () => {
-    win?.unmaximize()
-    fakeMaximize()
+    if (bouncingOsMax) return
+    bouncingOsMax = true
+    const saved = lastNormalBounds ? { ...lastNormalBounds } : null
+    win.unmaximize()
+    afterOsUnmaximize(() => {
+      bouncingOsMax = false
+      fakeMaximize(saved)
+      // Late OS restore can still land after the first setBounds. Re-assert once.
+      const wa = saved ? screen.getDisplayMatching(saved).workArea : null
+      if (wa) setTimeout(() => { if (isMaxed() && win && !win.isDestroyed()) win.setBounds(wa) }, 32)
+    })
   })
 
   win.on('close', () => {
@@ -3849,21 +3894,41 @@ function registerIpc(): void {
   // Swallow expected rejections (mpv not connected yet, or a get_property that's
   // "property unavailable" e.g. chapters on a file with none). The renderer treats
   // a null result the same as an empty/missing value, so no need to surface these.
+  //
+  // frame-step unpauses for one frame; a second step sent before pause returns is
+  // dropped by mpv (especially with hwdec) — taps felt like they needed 2–3 presses.
+  // Serialize and wait until we're paused again so every tap is one frame.
+  let frameStepTail = Promise.resolve()
   ipcMain.handle('mpv:command', async (_e, cmd: any[]) => {
     try {
-      const res = await mpv?.command(cmd)
-      // A paused mpv doesn't reliably push estimated-frame-number while stepping, so
-      // whoever asked for the step would be the only one to learn the new value —
-      // leaving the other windows' readouts stale (the OSC stepped cleanly while the
-      // burn-in in the main window drifted). Pull it once here and broadcast, so
-      // every window updates through the normal property path.
-      if (Array.isArray(cmd) && (cmd[0] === 'frame-step' || cmd[0] === 'frame-back-step')) {
-        const f = await mpv?.command(['get_property', 'estimated-frame-number'])
-        if (typeof f === 'number' && f >= 0) {
-          broadcast('mpv:property', { name: 'estimated-frame-number', data: Math.round(f) })
+      const stepping =
+        Array.isArray(cmd) && (cmd[0] === 'frame-step' || cmd[0] === 'frame-back-step')
+      if (stepping) {
+        const run = async (): Promise<unknown> => {
+          const res = await mpv?.command(cmd)
+          for (let i = 0; i < 40; i++) {
+            try {
+              if ((await mpv?.command(['get_property', 'pause'])) !== false) break
+            } catch {
+              break
+            }
+            await new Promise(r => setTimeout(r, 16))
+          }
+          try {
+            const f = await mpv?.command(['get_property', 'estimated-frame-number'])
+            if (typeof f === 'number' && f >= 0) {
+              broadcast('mpv:property', { name: 'estimated-frame-number', data: Math.round(f) })
+            }
+          } catch {
+            /* property unavailable */
+          }
+          return res
         }
+        const p = frameStepTail.then(run, run)
+        frameStepTail = p.then(() => undefined, () => undefined)
+        return await p
       }
-      return res
+      return await mpv?.command(cmd)
     } catch {
       return null
     }
