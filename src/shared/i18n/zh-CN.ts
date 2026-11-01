@@ -124,6 +124,10 @@ export const zhCN: Partial<Record<Key, string>> = {
   'set.subOutline.label': '描边',
   'set.subOutline.desc': '字幕深色描边的粗细，使字幕在明亮画面上依然清晰。',
   'set.subBold.label': '粗体',
+  'set.subBackground.label': '字幕背景',
+  'set.subBackground.desc':
+    '为无样式的文本字幕添加黑色背景。ASS/SSA 保留原有样式，图像字幕不受影响。',
+  'set.subBackgroundOpacity.label': '背景不透明度',
   'set.subMargin.label': '距底部距离',
   'set.subMargin.desc':
     '全局调整距离视频底部的距离。\n右侧面板的「调整 ▸ 字幕位置」只对当前影片做偏移，不会改变此处的全局设置。',

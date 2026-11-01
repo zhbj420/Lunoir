@@ -134,6 +134,10 @@ export const ko: Partial<Record<Key, string>> = {
   'set.subOutline.desc':
     '밝은 장면에서도 자막을 읽기 쉽게 유지하는 어두운 테두리의 두께.',
   'set.subBold.label': '굵게',
+  'set.subBackground.label': '자막 배경',
+  'set.subBackground.desc':
+    '자체 스타일이 없는 텍스트 자막에 검은 배경을 추가합니다. ASS/SSA 스타일은 유지되며 이미지 자막에는 영향을 주지 않습니다.',
+  'set.subBackgroundOpacity.label': '배경 불투명도',
   'set.subMargin.label': '아래에서의 거리',
   'set.subMargin.desc':
     '기본 위치입니다. 오른쪽 패널의 「조정 ▸ 자막 위치」는 현재 동영상만 이동시키며 이 값은 바꾸지 않습니다.',

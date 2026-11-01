@@ -29,6 +29,8 @@ export interface Settings {
   subSpacing: number // mpv sub-spacing, -10..10
   subBold: boolean
   subOutline: number // mpv sub-outline-size
+  subBackground: boolean // black background box for unstyled text subtitles
+  subBackgroundOpacity: number // 0..100, higher = more opaque
   subMarginY: number // mpv sub-margin-y — resting distance from the bottom edge
   audioPassthrough: boolean // bitstream compressed audio to an external receiver (mpv audio-spdif)
   passthroughCodecs: string // which formats to passthrough (comma list: ac3,eac3,truehd,dts,dts-hd)
