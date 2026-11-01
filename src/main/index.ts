@@ -15,6 +15,7 @@ import {
   savePosition,
   clearPosition,
   getAudioSelection,
+  getAudioFiles,
   saveAudioSelection,
   getSubtitleSelection,
   getSubtitleFiles,
@@ -1160,7 +1161,52 @@ function langMatches(pref: string, lang: string): boolean {
 // file is open, and the lookup is async, so whichever lands second does the work
 let pendingSubs: { target: string; subs: ExternalSub[] } | null = null
 let loadedTarget = '' // what mpv most recently reported as loaded
+let audioRevision = 0 // invalidate async restores/dialogs when the file or choice changes
 let subtitleRevision = 0 // invalidate async restores/dialogs when the file or choice changes
+
+async function restoreAudioSelection(): Promise<void> {
+  const revision = audioRevision
+  const key = resumePath
+  const audio = key ? getAudioSelection(key) : undefined
+  if (!mpv || !key || !audio) return
+  try {
+    // Query the current file: the observed track-list may still describe the last one.
+    const tracks = await mpv.command(['get_property', 'track-list'])
+    if (revision !== audioRevision || key !== resumePath) return
+    let list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    let added = false
+    for (const path of getAudioFiles(key)) {
+      if (revision !== audioRevision || key !== resumePath) return
+      if (!isUrl(path) && !existsSync(path)) continue
+      if (list.some(t => t.type === 'audio' && t.external && t['external-filename'] === path)) continue
+      try {
+        // Restore attachments without selecting them, so an embedded choice stays active.
+        await mpv.command(['audio-add', path, 'auto'])
+        added = true
+      } catch {
+        /* one unreadable file must not prevent restoring the remaining tracks */
+      }
+    }
+    if (revision !== audioRevision || key !== resumePath) return
+    if (added) {
+      const tracks = await mpv.command(['get_property', 'track-list'])
+      if (revision !== audioRevision || key !== resumePath) return
+      list = Array.isArray(tracks) ? (tracks as Array<Record<string, unknown>>) : []
+    }
+    if (audio.type === 'embedded') {
+      // A replaced video may no longer contain the saved track.
+      if (list.some(t => t.type === 'audio' && !t.external && t.id === audio.id)) {
+        mpv.setProperty('aid', audio.id)
+      }
+    } else {
+      // Use the current id, which can change with the order external tracks load in.
+      const track = list.find(t => t.type === 'audio' && t.external && t['external-filename'] === audio.path)
+      if (track) mpv.setProperty('aid', track.id)
+    }
+  } catch {
+    /* missing/unreadable audio or a file switch — keep mpv's default choice */
+  }
+}
 
 function restorableSubtitle(tracks: Array<Record<string, unknown>>): SubtitleSelection | undefined {
   const sub = resumePath ? getSubtitleSelection(resumePath) : undefined
@@ -3703,7 +3749,10 @@ function startMpv(): void {
     }
   })
   mpv.on('mpv-event', (event: string, msg?: { reason?: string }) => {
-    if (event === 'start-file' || event === 'end-file') subtitleRevision++
+    if (event === 'start-file' || event === 'end-file') {
+      audioRevision++
+      subtitleRevision++
+    }
     broadcast('mpv:event', event)
     if (event === 'end-file') {
       broadcast('ui:loading', false)
@@ -3735,15 +3784,8 @@ function startMpv(): void {
       loadedTarget = playlist[plIndex] || ''
       flushPendingSubs(loadedTarget) // Emby's sidecar subs, if the lookup beat the load
       void restoreSubtitleSelection()
-      // Restore the viewer's per-file audio choice before seeking. An external
-      // track joins mpv's current timeline, so the following resume seek moves
-      // picture and both audio kinds to the same saved position.
-      const audio = resumePath ? getAudioSelection(resumePath) : undefined
-      if (audio?.type === 'embedded') {
-        mpv?.setProperty('aid', audio.id)
-      } else if (audio?.type === 'external' && existsSync(audio.path)) {
-        mpv?.command(['audio-add', audio.path, 'select']).catch(() => {})
-      }
+      // External tracks join the current timeline, even if the resume seek finishes first.
+      void restoreAudioSelection()
       if (getSettings().resumePlayback && resumePath && canResume()) {
         const pos = getPosition(resumePath)
         if (typeof pos === 'number' && pos > 5) {
@@ -3946,18 +3988,22 @@ function registerIpc(): void {
   ipcMain.on('playlist:remove-multi', (_e, indices: number[]) => removePlaylistItems(indices))
   ipcMain.on('playlist:repeat-cycle', () => cycleRepeat())
   ipcMain.on('audio:select', (_e, id: number) => {
-    if (!Number.isInteger(id)) return
-    mpv?.setProperty('aid', id)
-    if (!resumePath) return
+    if (!mpv || !resumePath || !Number.isInteger(id)) return
     const track = lastTracks.find(t => t.type === 'audio' && t.id === id)
-    const externalPath = track?.['external-filename']
-    if (track?.external === true && typeof externalPath === 'string' && externalPath) {
-      saveAudioSelection(resumePath, { type: 'external', path: externalPath })
+    if (!track) return
+    audioRevision++
+    mpv.setProperty('aid', id)
+    if (track.external) {
+      const path = track['external-filename']
+      if (typeof path === 'string' && path) saveAudioSelection(resumePath, { type: 'external', path })
     } else {
       saveAudioSelection(resumePath, { type: 'embedded', id })
     }
   })
   ipcMain.on('audio:add', async () => {
+    const key = resumePath
+    const revision = audioRevision
+    if (!mpv || !key) return
     const res = await dialog.showOpenDialog(win!, {
       title: tr('dlg.addAudio'),
       properties: ['openFile'],
@@ -3972,13 +4018,14 @@ function registerIpc(): void {
         { name: tr('dlg.filter.allFiles'), extensions: ['*'] }
       ]
     })
-    if (!res.canceled && res.filePaths[0]) {
+    if (!res.canceled && res.filePaths[0] && key === resumePath && revision === audioRevision) {
+      const selectionRevision = ++audioRevision
       try {
         // mpv aligns an external track to the current playback timeline, so adding
         // it halfway through a video starts it at the matching position.
-        await mpv?.command(['audio-add', res.filePaths[0], 'select'])
-        if (resumePath) {
-          saveAudioSelection(resumePath, { type: 'external', path: res.filePaths[0] })
+        await mpv.command(['audio-add', res.filePaths[0], 'select'])
+        if (key === resumePath && selectionRevision === audioRevision) {
+          saveAudioSelection(key, { type: 'external', path: res.filePaths[0] })
         }
       } catch {
         /* ignore */

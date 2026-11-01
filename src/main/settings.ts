@@ -145,7 +145,7 @@ export type AudioSelection =
   | { type: 'embedded'; id: number }
   | { type: 'external'; path: string }
 
-type AudioSelections = Record<string, AudioSelection>
+type AudioSelections = Record<string, AudioSelection & { externalPaths?: string[] }>
 let audioCache: AudioSelections | null = null
 const audioFile = (): string => join(app.getPath('userData'), 'audio-selections.json')
 
@@ -159,8 +159,8 @@ function audioSelections(): AudioSelections {
         if (!value || typeof value !== 'object') return false
         const selection = value as Record<string, unknown>
         return (
-          (selection.type === 'embedded' && typeof selection.id === 'number') ||
-          (selection.type === 'external' && typeof selection.path === 'string')
+          (selection.type === 'embedded' && Number.isInteger(selection.id) && Number(selection.id) > 0) ||
+          (selection.type === 'external' && typeof selection.path === 'string' && !!selection.path)
         )
       })
     )
@@ -174,8 +174,22 @@ export function getAudioSelection(path: string): AudioSelection | undefined {
   return audioSelections()[path]
 }
 
+export function getAudioFiles(path: string): string[] {
+  const audio = audioSelections()[path]
+  const files = Array.isArray(audio?.externalPaths)
+    ? audio.externalPaths.filter(p => typeof p === 'string' && !!p)
+    : []
+  // Older records only stored the selected file. Keep it when switching to an
+  // embedded track, even before that record has been written in the new format.
+  if (audio?.type === 'external') files.push(audio.path)
+  return [...new Set(files)]
+}
+
 export function saveAudioSelection(path: string, selection: AudioSelection): void {
-  audioSelections()[path] = selection
+  // Attached files belong to the video, independently of which track is selected.
+  const externalPaths = getAudioFiles(path)
+  if (selection.type === 'external') externalPaths.push(selection.path)
+  audioSelections()[path] = { ...selection, externalPaths: [...new Set(externalPaths)] }
   try {
     writeFileSync(audioFile(), JSON.stringify(audioSelections()))
   } catch {
