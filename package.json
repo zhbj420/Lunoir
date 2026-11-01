@@ -1,7 +1,7 @@
 {
   "name": "lunoir",
   "productName": "Lunoir",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "Lunoir Media Player",
   "main": "out/main/index.js",
   "author": "Yao666",
